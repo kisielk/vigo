@@ -7,7 +7,6 @@ import (
 	"github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
 	"os"
-	"path/filepath"
 	"strconv"
 )
 
@@ -103,26 +102,6 @@ func (g *editor) find_buffer_by_full_path(path string) *buffer {
 		}
 	}
 	return nil
-}
-
-func (g *editor) open_buffers_from_pattern(pattern string) {
-	matches, err := filepath.Glob(pattern)
-	if err != nil {
-		panic(err)
-	}
-
-	var buf *buffer
-	for _, match := range matches {
-		buf, _ = g.new_buffer_from_file(match)
-	}
-	if buf == nil {
-		buf, _ = g.new_buffer_from_file(pattern)
-	}
-	if buf == nil {
-		buf = new_empty_buffer()
-		buf.name = g.buffer_name("unnamed")
-	}
-	g.active.leaf.attach(buf)
 }
 
 func (g *editor) buffer_name_exists(name string) bool {
@@ -287,7 +266,7 @@ func (g *editor) draw() {
 		// this can be true, only when g.overlay != nil, see above
 		cx, cy = g.overlay.cursor_position()
 	} else {
-		cx, cy = g.cursor_position()
+		cx, cy = g.cursorPosition()
 	}
 	termbox.SetCursor(cx, cy)
 }
@@ -378,7 +357,8 @@ func (g *editor) fix_edges(v *view_tree) {
 	}
 }
 
-func (g *editor) cursor_position() (int, int) {
+// cursorPosition returns the absolute screen coordinates of the cursor
+func (g *editor) cursorPosition() (int, int) {
 	x, y := g.active.leaf.cursor_position()
 	return g.active.X + x, g.active.Y + y
 }
@@ -394,11 +374,6 @@ func (g *editor) onSysKey(ev *termbox.Event) {
 	case termbox.KeyCtrlZ:
 		suspend(g)
 	}
-}
-
-func (g *editor) onKey(ev *termbox.Event) {
-	v := g.active.leaf
-	v.onKey(ev)
 }
 
 // Loop starts the editor main loop
