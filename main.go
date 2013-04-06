@@ -49,5 +49,7 @@ func main() {
 	editor.draw()
 	termbox.SetCursor(editor.cursor_position())
 	termbox.Flush()
-	editor.Loop()
+	if err := editor.Loop(); err != ErrQuit {
+		panic(err)
+	}
 }

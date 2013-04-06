@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
@@ -9,6 +10,8 @@ import (
 	"path/filepath"
 	"strconv"
 )
+
+var ErrQuit = errors.New("quit")
 
 type editor struct {
 	uibuf             tulib.Buffer
@@ -398,8 +401,8 @@ func (g *editor) onKey(ev *termbox.Event) {
 	v.onKey(ev)
 }
 
-// Start the editor main loop
-func (g *editor) Loop() {
+// Loop starts the editor main loop
+func (g *editor) Loop() error {
 	g.termbox_event = make(chan termbox.Event, 20)
 	go func() {
 		for {
@@ -409,33 +412,35 @@ func (g *editor) Loop() {
 	for {
 		select {
 		case ev := <-g.termbox_event:
-			ok := g.handleEvent(&ev)
-			if !ok {
-				return
+			err := g.handleEvent(&ev)
+			if err != nil {
+				return err
 			}
-			g.consume_more_events()
+			if err := g.consumeEvents(); err != nil {
+				return err
+			}
 			g.draw()
 			termbox.Flush()
 		}
 	}
 }
 
-func (g *editor) consume_more_events() bool {
+// consumeEvents consumes terminal events until there are no more in the channel
+func (g *editor) consumeEvents() error {
 	for {
 		select {
 		case ev := <-g.termbox_event:
-			ok := g.handleEvent(&ev)
-			if !ok {
-				return false
+			err := g.handleEvent(&ev)
+			if err != nil {
+				return err
 			}
 		default:
-			return true
+			return nil
 		}
 	}
-	panic("unreachable")
 }
 
-func (g *editor) handleEvent(ev *termbox.Event) bool {
+func (g *editor) handleEvent(ev *termbox.Event) error {
 	switch ev.Type {
 	case termbox.EventKey:
 		g.set_status("") // reset status on every key event
@@ -443,7 +448,7 @@ func (g *editor) handleEvent(ev *termbox.Event) bool {
 		g.Mode.onKey(ev)
 
 		if g.quitflag {
-			return false
+			return ErrQuit
 		}
 	case termbox.EventResize:
 		termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
@@ -452,14 +457,14 @@ func (g *editor) handleEvent(ev *termbox.Event) bool {
 			g.overlay.on_resize(ev)
 		}
 	case termbox.EventError:
-		panic(ev.Err)
+		return ev.Err
 	}
 
 	// just dump the current view location from the view to the buffer
 	// after each event, it's cheap and does what it needs to be done
 	v := g.active.leaf
 	v.buf.loc = v.view_location
-	return true
+	return nil
 }
 
 func (g *editor) setMode(m overlay_mode) {
