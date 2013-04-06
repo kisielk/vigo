@@ -21,7 +21,7 @@ func init_extended_mode(godit *godit) extended_mode {
 	return e
 }
 
-func (e extended_mode) on_key(ev *termbox.Event) {
+func (e extended_mode) onKey(ev *termbox.Event) {
 	g := e.godit
 	v := g.active.leaf
 	b := v.buf

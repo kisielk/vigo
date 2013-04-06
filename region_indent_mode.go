@@ -38,7 +38,7 @@ func (r region_indent_mode) exit() {
 	v.dirty = dirty_everything
 }
 
-func (r region_indent_mode) on_key(ev *termbox.Event) {
+func (r region_indent_mode) onKey(ev *termbox.Event) {
 	g := r.godit
 	v := g.active.leaf
 	beg, end := v.line_region()
@@ -56,7 +56,7 @@ func (r region_indent_mode) on_key(ev *termbox.Event) {
 	}
 
 	g.set_overlay_mode(nil)
-	g.on_key(ev)
+	g.onKey(ev)
 	return
 
 update_tag:

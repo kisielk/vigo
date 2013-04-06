@@ -18,7 +18,7 @@ func NewNormalMode(godit *godit) NormalMode {
 	return m
 }
 
-func (m NormalMode) on_key(ev *termbox.Event) {
+func (m NormalMode) onKey(ev *termbox.Event) {
 	g := m.godit
 	v := g.active.leaf
 

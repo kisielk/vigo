@@ -1163,7 +1163,7 @@ func (v *view) on_vcommand(cmd vcommand, arg rune) {
 	v.last_vcommand = cmd
 }
 
-func (v *view) on_key(ev *termbox.Event) {
+func (v *view) onKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyCtrlF, termbox.KeyArrowRight:
 		v.on_vcommand(vcommand_move_cursor_forward, 0)
@@ -1601,12 +1601,12 @@ func (v *view) fill_region(maxv int, prefix []byte) {
 				buf.Write(word)
 				buf.WriteString(" ")
 			})
-			offset += i+1
+			offset += i + 1
 		}
 	}
 	// just in case if there were unnecessary space at the end, clean it up
 	if buf.Len() > 0 && buf.Bytes()[buf.Len()-1] == ' ' {
-		buf.Truncate(buf.Len()-1)
+		buf.Truncate(buf.Len() - 1)
 	}
 
 	offset = 0
@@ -1648,7 +1648,7 @@ func (v *view) fill_region(maxv int, prefix []byte) {
 		} else {
 			out.Write(data[:lastspacei])
 			out.WriteString("\n")
-			offset += lastspacei+1
+			offset += lastspacei + 1
 		}
 	}
 

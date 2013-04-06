@@ -57,7 +57,7 @@ func (a *autocomplete_mode) substitute_next() {
 	view.finalize_action_group()
 }
 
-func (a *autocomplete_mode) on_key(ev *termbox.Event) {
+func (a *autocomplete_mode) onKey(ev *termbox.Event) {
 	g := a.godit
 	if ev.Mod&termbox.ModAlt != 0 && ev.Ch == '/' {
 		a.substitute_next()
@@ -65,5 +65,5 @@ func (a *autocomplete_mode) on_key(ev *termbox.Event) {
 	}
 
 	g.set_overlay_mode(nil)
-	g.on_key(ev)
+	g.onKey(ev)
 }

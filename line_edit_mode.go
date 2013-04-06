@@ -36,11 +36,11 @@ func (l *line_edit_mode) exit() {
 	}
 }
 
-func (l *line_edit_mode) on_key(ev *termbox.Event) {
+func (l *line_edit_mode) onKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyEnter, termbox.KeyCtrlJ:
 		if l.lineview.ac != nil {
-			l.lineview.on_key(ev)
+			l.lineview.onKey(ev)
 			if !l.init_autocompl {
 				break
 			}
@@ -55,7 +55,7 @@ func (l *line_edit_mode) on_key(ev *termbox.Event) {
 	case termbox.KeyTab:
 		l.lineview.on_vcommand(vcommand_autocompl_init, 0)
 	default:
-		l.lineview.on_key(ev)
+		l.lineview.onKey(ev)
 	}
 }
 

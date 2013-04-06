@@ -17,7 +17,7 @@ func init_macro_repeat_mode(godit *godit) macro_repeat_mode {
 	return m
 }
 
-func (m macro_repeat_mode) on_key(ev *termbox.Event) {
+func (m macro_repeat_mode) onKey(ev *termbox.Event) {
 	g := m.godit
 	if ev.Mod == 0 && ev.Ch == 'e' {
 		g.set_overlay_mode(nil)
@@ -28,5 +28,5 @@ func (m macro_repeat_mode) on_key(ev *termbox.Event) {
 	}
 
 	g.set_overlay_mode(nil)
-	g.on_key(ev)
+	g.onKey(ev)
 }

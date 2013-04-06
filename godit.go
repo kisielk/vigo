@@ -446,7 +446,7 @@ func (g *godit) on_alt_key(ev *termbox.Event) bool {
 	return false
 }
 
-func (g *godit) on_key(ev *termbox.Event) {
+func (g *godit) onKey(ev *termbox.Event) {
 	v := g.active.leaf
 	switch ev.Key {
 	case termbox.KeyCtrlX:
@@ -459,7 +459,7 @@ func (g *godit) on_key(ev *termbox.Event) {
 		if ev.Mod&termbox.ModAlt != 0 && g.on_alt_key(ev) {
 			break
 		}
-		v.on_key(ev)
+		v.onKey(ev)
 	}
 }
 
@@ -504,7 +504,7 @@ func (g *godit) handleEvent(ev *termbox.Event) bool {
 	case termbox.EventKey:
 		g.set_status("") // reset status on every key event
 		g.on_sys_key(ev)
-		g.Mode.on_key(ev)
+		g.Mode.onKey(ev)
 
 		if g.quitflag {
 			return false

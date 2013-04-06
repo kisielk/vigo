@@ -130,7 +130,7 @@ func (v view_op_mode) needs_cursor() bool {
 	return true
 }
 
-func (v view_op_mode) on_key(ev *termbox.Event) {
+func (v view_op_mode) onKey(ev *termbox.Event) {
 	g := v.godit
 	if ev.Ch != 0 {
 		leaf := v.select_name(ev.Ch)

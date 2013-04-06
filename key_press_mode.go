@@ -22,7 +22,7 @@ func init_key_press_mode(godit *godit, actions map[rune]func(), def rune, prompt
 	return k
 }
 
-func (k *key_press_mode) on_key(ev *termbox.Event) {
+func (k *key_press_mode) onKey(ev *termbox.Event) {
 	if ev.Mod != 0 {
 		return
 	}

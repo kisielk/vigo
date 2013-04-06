@@ -15,6 +15,6 @@ func NewCommandMode(godit *godit) CommandMode {
 	return m
 }
 
-func (m CommandMode) on_key(ev *termbox.Event) {
+func (m CommandMode) onKey(ev *termbox.Event) {
 
 }

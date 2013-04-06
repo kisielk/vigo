@@ -161,7 +161,7 @@ func (m *isearch_mode) advance_search() {
 	m.search(true)
 }
 
-func (m *isearch_mode) on_key(ev *termbox.Event) {
+func (m *isearch_mode) onKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyCtrlR:
 		if !m.backward {
@@ -176,7 +176,7 @@ func (m *isearch_mode) on_key(ev *termbox.Event) {
 		}
 		m.advance_search()
 	default:
-		m.line_edit_mode.on_key(ev)
+		m.line_edit_mode.onKey(ev)
 	}
 
 	new_word := m.linebuf.first_line.data

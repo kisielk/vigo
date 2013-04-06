@@ -15,7 +15,7 @@ func NewInsertMode(godit *godit) InsertMode {
 	return m
 }
 
-func (m InsertMode) on_key(ev *termbox.Event) {
+func (m InsertMode) onKey(ev *termbox.Event) {
 	g := m.godit
 	v := g.active.leaf
 
@@ -23,6 +23,6 @@ func (m InsertMode) on_key(ev *termbox.Event) {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
 		g.setMode(NewNormalMode(g))
 	default:
-		v.on_key(ev)
+		v.onKey(ev)
 	}
 }

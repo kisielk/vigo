@@ -14,7 +14,7 @@ type overlay_mode interface {
 	exit()
 	draw()
 	on_resize(ev *termbox.Event)
-	on_key(ev *termbox.Event)
+	onKey(ev *termbox.Event)
 }
 
 type stub_overlay_mode struct{}
@@ -24,4 +24,4 @@ func (stub_overlay_mode) cursor_position() (int, int) { return -1, -1 }
 func (stub_overlay_mode) exit()                       {}
 func (stub_overlay_mode) draw()                       {}
 func (stub_overlay_mode) on_resize(ev *termbox.Event) {}
-func (stub_overlay_mode) on_key(ev *termbox.Event)    {}
+func (stub_overlay_mode) onKey(ev *termbox.Event)     {}

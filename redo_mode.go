@@ -14,7 +14,7 @@ func init_redo_mode(godit *godit) redo_mode {
 	return r
 }
 
-func (r redo_mode) on_key(ev *termbox.Event) {
+func (r redo_mode) onKey(ev *termbox.Event) {
 	g := r.godit
 	v := g.active.leaf
 	if ev.Mod == 0 && ev.Key == termbox.KeyCtrlSlash {
@@ -23,5 +23,5 @@ func (r redo_mode) on_key(ev *termbox.Event) {
 	}
 
 	g.set_overlay_mode(nil)
-	g.on_key(ev)
+	g.onKey(ev)
 }
