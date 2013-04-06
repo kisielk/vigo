@@ -9,17 +9,17 @@ import (
 
 type NormalMode struct {
 	stub_overlay_mode
-	godit *godit
+	editor *editor
 }
 
-func NewNormalMode(godit *godit) NormalMode {
-	m := NormalMode{godit: godit}
-	m.godit.set_status("Normal")
+func NewNormalMode(editor *editor) NormalMode {
+	m := NormalMode{editor: editor}
+	m.editor.set_status("Normal")
 	return m
 }
 
 func (m NormalMode) onKey(ev *termbox.Event) {
-	g := m.godit
+	g := m.editor
 	v := g.active.leaf
 
 	switch ev.Ch {

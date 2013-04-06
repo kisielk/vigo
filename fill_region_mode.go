@@ -6,7 +6,7 @@ import (
 )
 
 type fill_region_context struct {
-	g      *godit
+	g      *editor
 	prefix []byte
 	maxv   int
 }
@@ -54,9 +54,9 @@ func (f *fill_region_context) prefix_lemp() line_edit_mode_params {
 	}
 }
 
-func init_fill_region_mode(godit *godit) *line_edit_mode {
-	v := godit.active.leaf
-	f := fill_region_context{g: godit, maxv: 80}
+func init_fill_region_mode(editor *editor) *line_edit_mode {
+	v := editor.active.leaf
+	f := fill_region_context{g: editor, maxv: 80}
 	beg, _ := v.line_region()
 	data := beg.line.data
 	data = data[index_first_non_space(data):]
@@ -65,5 +65,5 @@ func init_fill_region_mode(godit *godit) *line_edit_mode {
 			f.prefix = prefix
 		}
 	}
-	return init_line_edit_mode(godit, f.prefix_lemp())
+	return init_line_edit_mode(editor, f.prefix_lemp())
 }

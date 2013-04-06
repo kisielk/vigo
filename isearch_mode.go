@@ -22,7 +22,7 @@ type isearch_mode struct {
 	prompt_wrapped []byte
 }
 
-func init_isearch_mode(g *godit, backward bool) *isearch_mode {
+func init_isearch_mode(g *editor, backward bool) *isearch_mode {
 	v := g.active.leaf
 	m := new(isearch_mode)
 	m.last_word = make([]byte, 0, 32)
@@ -61,7 +61,7 @@ func (m *isearch_mode) set_prompt(prompt []byte) {
 }
 
 func (m *isearch_mode) search(next bool) {
-	v := m.godit.active.leaf
+	v := m.editor.active.leaf
 	v.finalize_action_group()
 	v.last_vcommand = vcommand_move_cursor_forward
 
@@ -117,7 +117,7 @@ func (m *isearch_mode) search(next bool) {
 }
 
 func (m *isearch_mode) restore_previous_isearch_maybe() {
-	lw := m.godit.isearch_last_word
+	lw := m.editor.isearch_last_word
 	if len(lw) == 0 {
 		return
 	}
@@ -132,7 +132,7 @@ func (m *isearch_mode) restore_previous_isearch_maybe() {
 }
 
 func (m *isearch_mode) wrap_location() cursor_location {
-	v := m.godit.active.leaf
+	v := m.editor.active.leaf
 	if m.backward {
 		return cursor_location{
 			line:     v.buf.last_line,
@@ -184,6 +184,6 @@ func (m *isearch_mode) onKey(ev *termbox.Event) {
 		return
 	}
 	m.last_word = copy_byte_slice(m.last_word, new_word)
-	m.godit.isearch_last_word = copy_byte_slice(m.godit.isearch_last_word, new_word)
+	m.editor.isearch_last_word = copy_byte_slice(m.editor.isearch_last_word, new_word)
 	m.search(false)
 }

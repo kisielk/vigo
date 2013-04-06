@@ -6,19 +6,19 @@ import (
 
 type macro_repeat_mode struct {
 	stub_overlay_mode
-	godit *godit
+	editor *editor
 }
 
-func init_macro_repeat_mode(godit *godit) macro_repeat_mode {
-	m := macro_repeat_mode{godit: godit}
-	godit.set_overlay_mode(nil)
-	m.godit.replay_macro()
-	m.godit.set_status("(Type e to repeat macro)")
+func init_macro_repeat_mode(editor *editor) macro_repeat_mode {
+	m := macro_repeat_mode{editor: editor}
+	editor.set_overlay_mode(nil)
+	m.editor.replay_macro()
+	m.editor.set_status("(Type e to repeat macro)")
 	return m
 }
 
 func (m macro_repeat_mode) onKey(ev *termbox.Event) {
-	g := m.godit
+	g := m.editor
 	if ev.Mod == 0 && ev.Ch == 'e' {
 		g.set_overlay_mode(nil)
 		g.replay_macro()

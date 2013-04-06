@@ -12,17 +12,17 @@ import (
 
 type extended_mode struct {
 	stub_overlay_mode
-	godit *godit
+	editor *editor
 }
 
-func init_extended_mode(godit *godit) extended_mode {
-	e := extended_mode{godit: godit}
-	e.godit.set_status("C-x")
+func init_extended_mode(editor *editor) extended_mode {
+	e := extended_mode{editor: editor}
+	e.editor.set_status("C-x")
 	return e
 }
 
 func (e extended_mode) onKey(ev *termbox.Event) {
-	g := e.godit
+	g := e.editor
 	v := g.active.leaf
 	b := v.buf
 

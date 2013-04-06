@@ -6,12 +6,12 @@ import (
 
 type region_indent_mode struct {
 	stub_overlay_mode
-	godit *godit
+	editor *editor
 }
 
-func init_region_indent_mode(godit *godit, dir int) region_indent_mode {
-	v := godit.active.leaf
-	r := region_indent_mode{godit: godit}
+func init_region_indent_mode(editor *editor, dir int) region_indent_mode {
+	v := editor.active.leaf
+	r := region_indent_mode{editor: editor}
 
 	beg, end := v.line_region()
 	if dir > 0 {
@@ -28,18 +28,18 @@ func init_region_indent_mode(godit *godit, dir int) region_indent_mode {
 		bg:         termbox.ColorBlue,
 	})
 	v.dirty = dirty_everything
-	godit.set_status("(Type > or < to indent/deindent respectively)")
+	editor.set_status("(Type > or < to indent/deindent respectively)")
 	return r
 }
 
 func (r region_indent_mode) exit() {
-	v := r.godit.active.leaf
+	v := r.editor.active.leaf
 	v.set_tags()
 	v.dirty = dirty_everything
 }
 
 func (r region_indent_mode) onKey(ev *termbox.Event) {
-	g := r.godit
+	g := r.editor
 	v := g.active.leaf
 	beg, end := v.line_region()
 	if ev.Mod == 0 {

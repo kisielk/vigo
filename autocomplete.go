@@ -409,17 +409,17 @@ func gocode_ac(view *view) ([]ac_proposal, int) {
 // buffer autocompletion
 //----------------------------------------------------------------------------
 
-func make_godit_buffer_ac_decide(godit *godit) ac_decide_func {
+func make_godit_buffer_ac_decide(editor *editor) ac_decide_func {
 	return func(view *view) ac_func {
-		return make_godit_buffer_ac(godit)
+		return make_godit_buffer_ac(editor)
 	}
 }
 
-func make_godit_buffer_ac(godit *godit) ac_func {
+func make_godit_buffer_ac(editor *editor) ac_func {
 	return func(view *view) ([]ac_proposal, int) {
 		prefix := string(view.buf.contents()[:view.cursor.boffset])
 		proposals := make([]ac_proposal, 0, 20)
-		for _, buf := range godit.buffers {
+		for _, buf := range editor.buffers {
 			if strings.HasPrefix(buf.name, prefix) {
 				display := make([]byte, len(buf.name), len(buf.name)+5)
 				content := display

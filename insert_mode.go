@@ -6,17 +6,17 @@ import (
 
 type InsertMode struct {
 	stub_overlay_mode
-	godit *godit
+	editor *editor
 }
 
-func NewInsertMode(godit *godit) InsertMode {
-	m := InsertMode{godit: godit}
-	m.godit.set_status("Insert")
+func NewInsertMode(editor *editor) InsertMode {
+	m := InsertMode{editor: editor}
+	m.editor.set_status("Insert")
 	return m
 }
 
 func (m InsertMode) onKey(ev *termbox.Event) {
-	g := m.godit
+	g := m.editor
 	v := g.active.leaf
 
 	switch ev.Key {

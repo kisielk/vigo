@@ -6,19 +6,19 @@ import (
 
 type key_press_mode struct {
 	stub_overlay_mode
-	godit   *godit
+	editor  *editor
 	actions map[rune]func()
 	def     rune
 	prompt  string
 }
 
-func init_key_press_mode(godit *godit, actions map[rune]func(), def rune, prompt string) *key_press_mode {
+func init_key_press_mode(editor *editor, actions map[rune]func(), def rune, prompt string) *key_press_mode {
 	k := new(key_press_mode)
-	k.godit = godit
+	k.editor = editor
 	k.actions = actions
 	k.def = def
 	k.prompt = prompt
-	k.godit.set_status(prompt)
+	k.editor.set_status(prompt)
 	return k
 }
 
@@ -35,8 +35,8 @@ func (k *key_press_mode) onKey(ev *termbox.Event) {
 	action, ok := k.actions[ch]
 	if ok {
 		action()
-		k.godit.set_overlay_mode(nil)
+		k.editor.set_overlay_mode(nil)
 	} else {
-		k.godit.set_status(k.prompt)
+		k.editor.set_status(k.prompt)
 	}
 }

@@ -5,7 +5,7 @@ import (
 	"syscall"
 )
 
-func suspend(g *godit) {
+func suspend(g *editor) {
 	// finalize termbox
 	termbox.Close()
 

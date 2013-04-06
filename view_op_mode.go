@@ -11,21 +11,21 @@ import (
 
 type view_op_mode struct {
 	stub_overlay_mode
-	godit *godit
+	editor *editor
 }
 
 const view_names = `1234567890abcdefgijlmnpqrstuwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ`
 
 var view_op_mode_name = []byte("view operations mode")
 
-func init_view_op_mode(godit *godit) view_op_mode {
+func init_view_op_mode(editor *editor) view_op_mode {
 	termbox.HideCursor()
-	v := view_op_mode{godit: godit}
+	v := view_op_mode{editor: editor}
 	return v
 }
 
 func (v view_op_mode) draw() {
-	g := v.godit
+	g := v.editor
 	r := g.uibuf.Rect
 	r.Y = r.Height - 1
 	r.Height = 1
@@ -110,7 +110,7 @@ func (v view_op_mode) draw() {
 }
 
 func (v view_op_mode) select_name(ch rune) *view_tree {
-	g := v.godit
+	g := v.editor
 	sel := (*view_tree)(nil)
 	name := 0
 	g.views.traverse(func(leaf *view_tree) {
@@ -131,7 +131,7 @@ func (v view_op_mode) needs_cursor() bool {
 }
 
 func (v view_op_mode) onKey(ev *termbox.Event) {
-	g := v.godit
+	g := v.editor
 	if ev.Ch != 0 {
 		leaf := v.select_name(ev.Ch)
 		if leaf != nil {

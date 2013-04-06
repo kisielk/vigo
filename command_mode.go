@@ -6,12 +6,12 @@ import (
 
 type CommandMode struct {
 	stub_overlay_mode
-	godit *godit
+	editor *editor
 }
 
-func NewCommandMode(godit *godit) CommandMode {
-	m := CommandMode{godit: godit}
-	m.godit.set_status("Command")
+func NewCommandMode(editor *editor) CommandMode {
+	m := CommandMode{editor: editor}
+	m.editor.set_status("Command")
 	return m
 }
 
