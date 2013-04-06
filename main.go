@@ -42,7 +42,7 @@ func main() {
 		panic(err)
 	}
 	defer termbox.Close()
-	termbox.SetInputMode(termbox.InputAlt)
+	termbox.SetInputMode(termbox.InputEsc)
 
 	editor := NewEditor(os.Args[1:])
 	editor.resize()
