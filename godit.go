@@ -44,7 +44,7 @@ func main() {
 	defer termbox.Close()
 	termbox.SetInputMode(termbox.InputAlt)
 
-	editor := new_godit(os.Args[1:])
+	editor := NewEditor(os.Args[1:])
 	editor.resize()
 	editor.draw()
 	termbox.SetCursor(editor.cursor_position())

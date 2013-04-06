@@ -30,7 +30,7 @@ type editor struct {
 	Mode overlay_mode
 }
 
-func new_godit(filenames []string) *editor {
+func NewEditor(filenames []string) *editor {
 	g := new(editor)
 	g.buffers = make([]*buffer, 0, 20)
 	for _, filename := range filenames {
