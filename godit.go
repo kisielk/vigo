@@ -418,7 +418,7 @@ func (g *godit) cursor_position() (int, int) {
 	return g.active.X + x, g.active.Y + y
 }
 
-func (g *godit) on_sys_key(ev *termbox.Event) {
+func (g *godit) onSysKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyCtrlQ:
 		v := g.active.leaf
@@ -431,39 +431,13 @@ func (g *godit) on_sys_key(ev *termbox.Event) {
 	}
 }
 
-func (g *godit) on_alt_key(ev *termbox.Event) bool {
-	switch ev.Ch {
-	case 'g':
-		g.set_overlay_mode(init_line_edit_mode(g, g.goto_line_lemp()))
-		return true
-	case '/':
-		g.set_overlay_mode(init_autocomplete_mode(g))
-		return true
-	case 'q':
-		g.set_overlay_mode(init_fill_region_mode(g))
-		return true
-	}
-	return false
-}
-
 func (g *godit) onKey(ev *termbox.Event) {
 	v := g.active.leaf
-	switch ev.Key {
-	case termbox.KeyCtrlX:
-		g.set_overlay_mode(init_extended_mode(g))
-	case termbox.KeyCtrlS:
-		g.set_overlay_mode(init_isearch_mode(g, false))
-	case termbox.KeyCtrlR:
-		g.set_overlay_mode(init_isearch_mode(g, true))
-	default:
-		if ev.Mod&termbox.ModAlt != 0 && g.on_alt_key(ev) {
-			break
-		}
-		v.onKey(ev)
-	}
+	v.onKey(ev)
 }
 
-func (g *godit) main_loop() {
+// Start the editor main loop
+func (g *godit) Loop() {
 	g.termbox_event = make(chan termbox.Event, 20)
 	go func() {
 		for {
@@ -503,7 +477,7 @@ func (g *godit) handleEvent(ev *termbox.Event) bool {
 	switch ev.Type {
 	case termbox.EventKey:
 		g.set_status("") // reset status on every key event
-		g.on_sys_key(ev)
+		g.onSysKey(ev)
 		g.Mode.onKey(ev)
 
 		if g.quitflag {
@@ -762,5 +736,5 @@ func main() {
 	godit.draw()
 	termbox.SetCursor(godit.cursor_position())
 	termbox.Flush()
-	godit.main_loop()
+	godit.Loop()
 }
