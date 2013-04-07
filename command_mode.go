@@ -5,6 +5,10 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+const (
+	cursorChar = "\u258D"
+)
+
 type CommandMode struct {
 	editor *editor
 	mode   EditorMode
@@ -13,7 +17,7 @@ type CommandMode struct {
 
 func NewCommandMode(editor *editor, mode EditorMode) CommandMode {
 	m := CommandMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
-	m.editor.set_status("Command")
+	m.render()
 	return m
 }
 
@@ -32,9 +36,12 @@ func (m CommandMode) OnKey(ev *termbox.Event) {
 	default:
 		m.buffer.WriteRune(ev.Ch)
 	}
-
-	m.editor.set_status(":" + m.buffer.String())
+	m.render()
 }
 
 func (m CommandMode) Exit() {
+}
+
+func (m CommandMode) render() {
+	m.editor.set_status(":" + m.buffer.String() + cursorChar)
 }
