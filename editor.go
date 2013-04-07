@@ -456,29 +456,6 @@ func (g *editor) set_overlay_mode(m overlay_mode) {
 	g.overlay = m
 }
 
-func (g *editor) stop_recording() {
-	if !g.recording {
-		g.set_status("Not defining keyboard macro")
-		return
-	}
-
-	// clean up the current key combo: "C-x )"
-	g.recording = false
-	g.keymacros = g.keymacros[:len(g.keymacros)-2]
-	if len(g.keymacros) == 0 {
-		g.set_status("Ignore empty macro")
-	} else {
-		g.set_status("Keyboard macro defined")
-	}
-}
-
-func (g *editor) replay_macro() {
-	for _, keyev := range g.keymacros {
-		ev := keyev.to_termbox_event()
-		g.handleEvent(&ev)
-	}
-}
-
 func (g *editor) view_context() view_context {
 	return view_context{
 		set_status: func(f string, args ...interface{}) {
