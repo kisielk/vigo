@@ -177,7 +177,6 @@ func (c *cursor_location) word_under_cursor() []byte {
 	return c.line.data[beg.boffset:end.boffset]
 }
 
-
 // Move cursor forward until the first word rune is met.
 // Returns true if the move was successful, false if EOF reached.
 func (c *cursor_location) nextWordRune() bool {
@@ -207,20 +206,20 @@ func (c *cursor_location) nextWordRune() bool {
 		break
 	}
 
-    return true
+	return true
 }
 
 // Move cursor forward to beginning of next word.
 // Skips the rest of the current word, if any. Returns true if
 // the move was successful, false if EOF reached.
 func (c *cursor_location) nextWord() bool {
-    // Skip rest of current word, if any
+	// Skip rest of current word, if any
 	r, rlen := c.rune_under()
 	for is_word(r) && !c.eol() {
-        c.boffset += rlen
-        r, rlen = c.rune_under()
-    }
-    return c.nextWordRune()
+		c.boffset += rlen
+		r, rlen = c.rune_under()
+	}
+	return c.nextWordRune()
 }
 
 // returns true if the move was successful, false if EOF reached.
