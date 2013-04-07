@@ -39,6 +39,10 @@ func (m NormalMode) onKey(ev *termbox.Event) {
 		v.on_vcommand(vcommand_move_cursor_prev_line, 0)
 	case 'l':
 		v.on_vcommand(vcommand_move_cursor_forward, 0)
+    case 'w':
+		v.on_vcommand(vcommand_move_cursor_word_forward, 0)
+    case 'b':
+		v.on_vcommand(vcommand_move_cursor_word_backward, 0)
 	case 'x':
 		v.on_vcommand(vcommand_delete_rune, 0)
 	case '0':

@@ -177,10 +177,12 @@ func (c *cursor_location) word_under_cursor() []byte {
 	return c.line.data[beg.boffset:end.boffset]
 }
 
-// returns true if the move was successful, false if EOF reached.
-func (c *cursor_location) move_one_word_forward() bool {
-	// move cursor forward until the first word rune is met
+
+// Move cursor forward until the first word rune is met.
+// Returns true if the move was successful, false if EOF reached.
+func (c *cursor_location) nextWordRune() bool {
 	for {
+
 		if c.eol() {
 			if c.last_line() {
 				return false
@@ -201,16 +203,56 @@ func (c *cursor_location) move_one_word_forward() bool {
 		if c.eol() {
 			continue
 		}
+
 		break
 	}
 
+    return true
+}
+
+// Move cursor forward to beginning of next word.
+// Skips the rest of the current word, if any. Returns true if
+// the move was successful, false if EOF reached.
+func (c *cursor_location) nextWord() bool {
+    // Skip rest of current word, if any
+	r, rlen := c.rune_under()
+	for is_word(r) && !c.eol() {
+        c.boffset += rlen
+        r, rlen = c.rune_under()
+    }
+    return c.nextWordRune()
+}
+
+// returns true if the move was successful, false if EOF reached.
+func (c *cursor_location) move_one_word_forward() bool {
+	// move cursor forward until the first word rune is met
+	for {
+		if c.eol() {
+			if c.last_line() {
+				return false
+			} else {
+				c.line = c.line.next
+				c.line_num++
+				c.boffset = 0
+				continue
+			}
+		}
+		r, rlen := c.rune_under()
+		for !is_word(r) && !c.eol() {
+			c.boffset += rlen
+			r, rlen = c.rune_under()
+		}
+		if c.eol() {
+			continue
+		}
+		break
+	}
 	// now the cursor is under the word rune, skip all of them
 	r, rlen := c.rune_under()
 	for is_word(r) && !c.eol() {
 		c.boffset += rlen
 		r, rlen = c.rune_under()
 	}
-
 	return true
 }
 
