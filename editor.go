@@ -55,7 +55,7 @@ func NewEditor(filenames []string) *editor {
 	g.active = g.views
 	g.keymacros = make([]key_event, 0, 50)
 	g.isearch_last_word = make([]byte, 0, 32)
-	g.setMode(NewNormalMode(g))
+	g.SetMode(NewNormalMode(g))
 	return g
 }
 
@@ -446,7 +446,7 @@ func (g *editor) handleEvent(ev *termbox.Event) error {
 	return nil
 }
 
-func (g *editor) setMode(m EditorMode) {
+func (g *editor) SetMode(m EditorMode) {
 	if g.Mode != nil {
 		g.Mode.Exit()
 	}

@@ -24,7 +24,7 @@ func NewCommandMode(editor *editor, mode EditorMode) CommandMode {
 func (m CommandMode) OnKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
-		m.editor.setMode(m.mode)
+		m.editor.SetMode(m.mode)
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		l := m.buffer.Len()
 		if l > 0 {
@@ -34,7 +34,7 @@ func (m CommandMode) OnKey(ev *termbox.Event) {
 		c := m.buffer.String()
 		m.editor.SetStatus(c)
 		execCommand(m.editor, c)
-		m.editor.setMode(m.mode)
+		m.editor.SetMode(m.mode)
 	default:
 		m.buffer.WriteRune(ev.Ch)
 	}

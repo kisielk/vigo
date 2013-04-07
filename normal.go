@@ -25,14 +25,14 @@ func (m NormalMode) OnKey(ev *termbox.Event) {
 	switch ev.Ch {
 	case 'a':
 		v.on_vcommand(vcommand_move_cursor_forward, 0)
-		g.setMode(NewInsertMode(g))
+		g.SetMode(NewInsertMode(g))
 	case 'A':
 		v.on_vcommand(vcommand_move_cursor_end_of_line, 0)
-		g.setMode(NewInsertMode(g))
+		g.SetMode(NewInsertMode(g))
 	case 'h':
 		v.on_vcommand(vcommand_move_cursor_backward, 0)
 	case 'i':
-		g.setMode(NewInsertMode(g))
+		g.SetMode(NewInsertMode(g))
 	case 'j':
 		v.on_vcommand(vcommand_move_cursor_next_line, 0)
 	case 'k':
@@ -50,7 +50,7 @@ func (m NormalMode) OnKey(ev *termbox.Event) {
 	case '$':
 		v.on_vcommand(vcommand_move_cursor_end_of_line, 0)
 	case ':':
-		g.setMode(NewCommandMode(g, m))
+		g.SetMode(NewCommandMode(g, m))
 	}
 }
 

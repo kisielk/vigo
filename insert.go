@@ -21,7 +21,7 @@ func (m InsertMode) OnKey(ev *termbox.Event) {
 
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
-		g.setMode(NewNormalMode(g))
+		g.SetMode(NewNormalMode(g))
 	default:
 		v.onKey(ev)
 	}
