@@ -21,7 +21,7 @@ const (
 type action struct {
 	what   action_type
 	data   []byte
-	cursor cursor_location
+	cursor cursor
 	lines  []*line
 }
 
@@ -225,8 +225,8 @@ type action_group struct {
 	actions []action
 	next    *action_group
 	prev    *action_group
-	before  cursor_location
-	after   cursor_location
+	before  cursor
+	after   cursor
 }
 
 func (ag *action_group) append(a *action) {

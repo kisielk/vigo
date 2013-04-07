@@ -32,7 +32,7 @@ const (
 //----------------------------------------------------------------------------
 
 type view_location struct {
-	cursor       cursor_location
+	cursor       cursor
 	top_line     *line
 	top_line_num int
 
@@ -552,7 +552,7 @@ func (v *view) cursor_position() (int, int) {
 	return x, y
 }
 
-func (v *view) cursor_position_for(cursor cursor_location) (int, int) {
+func (v *view) cursor_position_for(cursor cursor) (int, int) {
 	y := cursor.line_num - v.top_line_num
 	x := cursor.voffset() - v.line_voffset
 	return x, y
@@ -562,7 +562,7 @@ func (v *view) cursor_position_for(cursor cursor_location) (int, int) {
 // from the attached buffer. If 'boffset' < 0, use 'last_cursor_voffset'. Keep
 // in mind that there is no need to maintain connections between lines (e.g. for
 // moving from a deleted line to another line).
-func (v *view) move_cursor_to(c cursor_location) {
+func (v *view) move_cursor_to(c cursor) {
 	v.dirty |= dirty_status
 	if c.boffset < 0 {
 		bo, co, vo := c.line.find_closest_offsets(v.last_cursor_voffset)
@@ -628,7 +628,7 @@ func (v *view) move_cursor_backward() {
 func (v *view) move_cursor_next_line() {
 	c := v.cursor
 	if !c.last_line() {
-		c = cursor_location{c.line.next, c.line_num + 1, -1}
+		c = cursor{c.line.next, c.line_num + 1, -1}
 		v.move_cursor_to(c)
 	} else {
 		v.ctx.set_status("End of buffer")
@@ -639,7 +639,7 @@ func (v *view) move_cursor_next_line() {
 func (v *view) move_cursor_prev_line() {
 	c := v.cursor
 	if !c.first_line() {
-		c = cursor_location{c.line.prev, c.line_num - 1, -1}
+		c = cursor{c.line.prev, c.line_num - 1, -1}
 		v.move_cursor_to(c)
 	} else {
 		v.ctx.set_status("Beginning of buffer")
@@ -662,13 +662,13 @@ func (v *view) move_cursor_end_of_line() {
 
 // Move cursor to the beginning of the file (buffer).
 func (v *view) move_cursor_beginning_of_file() {
-	c := cursor_location{v.buf.first_line, 1, 0}
+	c := cursor{v.buf.first_line, 1, 0}
 	v.move_cursor_to(c)
 }
 
 // Move cursor to the end of the file (buffer).
 func (v *view) move_cursor_end_of_file() {
-	c := cursor_location{v.buf.last_line, v.buf.lines_n, len(v.buf.last_line.data)}
+	c := cursor{v.buf.last_line, v.buf.lines_n, len(v.buf.last_line.data)}
 	v.move_cursor_to(c)
 }
 
@@ -804,7 +804,7 @@ func (v *view) redo() {
 	v.ctx.set_status("Redo!")
 }
 
-func (v *view) action_insert(c cursor_location, data []byte) {
+func (v *view) action_insert(c cursor, data []byte) {
 	if v.oneline {
 		data = bytes.Replace(data, []byte{'\n'}, nil, -1)
 	}
@@ -823,7 +823,7 @@ func (v *view) action_insert(c cursor_location, data []byte) {
 	v.buf.history.append(&a)
 }
 
-func (v *view) action_delete(c cursor_location, nbytes int) {
+func (v *view) action_delete(c cursor, nbytes int) {
 	v.maybe_next_action_group()
 	d := c.extract_bytes(nbytes)
 	a := action{
@@ -1323,7 +1323,7 @@ func (v *view) make_cell(line, offset int, ch rune) termbox.Cell {
 }
 
 func (v *view) cleanup_trailing_whitespaces() {
-	cursor := cursor_location{
+	cursor := cursor{
 		line:     v.buf.first_line,
 		line_num: 1,
 		boffset:  0,
@@ -1355,7 +1355,7 @@ func (v *view) cleanup_trailing_whitespaces() {
 }
 
 func (v *view) cleanup_trailing_newlines() {
-	cursor := cursor_location{
+	cursor := cursor{
 		line:     v.buf.last_line,
 		line_num: v.buf.lines_n,
 		boffset:  0,
@@ -1387,7 +1387,7 @@ func (v *view) cleanup_trailing_newlines() {
 }
 
 func (v *view) ensure_trailing_eol() {
-	cursor := cursor_location{
+	cursor := cursor{
 		line:     v.buf.last_line,
 		line_num: v.buf.lines_n,
 		boffset:  len(v.buf.last_line.data),
@@ -1408,7 +1408,7 @@ func (v *view) presave_cleanup(raw bool) {
 	}
 }
 
-func (v *view) append_to_kill_buffer(cursor cursor_location, nbytes int) {
+func (v *view) append_to_kill_buffer(cursor cursor, nbytes int) {
 	kb := *v.ctx.kill_buffer
 
 	switch v.last_vcommand {
@@ -1421,7 +1421,7 @@ func (v *view) append_to_kill_buffer(cursor cursor_location, nbytes int) {
 	*v.ctx.kill_buffer = kb
 }
 
-func (v *view) prepend_to_kill_buffer(cursor cursor_location, nbytes int) {
+func (v *view) prepend_to_kill_buffer(cursor cursor, nbytes int) {
 	kb := *v.ctx.kill_buffer
 
 	switch v.last_vcommand {
@@ -1494,7 +1494,7 @@ func (v *view) set_tags(tags ...view_tag) {
 	copy(v.tags, tags)
 }
 
-func (v *view) line_region() (beg, end cursor_location) {
+func (v *view) line_region() (beg, end cursor) {
 	beg = v.cursor
 	end = v.cursor
 	if v.buf.is_mark_set() {
@@ -1509,7 +1509,7 @@ func (v *view) line_region() (beg, end cursor_location) {
 	return
 }
 
-func (v *view) indent_line(line cursor_location) {
+func (v *view) indent_line(line cursor) {
 	line.boffset = 0
 	v.action_insert(line, []byte{'\t'})
 	if v.cursor.line == line.line {
@@ -1519,7 +1519,7 @@ func (v *view) indent_line(line cursor_location) {
 	}
 }
 
-func (v *view) deindent_line(line cursor_location) {
+func (v *view) deindent_line(line cursor) {
 	line.boffset = 0
 	if r, _ := line.rune_under(); r == '\t' {
 		v.action_delete(line, 1)
@@ -1562,7 +1562,7 @@ func (v *view) word_to(filter func([]byte) []byte) {
 // Filter _must_ return a new slice and shouldn't touch contents of the
 // argument, perfect filter examples are: bytes.Title, bytes.ToUpper,
 // bytes.ToLower
-func (v *view) filter_text(from, to cursor_location, filter func([]byte) []byte) {
+func (v *view) filter_text(from, to cursor, filter func([]byte) []byte) {
 	c1, c2 := swap_cursors_maybe(from, to)
 	d := c1.distance(c2)
 	v.action_delete(c1, d)
@@ -1712,7 +1712,7 @@ func (v *view) collect_words(slice [][]byte, dups *llrb_tree, ignorecase bool) [
 func (v *view) search_and_replace(word, repl []byte) {
 	// assumes mark is set
 	c1, c2 := swap_cursors_maybe(v.cursor, v.buf.mark)
-	cur := cursor_location{
+	cur := cursor{
 		line:     c1.line,
 		line_num: c1.line_num,
 		boffset:  c1.boffset,

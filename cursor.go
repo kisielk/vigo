@@ -9,40 +9,40 @@ import (
 // cursor location
 //----------------------------------------------------------------------------
 
-type cursor_location struct {
+type cursor struct {
 	line     *line
 	line_num int
 	boffset  int
 }
 
-func (c *cursor_location) rune_under() (rune, int) {
+func (c *cursor) rune_under() (rune, int) {
 	return utf8.DecodeRune(c.line.data[c.boffset:])
 }
 
-func (c *cursor_location) rune_before() (rune, int) {
+func (c *cursor) rune_before() (rune, int) {
 	return utf8.DecodeLastRune(c.line.data[:c.boffset])
 }
 
-func (c *cursor_location) first_line() bool {
+func (c *cursor) first_line() bool {
 	return c.line.prev == nil
 }
 
-func (c *cursor_location) last_line() bool {
+func (c *cursor) last_line() bool {
 	return c.line.next == nil
 }
 
 // end of line
-func (c *cursor_location) eol() bool {
+func (c *cursor) eol() bool {
 	return c.boffset == len(c.line.data)
 }
 
 // beginning of line
-func (c *cursor_location) bol() bool {
+func (c *cursor) bol() bool {
 	return c.boffset == 0
 }
 
 // returns the distance between two locations in bytes
-func (a cursor_location) distance(b cursor_location) int {
+func (a cursor) distance(b cursor) int {
 	s := 1
 	if b.line_num < a.line_num {
 		a, b = b, a
@@ -63,7 +63,7 @@ func (a cursor_location) distance(b cursor_location) int {
 }
 
 // Find a visual and a character offset for a given cursor
-func (c *cursor_location) voffset_coffset() (vo, co int) {
+func (c *cursor) voffset_coffset() (vo, co int) {
 	data := c.line.data[:c.boffset]
 	for len(data) > 0 {
 		r, rlen := utf8.DecodeRune(data)
@@ -75,7 +75,7 @@ func (c *cursor_location) voffset_coffset() (vo, co int) {
 }
 
 // Find a visual offset for a given cursor
-func (c *cursor_location) voffset() (vo int) {
+func (c *cursor) voffset() (vo int) {
 	data := c.line.data[:c.boffset]
 	for len(data) > 0 {
 		r, rlen := utf8.DecodeRune(data)
@@ -85,7 +85,7 @@ func (c *cursor_location) voffset() (vo int) {
 	return
 }
 
-func (c *cursor_location) coffset() (co int) {
+func (c *cursor) coffset() (co int) {
 	data := c.line.data[:c.boffset]
 	for len(data) > 0 {
 		_, rlen := utf8.DecodeRune(data)
@@ -95,7 +95,7 @@ func (c *cursor_location) coffset() (co int) {
 	return
 }
 
-func (c *cursor_location) extract_bytes(n int) []byte {
+func (c *cursor) extract_bytes(n int) []byte {
 	var buf bytes.Buffer
 	offset := c.boffset
 	line := c.line
@@ -121,7 +121,7 @@ func (c *cursor_location) extract_bytes(n int) []byte {
 	return buf.Bytes()
 }
 
-func (c *cursor_location) move_one_rune_forward() {
+func (c *cursor) move_one_rune_forward() {
 	if c.last_line() && c.eol() {
 		return
 	}
@@ -136,7 +136,7 @@ func (c *cursor_location) move_one_rune_forward() {
 	}
 }
 
-func (c *cursor_location) move_one_rune_backward() {
+func (c *cursor) move_one_rune_backward() {
 	if c.first_line() && c.bol() {
 		return
 	}
@@ -151,15 +151,15 @@ func (c *cursor_location) move_one_rune_backward() {
 	}
 }
 
-func (c *cursor_location) move_beginning_of_line() {
+func (c *cursor) move_beginning_of_line() {
 	c.boffset = 0
 }
 
-func (c *cursor_location) move_end_of_line() {
+func (c *cursor) move_end_of_line() {
 	c.boffset = len(c.line.data)
 }
 
-func (c *cursor_location) word_under_cursor() []byte {
+func (c *cursor) word_under_cursor() []byte {
 	end, beg := *c, *c
 	r, rlen := beg.rune_before()
 	if r == utf8.RuneError {
@@ -179,7 +179,7 @@ func (c *cursor_location) word_under_cursor() []byte {
 
 // Move cursor forward until the first word rune is met.
 // Returns true if the move was successful, false if EOF reached.
-func (c *cursor_location) nextWordRune() bool {
+func (c *cursor) nextWordRune() bool {
 	for {
 
 		if c.eol() {
@@ -212,7 +212,7 @@ func (c *cursor_location) nextWordRune() bool {
 // Move cursor forward to beginning of next word.
 // Skips the rest of the current word, if any. Returns true if
 // the move was successful, false if EOF reached.
-func (c *cursor_location) nextWord() bool {
+func (c *cursor) nextWord() bool {
 	// Skip rest of current word, if any
 	r, rlen := c.rune_under()
 	for is_word(r) && !c.eol() {
@@ -223,7 +223,7 @@ func (c *cursor_location) nextWord() bool {
 }
 
 // returns true if the move was successful, false if EOF reached.
-func (c *cursor_location) move_one_word_forward() bool {
+func (c *cursor) move_one_word_forward() bool {
 	// move cursor forward until the first word rune is met
 	for {
 		if c.eol() {
@@ -256,7 +256,7 @@ func (c *cursor_location) move_one_word_forward() bool {
 }
 
 // returns true if the move was successful, false if BOF reached.
-func (c *cursor_location) move_one_word_backward() bool {
+func (c *cursor) move_one_word_backward() bool {
 	// move cursor backward while previous rune is not a word rune
 	for {
 		if c.bol() {
@@ -293,7 +293,7 @@ func (c *cursor_location) move_one_word_backward() bool {
 	return true
 }
 
-func (c *cursor_location) on_insert_adjust(a *action) {
+func (c *cursor) on_insert_adjust(a *action) {
 	if a.cursor.line_num > c.line_num {
 		return
 	}
@@ -320,7 +320,7 @@ func (c *cursor_location) on_insert_adjust(a *action) {
 	}
 }
 
-func (c *cursor_location) on_delete_adjust(a *action) {
+func (c *cursor) on_delete_adjust(a *action) {
 	if a.cursor.line_num > c.line_num {
 		return
 	}
@@ -363,7 +363,7 @@ func (c *cursor_location) on_delete_adjust(a *action) {
 	c.boffset = a.cursor.boffset + n
 }
 
-func (c cursor_location) search_forward(word []byte) (cursor_location, bool) {
+func (c cursor) search_forward(word []byte) (cursor, bool) {
 	for c.line != nil {
 		i := bytes.Index(c.line.data[c.boffset:], word)
 		if i != -1 {
@@ -378,7 +378,7 @@ func (c cursor_location) search_forward(word []byte) (cursor_location, bool) {
 	return c, false
 }
 
-func (c cursor_location) search_backward(word []byte) (cursor_location, bool) {
+func (c cursor) search_backward(word []byte) (cursor, bool) {
 	for {
 		i := bytes.LastIndex(c.line.data[:c.boffset], word)
 		if i != -1 {
@@ -396,7 +396,7 @@ func (c cursor_location) search_backward(word []byte) (cursor_location, bool) {
 	return c, false
 }
 
-func swap_cursors_maybe(c1, c2 cursor_location) (r1, r2 cursor_location) {
+func swap_cursors_maybe(c1, c2 cursor) (r1, r2 cursor) {
 	if c1.line_num == c2.line_num {
 		if c1.boffset > c2.boffset {
 			return c2, c1

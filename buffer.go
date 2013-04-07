@@ -51,7 +51,7 @@ type buffer struct {
 	bytes_n    int
 	history    *action_group
 	on_disk    *action_group
-	mark       cursor_location
+	mark       cursor
 
 	// absoulte path of the file, if it's empty string, then the file has no
 	// on-disk representation
@@ -77,7 +77,7 @@ func new_empty_buffer() *buffer {
 	b.loc = view_location{
 		top_line:     l,
 		top_line_num: 1,
-		cursor: cursor_location{
+		cursor: cursor{
 			line:     l,
 			line_num: 1,
 		},
@@ -96,7 +96,7 @@ func new_buffer(r io.Reader) (*buffer, error) {
 	b.loc = view_location{
 		top_line:     l,
 		top_line_num: 1,
-		cursor: cursor_location{
+		cursor: cursor{
 			line:     l,
 			line_num: 1,
 		},

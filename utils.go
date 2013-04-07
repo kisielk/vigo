@@ -216,7 +216,7 @@ func clone_byte_slice(s []byte) []byte {
 }
 
 // assumes the same line and a.boffset < b.offset order
-func bytes_between(a, b cursor_location) []byte {
+func bytes_between(a, b cursor) []byte {
 	return a.line.data[a.boffset:b.boffset]
 }
 

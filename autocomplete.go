@@ -18,11 +18,11 @@ import (
 //----------------------------------------------------------------------------
 
 type cursor_location_ex struct {
-	cursor_location
+	cursor
 	abs_boffset int
 }
 
-func make_cursor_location_ex(cursor cursor_location) cursor_location_ex {
+func make_cursor_location_ex(cursor cursor) cursor_location_ex {
 	off := cursor.boffset
 	line := cursor.line.prev
 	for line != nil {
@@ -30,8 +30,8 @@ func make_cursor_location_ex(cursor cursor_location) cursor_location_ex {
 		line = line.prev
 	}
 	return cursor_location_ex{
-		cursor_location: cursor,
-		abs_boffset:     off,
+		cursor:      cursor,
+		abs_boffset: off,
 	}
 }
 
@@ -54,8 +54,8 @@ type (
 
 type autocompl struct {
 	// data
-	origin    cursor_location
-	current   cursor_location
+	origin    cursor
+	current   cursor
 	proposals []ac_proposal
 	filtered  []ac_proposal
 
@@ -133,7 +133,7 @@ func (ac *autocompl) actual_proposals() []ac_proposal {
 
 // Returns 'true' if update was successful, 'false' if autocompletion should be
 // discarded.
-func (ac *autocompl) update(current cursor_location) bool {
+func (ac *autocompl) update(current cursor) bool {
 	if ac.origin.line_num != current.line_num {
 		return false
 	}
