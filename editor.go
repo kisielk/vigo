@@ -35,7 +35,7 @@ type editor struct {
 func (g *editor) Quit() {
 	v := g.active.leaf
 	v.ac = nil
-	g.set_status("Quit")
+	g.SetStatus("Quit")
 	// Signals event loop to quit on next iteration.
 	g.quitflag = true
 }
@@ -47,7 +47,7 @@ func NewEditor(filenames []string) *editor {
 		g.new_buffer_from_file(filename)
 	}
 	if len(g.buffers) == 0 {
-		buf := new_empty_buffer()
+		buf := newEmptyBuffer()
 		buf.name = g.buffer_name("unnamed")
 		g.buffers = append(g.buffers, buf)
 	}
@@ -59,7 +59,7 @@ func NewEditor(filenames []string) *editor {
 	return g
 }
 
-func (g *editor) kill_buffer(buf *buffer) {
+func (g *editor) KillBuffer(buf *buffer) {
 	var replacement *buffer
 	views := make([]*view, len(buf.views))
 	copy(views, buf.views)
@@ -74,7 +74,7 @@ func (g *editor) kill_buffer(buf *buffer) {
 			break
 		}
 		if replacement == nil {
-			replacement = new_empty_buffer()
+			replacement = newEmptyBuffer()
 			replacement.name = g.buffer_name("unnamed")
 			g.buffers = append(g.buffers, replacement)
 		}
@@ -145,18 +145,18 @@ func (g *editor) new_buffer_from_file(filename string) (*buffer, error) {
 	_, err := os.Stat(fullpath)
 	if err != nil {
 		// assume the file is just not there
-		g.set_status("(New file)")
-		buf = new_empty_buffer()
+		g.SetStatus("(New file)")
+		buf = newEmptyBuffer()
 	} else {
 		f, err := os.Open(fullpath)
 		if err != nil {
-			g.set_status(err.Error())
+			g.SetStatus(err.Error())
 			return nil, err
 		}
 		defer f.Close()
-		buf, err = new_buffer(f)
+		buf, err = NewBuffer(f)
 		if err != nil {
-			g.set_status(err.Error())
+			g.SetStatus(err.Error())
 			return nil, err
 		}
 		buf.path = fullpath
@@ -167,7 +167,7 @@ func (g *editor) new_buffer_from_file(filename string) (*buffer, error) {
 	return buf, nil
 }
 
-func (g *editor) set_status(format string, args ...interface{}) {
+func (g *editor) SetStatus(format string, args ...interface{}) {
 	g.statusbuf.Reset()
 	fmt.Fprintf(&g.statusbuf, format, args...)
 }
@@ -422,7 +422,7 @@ func (g *editor) consumeEvents() error {
 func (g *editor) handleEvent(ev *termbox.Event) error {
 	switch ev.Type {
 	case termbox.EventKey:
-		g.set_status("") // reset status on every key event
+		g.SetStatus("") // reset status on every key event
 		g.onSysKey(ev)
 		g.Mode.OnKey(ev)
 
@@ -455,11 +455,11 @@ func (g *editor) setMode(m EditorMode) {
 
 func (g *editor) view_context() view_context {
 	return view_context{
-		set_status: func(f string, args ...interface{}) {
-			g.set_status(f, args...)
+		SetStatus: func(f string, args ...interface{}) {
+			g.SetStatus(f, args...)
 		},
-		kill_buffer: &g.killbuffer,
-		buffers:     &g.buffers,
+		KillBuffer: &g.killbuffer,
+		buffers:    &g.buffers,
 	}
 }
 

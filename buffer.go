@@ -66,7 +66,7 @@ type buffer struct {
 	words_cache_valid bool
 }
 
-func new_empty_buffer() *buffer {
+func newEmptyBuffer() *buffer {
 	b := new(buffer)
 	l := new(line)
 	l.next = nil
@@ -86,7 +86,7 @@ func new_empty_buffer() *buffer {
 	return b
 }
 
-func new_buffer(r io.Reader) (*buffer, error) {
+func NewBuffer(r io.Reader) (*buffer, error) {
 	var err error
 	var prevline *line
 

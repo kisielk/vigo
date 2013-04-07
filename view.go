@@ -110,9 +110,9 @@ var default_view_tag = view_tag{
 //----------------------------------------------------------------------------
 
 type view_context struct {
-	set_status  func(format string, args ...interface{})
-	kill_buffer *[]byte
-	buffers     *[]*buffer
+	SetStatus  func(format string, args ...interface{})
+	KillBuffer *[]byte
+	buffers    *[]*buffer
 }
 
 //----------------------------------------------------------------------------
@@ -604,7 +604,7 @@ func (v *view) move_cursor_to(c cursor) {
 func (v *view) move_cursor_forward() {
 	c := v.cursor
 	if c.last_line() && c.eol() {
-		v.ctx.set_status("End of buffer")
+		v.ctx.SetStatus("End of buffer")
 		return
 	}
 
@@ -616,7 +616,7 @@ func (v *view) move_cursor_forward() {
 func (v *view) move_cursor_backward() {
 	c := v.cursor
 	if c.first_line() && c.bol() {
-		v.ctx.set_status("Beginning of buffer")
+		v.ctx.SetStatus("Beginning of buffer")
 		return
 	}
 
@@ -631,7 +631,7 @@ func (v *view) move_cursor_next_line() {
 		c = cursor{c.line.next, c.line_num + 1, -1}
 		v.move_cursor_to(c)
 	} else {
-		v.ctx.set_status("End of buffer")
+		v.ctx.SetStatus("End of buffer")
 	}
 }
 
@@ -642,7 +642,7 @@ func (v *view) move_cursor_prev_line() {
 		c = cursor{c.line.prev, c.line_num - 1, -1}
 		v.move_cursor_to(c)
 	} else {
-		v.ctx.set_status("Beginning of buffer")
+		v.ctx.SetStatus("Beginning of buffer")
 	}
 }
 
@@ -678,7 +678,7 @@ func (v *view) move_cursor_word_forward() {
 	ok := c.nextWord()
 	v.move_cursor_to(c)
 	if !ok {
-		v.ctx.set_status("End of buffer")
+		v.ctx.SetStatus("End of buffer")
 	}
 }
 
@@ -687,7 +687,7 @@ func (v *view) move_cursor_word_backward() {
 	ok := c.move_one_word_backward()
 	v.move_cursor_to(c)
 	if !ok {
-		v.ctx.set_status("Beginning of buffer")
+		v.ctx.SetStatus("Beginning of buffer")
 	}
 }
 
@@ -760,7 +760,7 @@ func (v *view) undo() {
 	b := v.buf
 	if b.history.prev == nil {
 		// we're at the sentinel, no more things to undo
-		v.ctx.set_status("No further undo information")
+		v.ctx.SetStatus("No further undo information")
 		return
 	}
 
@@ -776,20 +776,20 @@ func (v *view) undo() {
 	v.move_cursor_to(b.history.before)
 	v.last_cursor_voffset = v.cursor_voffset
 	b.history = b.history.prev
-	v.ctx.set_status("Undo!")
+	v.ctx.SetStatus("Undo!")
 }
 
 func (v *view) redo() {
 	b := v.buf
 	if b.history.next == nil {
 		// open group, obviously, can't move forward
-		v.ctx.set_status("No further redo information")
+		v.ctx.SetStatus("No further redo information")
 		return
 	}
 	if len(b.history.next.actions) == 0 {
 		// last finalized group, moving to the next group breaks the
 		// invariant and doesn't make sense (nothing to redo)
-		v.ctx.set_status("No further redo information")
+		v.ctx.SetStatus("No further redo information")
 		return
 	}
 
@@ -801,7 +801,7 @@ func (v *view) redo() {
 	}
 	v.move_cursor_to(b.history.after)
 	v.last_cursor_voffset = v.cursor_voffset
-	v.ctx.set_status("Redo!")
+	v.ctx.SetStatus("Redo!")
 }
 
 func (v *view) action_insert(c cursor, data []byte) {
@@ -875,7 +875,7 @@ func (v *view) delete_rune_backward() {
 	if c.bol() {
 		if c.first_line() {
 			// beginning of the file
-			v.ctx.set_status("Beginning of buffer")
+			v.ctx.SetStatus("Beginning of buffer")
 			return
 		}
 		c.line = c.line.prev
@@ -902,7 +902,7 @@ func (v *view) delete_rune() {
 	if c.eol() {
 		if c.last_line() {
 			// end of the file
-			v.ctx.set_status("End of buffer")
+			v.ctx.SetStatus("End of buffer")
 			return
 		}
 		v.action_delete(c, 1)
@@ -956,7 +956,7 @@ func (v *view) kill_word_backward() {
 
 func (v *view) kill_region() {
 	if !v.buf.is_mark_set() {
-		v.ctx.set_status("The mark is not set now, so there is no region")
+		v.ctx.SetStatus("The mark is not set now, so there is no region")
 		return
 	}
 
@@ -979,7 +979,7 @@ func (v *view) kill_region() {
 
 func (v *view) set_mark() {
 	v.buf.mark = v.cursor
-	v.ctx.set_status("Mark set")
+	v.ctx.SetStatus("Mark set")
 }
 
 func (v *view) swap_cursor_and_mark() {
@@ -1409,7 +1409,7 @@ func (v *view) presave_cleanup(raw bool) {
 }
 
 func (v *view) append_to_kill_buffer(cursor cursor, nbytes int) {
-	kb := *v.ctx.kill_buffer
+	kb := *v.ctx.KillBuffer
 
 	switch v.last_vcommand {
 	case vcommand_kill_word, vcommand_kill_word_backward, vcommand_kill_region, vcommand_kill_line:
@@ -1418,11 +1418,11 @@ func (v *view) append_to_kill_buffer(cursor cursor, nbytes int) {
 	}
 
 	kb = append(kb, cursor.extract_bytes(nbytes)...)
-	*v.ctx.kill_buffer = kb
+	*v.ctx.KillBuffer = kb
 }
 
 func (v *view) prepend_to_kill_buffer(cursor cursor, nbytes int) {
-	kb := *v.ctx.kill_buffer
+	kb := *v.ctx.KillBuffer
 
 	switch v.last_vcommand {
 	case vcommand_kill_word, vcommand_kill_word_backward, vcommand_kill_region, vcommand_kill_line:
@@ -1431,11 +1431,11 @@ func (v *view) prepend_to_kill_buffer(cursor cursor, nbytes int) {
 	}
 
 	kb = append(cursor.extract_bytes(nbytes), kb...)
-	*v.ctx.kill_buffer = kb
+	*v.ctx.KillBuffer = kb
 }
 
 func (v *view) yank() {
-	buf := *v.ctx.kill_buffer
+	buf := *v.ctx.KillBuffer
 	cursor := v.cursor
 
 	if len(buf) == 0 {
@@ -1454,7 +1454,7 @@ func (v *view) yank() {
 // shameless copy & paste from kill_region
 func (v *view) copy_region() {
 	if !v.buf.is_mark_set() {
-		v.ctx.set_status("The mark is not set now, so there is no region")
+		v.ctx.SetStatus("The mark is not set now, so there is no region")
 		return
 	}
 
@@ -1475,7 +1475,7 @@ func (v *view) copy_region() {
 // assumes that filtered text has the same length
 func (v *view) region_to(filter func([]byte) []byte) {
 	if !v.buf.is_mark_set() {
-		v.ctx.set_status("The mark is not set now, so there is no region")
+		v.ctx.SetStatus("The mark is not set now, so there is no region")
 		return
 	}
 	v.filter_text(v.cursor, v.buf.mark, filter)
@@ -1764,7 +1764,7 @@ func (v *view) search_and_replace(word, repl []byte) {
 		cur.boffset = 0
 	}
 
-	v.ctx.set_status("Replaced %s with %s", word, repl)
+	v.ctx.SetStatus("Replaced %s with %s", word, repl)
 }
 
 func (v *view) other_buffers(cb func(buf *buffer)) {

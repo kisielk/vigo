@@ -11,7 +11,7 @@ type InsertMode struct {
 
 func NewInsertMode(editor *editor) InsertMode {
 	m := InsertMode{editor: editor}
-	m.editor.set_status("Insert")
+	m.editor.SetStatus("Insert")
 	return m
 }
 

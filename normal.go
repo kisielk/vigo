@@ -14,7 +14,7 @@ type NormalMode struct {
 
 func NewNormalMode(editor *editor) NormalMode {
 	m := NormalMode{editor: editor}
-	m.editor.set_status("Normal")
+	m.editor.SetStatus("Normal")
 	return m
 }
 
