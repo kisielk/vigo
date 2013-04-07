@@ -5,7 +5,6 @@ import (
 )
 
 type CommandMode struct {
-	stub_overlay_mode
 	editor *editor
 }
 
@@ -15,6 +14,10 @@ func NewCommandMode(editor *editor) CommandMode {
 	return m
 }
 
-func (m CommandMode) onKey(ev *termbox.Event) {
+func (m CommandMode) OnKey(ev *termbox.Event) {
+
+}
+
+func (m CommandMode) Exit() {
 
 }

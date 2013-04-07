@@ -15,7 +15,7 @@ func NewInsertMode(editor *editor) InsertMode {
 	return m
 }
 
-func (m InsertMode) onKey(ev *termbox.Event) {
+func (m InsertMode) OnKey(ev *termbox.Event) {
 	g := m.editor
 	v := g.active.leaf
 
@@ -25,4 +25,7 @@ func (m InsertMode) onKey(ev *termbox.Event) {
 	default:
 		v.onKey(ev)
 	}
+}
+
+func (m InsertMode) Exit() {
 }

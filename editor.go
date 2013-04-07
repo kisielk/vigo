@@ -29,7 +29,7 @@ type editor struct {
 	s_and_r_last_word []byte
 	s_and_r_last_repl []byte
 
-	Mode overlay_mode
+	Mode EditorMode
 }
 
 func NewEditor(filenames []string) *editor {
@@ -368,7 +368,6 @@ func (g *editor) onSysKey(ev *termbox.Event) {
 	case termbox.KeyCtrlQ:
 		v := g.active.leaf
 		v.ac = nil
-		g.set_overlay_mode(nil)
 		g.set_status("Quit")
 		g.quitflag = true
 	case termbox.KeyCtrlZ:
@@ -420,7 +419,7 @@ func (g *editor) handleEvent(ev *termbox.Event) error {
 	case termbox.EventKey:
 		g.set_status("") // reset status on every key event
 		g.onSysKey(ev)
-		g.Mode.onKey(ev)
+		g.Mode.OnKey(ev)
 
 		if g.quitflag {
 			return ErrQuit
@@ -442,18 +441,11 @@ func (g *editor) handleEvent(ev *termbox.Event) error {
 	return nil
 }
 
-func (g *editor) setMode(m overlay_mode) {
+func (g *editor) setMode(m EditorMode) {
 	if g.Mode != nil {
-		g.Mode.exit()
+		g.Mode.Exit()
 	}
 	g.Mode = m
-}
-
-func (g *editor) set_overlay_mode(m overlay_mode) {
-	if g.overlay != nil {
-		g.overlay.exit()
-	}
-	g.overlay = m
 }
 
 func (g *editor) view_context() view_context {

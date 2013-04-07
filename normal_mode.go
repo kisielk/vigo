@@ -18,7 +18,7 @@ func NewNormalMode(editor *editor) NormalMode {
 	return m
 }
 
-func (m NormalMode) onKey(ev *termbox.Event) {
+func (m NormalMode) OnKey(ev *termbox.Event) {
 	g := m.editor
 	v := g.active.leaf
 
@@ -50,4 +50,7 @@ func (m NormalMode) onKey(ev *termbox.Event) {
 	case '$':
 		v.on_vcommand(vcommand_move_cursor_end_of_line, 0)
 	}
+}
+
+func (m NormalMode) Exit() {
 }
