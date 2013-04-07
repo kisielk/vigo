@@ -31,7 +31,9 @@ func (m CommandMode) OnKey(ev *termbox.Event) {
 			m.buffer.Truncate(l - 1)
 		}
 	case termbox.KeyEnter:
-		m.editor.set_status(m.buffer.String())
+		c := m.buffer.String()
+		m.editor.set_status(c)
+		execCommand(m.editor, c)
 		m.editor.setMode(m.mode)
 	default:
 		m.buffer.WriteRune(ev.Ch)
@@ -44,4 +46,11 @@ func (m CommandMode) Exit() {
 
 func (m CommandMode) render() {
 	m.editor.set_status(":" + m.buffer.String() + cursorChar)
+}
+
+// Interpret command and apply changes to editor.
+func execCommand(e *editor, command string) {
+	if command == "q" {
+		e.Quit()
+	}
 }

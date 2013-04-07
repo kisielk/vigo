@@ -32,6 +32,14 @@ type editor struct {
 	Mode EditorMode
 }
 
+func (g *editor) Quit() {
+	v := g.active.leaf
+	v.ac = nil
+	g.set_status("Quit")
+	// Signals event loop to quit on next iteration.
+	g.quitflag = true
+}
+
 func NewEditor(filenames []string) *editor {
 	g := new(editor)
 	g.buffers = make([]*buffer, 0, 20)
@@ -366,10 +374,7 @@ func (g *editor) cursorPosition() (int, int) {
 func (g *editor) onSysKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyCtrlQ:
-		v := g.active.leaf
-		v.ac = nil
-		g.set_status("Quit")
-		g.quitflag = true
+		g.Quit()
 	case termbox.KeyCtrlZ:
 		suspend(g)
 	}
