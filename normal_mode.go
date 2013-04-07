@@ -49,6 +49,8 @@ func (m NormalMode) OnKey(ev *termbox.Event) {
 		v.on_vcommand(vcommand_move_cursor_beginning_of_line, 0)
 	case '$':
 		v.on_vcommand(vcommand_move_cursor_end_of_line, 0)
+	case ':':
+		g.setMode(NewCommandMode(g, m))
 	}
 }
 
