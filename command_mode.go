@@ -12,7 +12,7 @@ type CommandMode struct {
 }
 
 func NewCommandMode(editor *editor, mode EditorMode) CommandMode {
-	m := CommandMode{editor: editor, mode: mode, buffer: bytes.NewBufferString(":")}
+	m := CommandMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
 	m.editor.set_status("Command")
 	return m
 }
@@ -23,7 +23,7 @@ func (m CommandMode) OnKey(ev *termbox.Event) {
 		m.editor.setMode(m.mode)
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		l := m.buffer.Len()
-		if l > 1 {
+		if l > 0 {
 			m.buffer.Truncate(l - 1)
 		}
 	case termbox.KeyEnter:
@@ -33,7 +33,7 @@ func (m CommandMode) OnKey(ev *termbox.Event) {
 		m.buffer.WriteRune(ev.Ch)
 	}
 
-	m.editor.set_status(m.buffer.String())
+	m.editor.set_status(":" + m.buffer.String())
 }
 
 func (m CommandMode) Exit() {
