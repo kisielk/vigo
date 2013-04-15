@@ -50,7 +50,7 @@ func NewEditor(filenames []string) *editor {
 	}
 	if len(g.buffers) == 0 {
 		buf := newEmptyBuffer()
-		buf.name = g.buffer_name("unnamed")
+		buf.name = g.BufferName("unnamed")
 		g.buffers = append(g.buffers, buf)
 	}
 	g.views = new_view_tree_leaf(nil, new_view(g.view_context(), g.buffers[0]))
@@ -78,7 +78,7 @@ func (g *editor) KillBuffer(buf *buffer) {
 		}
 		if replacement == nil {
 			replacement = newEmptyBuffer()
-			replacement.name = g.buffer_name("unnamed")
+			replacement.name = g.BufferName("unnamed")
 			g.buffers = append(g.buffers, replacement)
 		}
 	}
@@ -115,23 +115,25 @@ func (g *editor) find_buffer_by_full_path(path string) *buffer {
 	return nil
 }
 
-func (g *editor) buffer_name_exists(name string) bool {
+// GetBuffer returns a buffer by name, or nil if there is no such buffer
+func (g *editor) GetBuffer(name string) *buffer {
 	for _, buf := range g.buffers {
 		if buf.name == name {
-			return true
+			return buf
 		}
 	}
-	return false
+	return nil
 }
 
-func (g *editor) buffer_name(name string) string {
-	if !g.buffer_name_exists(name) {
+// BufferName generates a buffer name based on the one given.
+func (e *editor) BufferName(name string) string {
+	if buf := e.GetBuffer(name); buf == nil {
 		return name
 	}
 
 	for i := 2; i < 9999; i++ {
 		candidate := name + " <" + strconv.Itoa(i) + ">"
-		if !g.buffer_name_exists(candidate) {
+		if buf := e.GetBuffer(candidate); buf == nil {
 			return candidate
 		}
 	}
@@ -165,7 +167,7 @@ func (g *editor) NewBufferFromFile(filename string) (*buffer, error) {
 		buf.path = fullpath
 	}
 
-	buf.name = g.buffer_name(filename)
+	buf.name = g.BufferName(filename)
 	g.buffers = append(g.buffers, buf)
 	return buf, nil
 }
