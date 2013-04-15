@@ -387,7 +387,7 @@ func (e *editor) Loop() error {
 
 		// The CONSUME loop handles the event and any other events that
 		// until there are no more in the queue.
-	CONSUME:
+	consume:
 		for {
 			if err := e.handleEvent(&ev); err != nil {
 				return err
@@ -396,7 +396,7 @@ func (e *editor) Loop() error {
 			case nextEv := <-e.Events:
 				ev = nextEv
 			default:
-				break CONSUME
+				break consume
 			}
 		}
 
