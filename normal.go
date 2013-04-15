@@ -26,7 +26,7 @@ func (m *NormalMode) OnKey(ev *termbox.Event) {
 	// a non-starting character.
 	if ('0' < ev.Ch && ev.Ch <= '9') || (ev.Ch == '0' && len(m.reps) > 0) {
 		m.reps = m.reps + string(ev.Ch)
-		m.editor.set_status(m.reps)
+		m.editor.SetStatus(m.reps)
 		return
 	}
 
