@@ -7,11 +7,13 @@ import (
 type InsertMode struct {
 	stub_overlay_mode
 	editor *editor
+	reps   int
 }
 
-func NewInsertMode(editor *editor) InsertMode {
+func NewInsertMode(editor *editor, reps int) InsertMode {
 	m := InsertMode{editor: editor}
 	m.editor.set_status("Insert")
+	m.reps = reps
 	return m
 }
 
@@ -28,4 +30,11 @@ func (m InsertMode) OnKey(ev *termbox.Event) {
 }
 
 func (m InsertMode) Exit() {
+	// repeat action specified number of times
+	for i := 0; i < m.reps-1; i++ {
+		g := m.editor
+		v := g.active.leaf
+		a := v.buf.history.last_action()
+		a.do(v, a.what)
+	}
 }
