@@ -21,7 +21,7 @@ type editor struct {
 	statusbuf         bytes.Buffer
 	quitflag          bool
 	overlay           overlay_mode
-	termbox_event     chan termbox.Event
+	Events            chan termbox.Event
 	keymacros         []key_event
 	recording         bool
 	killbuffer        []byte
@@ -56,6 +56,7 @@ func NewEditor(filenames []string) *editor {
 	g.keymacros = make([]key_event, 0, 50)
 	g.isearch_last_word = make([]byte, 0, 32)
 	g.SetMode(NewNormalMode(g))
+	g.Events = make(chan termbox.Event, 20)
 	return g
 }
 
@@ -380,37 +381,29 @@ func (g *editor) onSysKey(ev *termbox.Event) {
 	}
 }
 
-// Loop starts the editor main loop
-func (g *editor) Loop() error {
-	g.termbox_event = make(chan termbox.Event, 20)
-	go func() {
-		for {
-			g.termbox_event <- termbox.PollEvent()
-		}
-	}()
+// Loop starts the editor main loop which consumes events from g.Events
+func (e *editor) Loop() error {
 	for {
 		select {
-		case ev := <-g.termbox_event:
-			err := g.handleEvent(&ev)
-			if err != nil {
+		case ev := <-e.Events:
+			if err := e.handleEvent(&ev); err != nil {
 				return err
 			}
-			if err := g.consumeEvents(); err != nil {
+			if err := e.consumeEvents(); err != nil {
 				return err
 			}
-			g.draw()
+			e.draw()
 			termbox.Flush()
 		}
 	}
 }
 
 // consumeEvents consumes terminal events until there are no more in the channel
-func (g *editor) consumeEvents() error {
+func (e *editor) consumeEvents() error {
 	for {
 		select {
-		case ev := <-g.termbox_event:
-			err := g.handleEvent(&ev)
-			if err != nil {
+		case ev := <-e.Events:
+			if err := e.handleEvent(&ev); err != nil {
 				return err
 			}
 		default:

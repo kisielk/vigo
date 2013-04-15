@@ -49,6 +49,11 @@ func main() {
 	editor.draw()
 	termbox.SetCursor(editor.cursorPosition())
 	termbox.Flush()
+	go func() {
+		for {
+			editor.Events <- termbox.PollEvent()
+		}
+	}()
 	if err := editor.Loop(); err != ErrQuit {
 		panic(err)
 	}
