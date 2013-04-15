@@ -44,7 +44,7 @@ func NewEditor(filenames []string) *editor {
 	g := new(editor)
 	g.buffers = make([]*buffer, 0, 20)
 	for _, filename := range filenames {
-		g.new_buffer_from_file(filename)
+		g.NewBufferFromFile(filename)
 	}
 	if len(g.buffers) == 0 {
 		buf := newEmptyBuffer()
@@ -136,7 +136,7 @@ func (g *editor) buffer_name(name string) string {
 	panic("too many buffers opened with the same name")
 }
 
-func (g *editor) new_buffer_from_file(filename string) (*buffer, error) {
+func (g *editor) NewBufferFromFile(filename string) (*buffer, error) {
 	fullpath := abs_path(filename)
 	buf := g.find_buffer_by_full_path(fullpath)
 	if buf != nil {

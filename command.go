@@ -71,14 +71,19 @@ func execCommand(e *editor, command string) error {
 			return fmt.Errorf("too many arguments to :w")
 		}
 	case "e":
+		var filename string
 		if len(args) == 0 {
 			return fmt.Errorf("TODO re-read current file, if any")
 		} else if len(args) == 1 {
-			buffer, _ := e.new_buffer_from_file(args[0])
-			e.active.leaf.attach(buffer)
+			filename = args[0]
 		} else {
 			return fmt.Errorf("too many arguments for :e")
 		}
+		buffer, err := e.NewBufferFromFile(filename)
+		if err != nil {
+			return err
+		}
+		e.active.leaf.attach(buffer)
 	}
 	return nil
 }
