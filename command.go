@@ -79,6 +79,8 @@ func execCommand(e *editor, command string) error {
 		} else {
 			return fmt.Errorf("too many arguments for :e")
 		}
+
+		// TODO: Don't replace the current buffer if it has been modified
 		buffer, err := e.NewBufferFromFile(filename)
 		if err != nil {
 			return err

@@ -43,7 +43,9 @@ func (g *editor) Quit() {
 func NewEditor(filenames []string) *editor {
 	g := new(editor)
 	g.buffers = make([]*buffer, 0, 20)
+
 	for _, filename := range filenames {
+		//TODO: Check errors here
 		g.NewBufferFromFile(filename)
 	}
 	if len(g.buffers) == 0 {
