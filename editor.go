@@ -383,33 +383,27 @@ func (g *editor) onSysKey(ev *termbox.Event) {
 
 // Loop starts the editor main loop which consumes events from g.Events
 func (e *editor) Loop() error {
-	for {
-		select {
-		case ev := <-e.Events:
-			if err := e.handleEvent(&ev); err != nil {
-				return err
-			}
-			if err := e.consumeEvents(); err != nil {
-				return err
-			}
-			e.draw()
-			termbox.Flush()
-		}
-	}
-}
+	for ev := range e.Events {
 
-// consumeEvents consumes terminal events until there are no more in the channel
-func (e *editor) consumeEvents() error {
-	for {
-		select {
-		case ev := <-e.Events:
+		// The CONSUME loop handles the event and any other events that
+		// until there are no more in the queue.
+	CONSUME:
+		for {
 			if err := e.handleEvent(&ev); err != nil {
 				return err
 			}
-		default:
-			return nil
+			select {
+			case nextEv := <-e.Events:
+				ev = nextEv
+			default:
+				break CONSUME
+			}
 		}
+
+		e.draw()
+		termbox.Flush()
 	}
+	return nil
 }
 
 func (g *editor) handleEvent(ev *termbox.Event) error {
