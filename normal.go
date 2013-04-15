@@ -71,6 +71,16 @@ func (m *NormalMode) OnKey(ev *termbox.Event) {
 		v.on_vcommand(vcommand_move_cursor_end_of_line, 0)
 	}
 
+	if ev.Ch == 0x0 {
+		switch ev.Key {
+		// TODO Cursor centering after Ctrl-U/D seems off.
+		case termbox.KeyCtrlU:
+			v.on_vcommand(vcommand_move_view_half_backward, 0)
+		case termbox.KeyCtrlD:
+			v.on_vcommand(vcommand_move_view_half_forward, 0)
+		}
+	}
+
 	// TODO use reps to set range for command mode
 	switch ev.Ch {
 	case ':':
