@@ -71,8 +71,13 @@ func execCommand(e *editor, command string) error {
 			return fmt.Errorf("too many arguments to :w")
 		}
 	case "e":
-		if len(args) != 1 {
-			return fmt.Errorf("wrong number of arguments for :e")
+		if len(args) == 0 {
+			return fmt.Errorf("TODO re-read current file, if any")
+		} else if len(args) == 1 {
+			buffer, _ := e.new_buffer_from_file(args[0])
+			e.active.leaf.attach(buffer)
+		} else {
+			return fmt.Errorf("too many arguments for :e")
 		}
 	}
 	return nil
