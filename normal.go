@@ -74,9 +74,10 @@ func (m *NormalMode) OnKey(ev *termbox.Event) {
 	if ev.Ch == 0x0 {
 		switch ev.Key {
 		// TODO Cursor centering after Ctrl-U/D seems off.
-		case termbox.KeyCtrlU:
+		// TODO Ctrl-U and CTRL-D have configurable ranges of motion.
+		case termbox.KeyCtrlU, termbox.KeyCtrlB:
 			v.on_vcommand(vcommand_move_view_half_backward, 0)
-		case termbox.KeyCtrlD:
+		case termbox.KeyCtrlD, termbox.KeyCtrlF:
 			v.on_vcommand(vcommand_move_view_half_forward, 0)
 		}
 	}
