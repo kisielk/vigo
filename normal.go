@@ -37,6 +37,8 @@ func (m *NormalMode) OnKey(ev *termbox.Event) {
 		switch ev.Key {
 		case termbox.KeySpace:
 			v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_forward, Reps: reps})
+		case termbox.KeyCtrlR:
+			v.on_vcommand(ViewCommand{Cmd: vcommand_redo, Reps: reps})
 		}
 	case 'h':
 		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_backward, Reps: reps})
@@ -52,9 +54,11 @@ func (m *NormalMode) OnKey(ev *termbox.Event) {
 		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_word_backward, Reps: reps})
 	case 'x':
 		v.on_vcommand(ViewCommand{Cmd: vcommand_delete_rune, Reps: reps})
+	case 'u':
+		v.on_vcommand(ViewCommand{Cmd: vcommand_undo, Reps: reps})
 	}
 
-	// Action producers; recent action needs to replayed reps times.
+	// Insert mode; record first, then repeat.
 	switch ev.Ch {
 	case 'a':
 		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_forward})
