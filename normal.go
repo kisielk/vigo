@@ -32,32 +32,35 @@ func (m *NormalMode) OnKey(ev *termbox.Event) {
 
 	reps := parseReps(m.reps)
 
-	for i := 0; i < reps; i++ {
-		switch ev.Ch {
-		case 'h':
-			v.on_vcommand(vcommand_move_cursor_backward, 0)
-		case 'j':
-			v.on_vcommand(vcommand_move_cursor_next_line, 0)
-		case 'k':
-			v.on_vcommand(vcommand_move_cursor_prev_line, 0)
-		case 'l':
-			v.on_vcommand(vcommand_move_cursor_forward, 0)
-		case 'w':
-			v.on_vcommand(vcommand_move_cursor_word_forward, 0)
-		case 'b':
-			v.on_vcommand(vcommand_move_cursor_word_backward, 0)
-		case 'x':
-			v.on_vcommand(vcommand_delete_rune, 0)
+	switch ev.Ch {
+	case 0x0:
+		switch ev.Key {
+		case termbox.KeySpace:
+			v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_forward, Reps: reps})
 		}
+	case 'h':
+		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_backward, Reps: reps})
+	case 'j':
+		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_next_line, Reps: reps})
+	case 'k':
+		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_prev_line, Reps: reps})
+	case 'l':
+		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_forward, Reps: reps})
+	case 'w':
+		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_word_forward, Reps: reps})
+	case 'b':
+		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_word_backward, Reps: reps})
+	case 'x':
+		v.on_vcommand(ViewCommand{Cmd: vcommand_delete_rune, Reps: reps})
 	}
 
 	// Action producers; recent action needs to replayed reps times.
 	switch ev.Ch {
 	case 'a':
-		v.on_vcommand(vcommand_move_cursor_forward, 0)
+		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_forward})
 		g.SetMode(NewInsertMode(g, reps))
 	case 'A':
-		v.on_vcommand(vcommand_move_cursor_end_of_line, 0)
+		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_end_of_line})
 		g.SetMode(NewInsertMode(g, reps))
 	case 'i':
 		g.SetMode(NewInsertMode(g, reps))
@@ -66,9 +69,9 @@ func (m *NormalMode) OnKey(ev *termbox.Event) {
 	// No point repeating these commands
 	switch ev.Ch {
 	case '0':
-		v.on_vcommand(vcommand_move_cursor_beginning_of_line, 0)
+		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_beginning_of_line})
 	case '$':
-		v.on_vcommand(vcommand_move_cursor_end_of_line, 0)
+		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_end_of_line})
 	}
 
 	if ev.Ch == 0x0 {
@@ -76,9 +79,9 @@ func (m *NormalMode) OnKey(ev *termbox.Event) {
 		// TODO Cursor centering after Ctrl-U/D seems off.
 		// TODO Ctrl-U and CTRL-D have configurable ranges of motion.
 		case termbox.KeyCtrlU, termbox.KeyCtrlB:
-			v.on_vcommand(vcommand_move_view_half_backward, 0)
+			v.on_vcommand(ViewCommand{Cmd: vcommand_move_view_half_backward, Reps: reps})
 		case termbox.KeyCtrlD, termbox.KeyCtrlF:
-			v.on_vcommand(vcommand_move_view_half_forward, 0)
+			v.on_vcommand(ViewCommand{Cmd: vcommand_move_view_half_forward, Reps: reps})
 		}
 	}
 

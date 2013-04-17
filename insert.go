@@ -24,8 +24,24 @@ func (m InsertMode) OnKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
 		g.SetMode(NewNormalMode(g))
+	case termbox.KeyBackspace, termbox.KeyBackspace2:
+		v.on_vcommand(ViewCommand{Cmd: vcommand_delete_rune_backward})
+	case termbox.KeyDelete, termbox.KeyCtrlD:
+		v.on_vcommand(ViewCommand{Cmd: vcommand_delete_rune})
+	case termbox.KeySpace:
+		v.on_vcommand(ViewCommand{Cmd: vcommand_insert_rune, Rune: ' '})
+	case termbox.KeyEnter, termbox.KeyCtrlJ:
+		c := '\n'
+		if ev.Key == termbox.KeyEnter {
+			// we use '\r' for <enter>, because it doesn't cause
+			// autoindent
+			c = '\r'
+		}
+		v.on_vcommand(ViewCommand{Cmd: vcommand_insert_rune, Rune: c})
 	default:
-		v.onKey(ev)
+		if ev.Ch != 0 {
+			v.on_vcommand(ViewCommand{Cmd: vcommand_insert_rune, Rune: ev.Ch})
+		}
 	}
 }
 

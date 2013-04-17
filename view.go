@@ -142,11 +142,12 @@ type view struct {
 	dirty            dirty_flag
 	oneline          bool
 	ac               *autocompl
-	last_vcommand    vcommand
 	ac_decide        ac_decide_func
 	highlight_bytes  []byte
 	highlight_ranges []byte_range
 	tags             []view_tag
+
+	lastCommand ViewCommand
 }
 
 func new_view(ctx view_context, buf *buffer) *view {
@@ -161,7 +162,7 @@ func new_view(ctx view_context, buf *buffer) *view {
 }
 
 func (v *view) activate() {
-	v.last_vcommand = vcommand_none
+	v.lastCommand = ViewCommand{Cmd: vcommand_none}
 }
 
 func (v *view) deactivate() {
@@ -1074,185 +1075,102 @@ func (v *view) on_delete(a *action) {
 	v.dirty = dirty_everything
 }
 
-func (v *view) on_vcommand(cmd vcommand, arg rune) {
-	last_class := v.last_vcommand.class()
-	if cmd.class() != last_class || last_class == vcommand_class_misc {
+func (v *view) on_vcommand(c ViewCommand) {
+	last_class := v.lastCommand.Cmd.class()
+	if c.Cmd.class() != last_class || last_class == vcommand_class_misc {
 		v.finalize_action_group()
 	}
 
-	switch cmd {
-	case vcommand_move_cursor_forward:
-		v.move_cursor_forward()
-	case vcommand_move_cursor_backward:
-		v.move_cursor_backward()
-	case vcommand_move_cursor_word_forward:
-		v.move_cursor_word_forward()
-	case vcommand_move_cursor_word_backward:
-		v.move_cursor_word_backward()
-	case vcommand_move_cursor_next_line:
-		v.move_cursor_next_line()
-	case vcommand_move_cursor_prev_line:
-		v.move_cursor_prev_line()
-	case vcommand_move_cursor_beginning_of_line:
-		v.move_cursor_beginning_of_line()
-	case vcommand_move_cursor_end_of_line:
-		v.move_cursor_end_of_line()
-	case vcommand_move_cursor_beginning_of_file:
-		v.move_cursor_beginning_of_file()
-	case vcommand_move_cursor_end_of_file:
-		v.move_cursor_end_of_file()
-	case vcommand_move_cursor_to_line:
-		v.move_cursor_to_line(int(arg))
-	case vcommand_move_view_half_forward:
-		v.maybe_move_view_n_lines(v.height() / 2)
-	case vcommand_move_view_half_backward:
-		v.move_view_n_lines(-v.height() / 2)
-	case vcommand_set_mark:
-		v.set_mark()
-	case vcommand_swap_cursor_and_mark:
-		v.swap_cursor_and_mark()
-	case vcommand_insert_rune:
-		v.insert_rune(arg)
-	case vcommand_yank:
-		v.yank()
-	case vcommand_delete_rune_backward:
-		v.delete_rune_backward()
-	case vcommand_delete_rune:
-		v.delete_rune()
-	case vcommand_kill_line:
-		v.kill_line()
-	case vcommand_kill_word:
-		v.kill_word()
-	case vcommand_kill_word_backward:
-		v.kill_word_backward()
-	case vcommand_kill_region:
-		v.kill_region()
-	case vcommand_copy_region:
-		v.copy_region()
-	case vcommand_undo:
-		v.undo()
-	case vcommand_redo:
-		v.redo()
-	case vcommand_autocompl_init:
-		v.init_autocompl()
-	case vcommand_autocompl_finalize:
-		v.ac.finalize(v)
-		v.ac = nil
-	case vcommand_autocompl_move_cursor_up:
-		v.ac.move_cursor_up()
-	case vcommand_autocompl_move_cursor_down:
-		v.ac.move_cursor_down()
-	case vcommand_indent_region:
-		v.indent_region()
-	case vcommand_deindent_region:
-		v.deindent_region()
-	case vcommand_region_to_upper:
-		v.region_to(bytes.ToUpper)
-	case vcommand_region_to_lower:
-		v.region_to(bytes.ToLower)
-	case vcommand_word_to_upper:
-		v.word_to(bytes.ToUpper)
-	case vcommand_word_to_title:
-		v.word_to(func(s []byte) []byte {
-			return bytes.Title(bytes.ToLower(s))
-		})
-	case vcommand_word_to_lower:
-		v.word_to(bytes.ToLower)
+	reps := c.Reps
+	if reps == 0 {
+		reps = 1
 	}
 
-	v.last_vcommand = cmd
-}
-
-func (v *view) onKey(ev *termbox.Event) {
-	switch ev.Key {
-	case termbox.KeyCtrlF, termbox.KeyArrowRight:
-		v.on_vcommand(vcommand_move_cursor_forward, 0)
-	case termbox.KeyCtrlB, termbox.KeyArrowLeft:
-		v.on_vcommand(vcommand_move_cursor_backward, 0)
-	case termbox.KeyCtrlN, termbox.KeyArrowDown:
-		if v.ac != nil {
-			v.on_vcommand(vcommand_autocompl_move_cursor_down, 0)
-			break
-		}
-		v.on_vcommand(vcommand_move_cursor_next_line, 0)
-	case termbox.KeyCtrlP, termbox.KeyArrowUp:
-		if v.ac != nil {
-			v.on_vcommand(vcommand_autocompl_move_cursor_up, 0)
-			break
-		}
-		v.on_vcommand(vcommand_move_cursor_prev_line, 0)
-	case termbox.KeyCtrlE, termbox.KeyEnd:
-		v.on_vcommand(vcommand_move_cursor_end_of_line, 0)
-	case termbox.KeyCtrlA, termbox.KeyHome:
-		v.on_vcommand(vcommand_move_cursor_beginning_of_line, 0)
-	case termbox.KeyCtrlV, termbox.KeyPgdn:
-		v.on_vcommand(vcommand_move_view_half_forward, 0)
-	case termbox.KeyCtrlSlash:
-		v.on_vcommand(vcommand_undo, 0)
-	case termbox.KeySpace:
-		v.on_vcommand(vcommand_insert_rune, ' ')
-	case termbox.KeyEnter, termbox.KeyCtrlJ:
-		c := '\n'
-		if ev.Key == termbox.KeyEnter {
-			// we use '\r' for <enter>, because it doesn't cause
-			// autoindent
-			c = '\r'
-		}
-		if v.ac != nil {
-			v.on_vcommand(vcommand_autocompl_finalize, 0)
-		} else {
-			v.on_vcommand(vcommand_insert_rune, c)
-		}
-	case termbox.KeyBackspace, termbox.KeyBackspace2:
-		if ev.Mod&termbox.ModAlt != 0 {
-			v.on_vcommand(vcommand_kill_word_backward, 0)
-		} else {
-			v.on_vcommand(vcommand_delete_rune_backward, 0)
-		}
-	case termbox.KeyDelete, termbox.KeyCtrlD:
-		v.on_vcommand(vcommand_delete_rune, 0)
-	case termbox.KeyCtrlK:
-		v.on_vcommand(vcommand_kill_line, 0)
-	case termbox.KeyPgup:
-		v.on_vcommand(vcommand_move_view_half_backward, 0)
-	case termbox.KeyTab:
-		v.on_vcommand(vcommand_insert_rune, '\t')
-	case termbox.KeyCtrlSpace:
-		if ev.Ch == 0 {
+	for i := 0; i < reps; i++ {
+		switch c.Cmd {
+		case vcommand_move_cursor_forward:
+			v.move_cursor_forward()
+		case vcommand_move_cursor_backward:
+			v.move_cursor_backward()
+		case vcommand_move_cursor_word_forward:
+			v.move_cursor_word_forward()
+		case vcommand_move_cursor_word_backward:
+			v.move_cursor_word_backward()
+		case vcommand_move_cursor_next_line:
+			v.move_cursor_next_line()
+		case vcommand_move_cursor_prev_line:
+			v.move_cursor_prev_line()
+		case vcommand_move_cursor_beginning_of_line:
+			v.move_cursor_beginning_of_line()
+		case vcommand_move_cursor_end_of_line:
+			v.move_cursor_end_of_line()
+		case vcommand_move_cursor_beginning_of_file:
+			v.move_cursor_beginning_of_file()
+		case vcommand_move_cursor_end_of_file:
+			v.move_cursor_end_of_file()
+			/*
+				case vcommand_move_cursor_to_line:
+					v.move_cursor_to_line(int(arg))
+			*/
+		case vcommand_move_view_half_forward:
+			v.maybe_move_view_n_lines(v.height() / 2)
+		case vcommand_move_view_half_backward:
+			v.move_view_n_lines(-v.height() / 2)
+		case vcommand_set_mark:
 			v.set_mark()
+		case vcommand_swap_cursor_and_mark:
+			v.swap_cursor_and_mark()
+		case vcommand_insert_rune:
+			v.insert_rune(c.Rune)
+		case vcommand_yank:
+			v.yank()
+		case vcommand_delete_rune_backward:
+			v.delete_rune_backward()
+		case vcommand_delete_rune:
+			v.delete_rune()
+		case vcommand_kill_line:
+			v.kill_line()
+		case vcommand_kill_word:
+			v.kill_word()
+		case vcommand_kill_word_backward:
+			v.kill_word_backward()
+		case vcommand_kill_region:
+			v.kill_region()
+		case vcommand_copy_region:
+			v.copy_region()
+		case vcommand_undo:
+			v.undo()
+		case vcommand_redo:
+			v.redo()
+		case vcommand_autocompl_init:
+			v.init_autocompl()
+		case vcommand_autocompl_finalize:
+			v.ac.finalize(v)
+			v.ac = nil
+		case vcommand_autocompl_move_cursor_up:
+			v.ac.move_cursor_up()
+		case vcommand_autocompl_move_cursor_down:
+			v.ac.move_cursor_down()
+		case vcommand_indent_region:
+			v.indent_region()
+		case vcommand_deindent_region:
+			v.deindent_region()
+		case vcommand_region_to_upper:
+			v.region_to(bytes.ToUpper)
+		case vcommand_region_to_lower:
+			v.region_to(bytes.ToLower)
+		case vcommand_word_to_upper:
+			v.word_to(bytes.ToUpper)
+		case vcommand_word_to_title:
+			v.word_to(func(s []byte) []byte {
+				return bytes.Title(bytes.ToLower(s))
+			})
+		case vcommand_word_to_lower:
+			v.word_to(bytes.ToLower)
 		}
-	case termbox.KeyCtrlW:
-		v.on_vcommand(vcommand_kill_region, 0)
-	case termbox.KeyCtrlY:
-		v.on_vcommand(vcommand_yank, 0)
 	}
 
-	if ev.Mod&termbox.ModAlt != 0 {
-		switch ev.Ch {
-		case 'v':
-			v.on_vcommand(vcommand_move_view_half_backward, 0)
-		case '<':
-			v.on_vcommand(vcommand_move_cursor_beginning_of_file, 0)
-		case '>':
-			v.on_vcommand(vcommand_move_cursor_end_of_file, 0)
-		case 'f':
-			v.on_vcommand(vcommand_move_cursor_word_forward, 0)
-		case 'b':
-			v.on_vcommand(vcommand_move_cursor_word_backward, 0)
-		case 'd':
-			v.on_vcommand(vcommand_kill_word, 0)
-		case 'w':
-			v.on_vcommand(vcommand_copy_region, 0)
-		case 'u':
-			v.on_vcommand(vcommand_word_to_upper, 0)
-		case 'l':
-			v.on_vcommand(vcommand_word_to_lower, 0)
-		case 'c':
-			v.on_vcommand(vcommand_word_to_title, 0)
-		}
-	} else if ev.Ch != 0 {
-		v.on_vcommand(vcommand_insert_rune, ev.Ch)
-	}
+	v.lastCommand = c
 }
 
 func (v *view) dump_info() {
@@ -1399,7 +1317,7 @@ func (v *view) ensure_trailing_eol() {
 
 func (v *view) presave_cleanup(raw bool) {
 	v.finalize_action_group()
-	v.last_vcommand = vcommand_none
+	v.lastCommand = ViewCommand{Cmd: vcommand_none}
 	if !raw {
 		v.cleanup_trailing_whitespaces()
 		v.cleanup_trailing_newlines()
@@ -1411,7 +1329,7 @@ func (v *view) presave_cleanup(raw bool) {
 func (v *view) append_to_kill_buffer(cursor cursor, nbytes int) {
 	kb := *v.ctx.KillBuffer
 
-	switch v.last_vcommand {
+	switch v.lastCommand.Cmd {
 	case vcommand_kill_word, vcommand_kill_word_backward, vcommand_kill_region, vcommand_kill_line:
 	default:
 		kb = kb[:0]
@@ -1424,7 +1342,7 @@ func (v *view) append_to_kill_buffer(cursor cursor, nbytes int) {
 func (v *view) prepend_to_kill_buffer(cursor cursor, nbytes int) {
 	kb := *v.ctx.KillBuffer
 
-	switch v.last_vcommand {
+	switch v.lastCommand.Cmd {
 	case vcommand_kill_word, vcommand_kill_word_backward, vcommand_kill_region, vcommand_kill_line:
 	default:
 		kb = kb[:0]
@@ -1791,6 +1709,17 @@ const (
 	vcommand_class_history
 	vcommand_class_misc
 )
+
+type ViewCommand struct {
+	// The command to execute
+	Cmd vcommand
+
+	// Number of times to repeat the command
+	Reps int
+
+	// Rune to use in the command
+	Rune rune
+}
 
 type vcommand int
 
