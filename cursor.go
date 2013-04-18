@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -166,7 +167,7 @@ func (c *cursor) word_under_cursor() []byte {
 		return nil
 	}
 
-	for is_word(r) && !beg.bol() {
+	for IsWord(r) && !beg.bol() {
 		beg.boffset -= rlen
 		r, rlen = beg.rune_before()
 	}
@@ -177,9 +178,9 @@ func (c *cursor) word_under_cursor() []byte {
 	return c.line.data[beg.boffset:end.boffset]
 }
 
-// Move cursor forward until the first word rune is met.
+// Move cursor forward until current rune satisfies condition f.
 // Returns true if the move was successful, false if EOF reached.
-func (c *cursor) nextWordRune() bool {
+func (c *cursor) nextRuneFunc(f func(rune) bool) bool {
 	for {
 
 		if c.eol() {
@@ -194,7 +195,7 @@ func (c *cursor) nextWordRune() bool {
 		}
 
 		r, rlen := c.rune_under()
-		for !is_word(r) && !c.eol() {
+		for !f(r) && !c.eol() {
 			c.boffset += rlen
 			r, rlen = c.rune_under()
 		}
@@ -212,14 +213,27 @@ func (c *cursor) nextWordRune() bool {
 // Move cursor forward to beginning of next word.
 // Skips the rest of the current word, if any. Returns true if
 // the move was successful, false if EOF reached.
-func (c *cursor) nextWord() bool {
-	// Skip rest of current word, if any
-	r, rlen := c.rune_under()
-	for is_word(r) && !c.eol() {
-		c.boffset += rlen
-		r, rlen = c.rune_under()
+func (c *cursor) NextWord() bool {
+	r, _ := c.rune_under()
+	isNotSpace := func(r rune) bool {
+		return !unicode.IsSpace(r)
 	}
-	return c.nextWordRune()
+	if isNotSpace(r) {
+		// Lowercase word motion differentiates words consisting of
+		// (A-Z0-9_) and any other non-whitespace character. Skip until
+		// we find either the other word type or whitespace.
+		if IsWord(r) {
+			c.nextRuneFunc(func(r rune) bool {
+				return !IsWord(r) || unicode.IsSpace(r)
+			})
+		} else {
+			c.nextRuneFunc(func(r rune) bool {
+				return IsWord(r) || unicode.IsSpace(r)
+			})
+		}
+	}
+	// Skip remaining whitespace until next word of any type.
+	return c.nextRuneFunc(isNotSpace)
 }
 
 // returns true if the move was successful, false if EOF reached.
@@ -237,7 +251,7 @@ func (c *cursor) move_one_word_forward() bool {
 			}
 		}
 		r, rlen := c.rune_under()
-		for !is_word(r) && !c.eol() {
+		for !IsWord(r) && !c.eol() {
 			c.boffset += rlen
 			r, rlen = c.rune_under()
 		}
@@ -248,7 +262,7 @@ func (c *cursor) move_one_word_forward() bool {
 	}
 	// now the cursor is under the word rune, skip all of them
 	r, rlen := c.rune_under()
-	for is_word(r) && !c.eol() {
+	for IsWord(r) && !c.eol() {
 		c.boffset += rlen
 		r, rlen = c.rune_under()
 	}
@@ -271,7 +285,7 @@ func (c *cursor) move_one_word_backward() bool {
 		}
 
 		r, rlen := c.rune_before()
-		for !is_word(r) && !c.bol() {
+		for !IsWord(r) && !c.bol() {
 			c.boffset -= rlen
 			r, rlen = c.rune_before()
 		}
@@ -285,7 +299,7 @@ func (c *cursor) move_one_word_backward() bool {
 	// now the rune behind the cursor is a word rune, while it's true, move
 	// backwards
 	r, rlen := c.rune_before()
-	for is_word(r) && !c.bol() {
+	for IsWord(r) && !c.bol() {
 		c.boffset -= rlen
 		r, rlen = c.rune_before()
 	}
