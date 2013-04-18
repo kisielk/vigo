@@ -94,7 +94,7 @@ func iter_words(data []byte, cb func(word []byte)) {
 
 		r, rlen := utf8.DecodeRune(data)
 		// skip non-word runes
-		for !is_word(r) {
+		for !IsWord(r) {
 			data = data[rlen:]
 			if len(data) == 0 {
 				return
@@ -104,7 +104,7 @@ func iter_words(data []byte, cb func(word []byte)) {
 
 		// must be on a word rune
 		i := 0
-		for is_word(r) && i < len(data) {
+		for IsWord(r) && i < len(data) {
 			i += rlen
 			r, rlen = utf8.DecodeRune(data[i:])
 		}
@@ -121,7 +121,7 @@ func iter_words_backward(data []byte, cb func(word []byte)) {
 
 		r, rlen := utf8.DecodeLastRune(data)
 		// skip non-word runes
-		for !is_word(r) {
+		for !IsWord(r) {
 			data = data[:len(data)-rlen]
 			if len(data) == 0 {
 				return
@@ -131,7 +131,7 @@ func iter_words_backward(data []byte, cb func(word []byte)) {
 
 		// must be on a word rune
 		i := len(data)
-		for is_word(r) && i > 0 {
+		for IsWord(r) && i > 0 {
 			i -= rlen
 			r, rlen = utf8.DecodeLastRune(data[:i])
 		}
@@ -220,7 +220,7 @@ func bytes_between(a, b cursor) []byte {
 	return a.line.data[a.boffset:b.boffset]
 }
 
-func is_word(r rune) bool {
+func IsWord(r rune) bool {
 	return r == '_' || unicode.IsLetter(r) || unicode.IsNumber(r)
 }
 
