@@ -219,9 +219,9 @@ func (c *cursor) nextWord() bool {
 		return !unicode.IsSpace(r)
 	}
 	if isNotSpace(r) {
-		// If not a space, it's either (A-Z0-9_) (lowercase motion)
-		// or any non-whitespace character (uppercase motion). Skip
-		// until we find either the other character type or whitespace.
+		// Lowercase word motion differentiates words consisting of
+		// (A-Z0-9_) and any other non-whitespace character. Skip until
+		// we find either the other word type or whitespace.
 		if IsWord(r) {
 			c.nextRuneFunc(func(r rune) bool {
 				return !IsWord(r) || unicode.IsSpace(r)
@@ -232,7 +232,7 @@ func (c *cursor) nextWord() bool {
 			})
 		}
 	}
-	// Skip remaining whitespace until next word.
+	// Skip remaining whitespace until next word of any type.
 	return c.nextRuneFunc(isNotSpace)
 }
 
