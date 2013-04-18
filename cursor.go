@@ -213,7 +213,7 @@ func (c *cursor) nextRuneFunc(f func(rune) bool) bool {
 // Move cursor forward to beginning of next word.
 // Skips the rest of the current word, if any. Returns true if
 // the move was successful, false if EOF reached.
-func (c *cursor) nextWord() bool {
+func (c *cursor) NextWord() bool {
 	r, _ := c.rune_under()
 	isNotSpace := func(r rune) bool {
 		return !unicode.IsSpace(r)

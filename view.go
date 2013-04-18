@@ -676,7 +676,7 @@ func (v *view) move_cursor_end_of_file() {
 // Move cursor to the end of the next (or current) word.
 func (v *view) move_cursor_word_forward() {
 	c := v.cursor
-	ok := c.nextWord()
+	ok := c.NextWord()
 	v.move_cursor_to(c)
 	if !ok {
 		v.ctx.SetStatus("End of buffer")
