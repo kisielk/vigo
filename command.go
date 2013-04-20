@@ -63,20 +63,22 @@ func execCommand(e *editor, command string) error {
 	case "q":
 		e.Quit()
 	case "w":
-		if len(args) == 0 {
+		switch len(args) {
+		case 0:
 			e.active.leaf.buf.save()
-		} else if len(args) == 1 {
+		case 1:
 			e.active.leaf.buf.save_as(args[0])
-		} else {
+		default:
 			return fmt.Errorf("too many arguments to :w")
 		}
 	case "e":
 		var filename string
-		if len(args) == 0 {
+		switch len(args) {
+		case 0:
 			return fmt.Errorf("TODO re-read current file, if any")
-		} else if len(args) == 1 {
+		case 1:
 			filename = args[0]
-		} else {
+		default:
 			return fmt.Errorf("too many arguments for :e")
 		}
 
