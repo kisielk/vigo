@@ -33,8 +33,6 @@ type editor struct {
 }
 
 func (g *editor) Quit() {
-	v := g.active.leaf
-	v.ac = nil
 	g.SetStatus("Quit")
 	// Signals event loop to quit on next iteration.
 	g.quitflag = true
@@ -237,20 +235,6 @@ func (g *editor) resize() {
 	g.views.resize(views_area)
 }
 
-func (g *editor) draw_autocompl() {
-	view := g.active.leaf
-	x, y := g.active.X, g.active.Y
-	if view.ac == nil {
-		return
-	}
-
-	proposals := view.ac.actual_proposals()
-	if len(proposals) > 0 {
-		cx, cy := view.cursor_position_for(view.ac.origin)
-		view.ac.draw_onto(&g.uibuf, x+cx, y+cy)
-	}
-}
-
 func (g *editor) draw() {
 	var needsCursor bool
 	if g.Overlay != nil {
@@ -266,11 +250,6 @@ func (g *editor) draw() {
 	// draw overlay if any
 	if g.Overlay != nil {
 		g.Overlay.Draw()
-	}
-
-	// draw autocompletion
-	if !needsCursor {
-		g.draw_autocompl()
 	}
 
 	// update cursor position
