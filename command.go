@@ -43,7 +43,7 @@ func (m CommandMode) OnKey(ev *termbox.Event) {
 		if err := execCommand(m.editor, c); err != nil {
 			m.editor.SetStatus(fmt.Sprintf("error: %s", err))
 		} else {
-			m.editor.SetStatus(c)
+			m.editor.SetStatus(":" + c)
 		}
 		m.editor.SetMode(m.mode)
 	case termbox.KeySpace:
