@@ -8,7 +8,7 @@ import (
 )
 
 type CommandMode struct {
-	stub_overlay_mode
+	Overlay
 	editor *editor
 	mode   EditorMode
 	buffer *bytes.Buffer
@@ -16,15 +16,14 @@ type CommandMode struct {
 
 func NewCommandMode(editor *editor, mode EditorMode) CommandMode {
 	m := CommandMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
-	// m.render()
 	return m
 }
 
-func (m CommandMode) needs_cursor() bool {
+func (m CommandMode) NeedsCursor() bool {
 	return true
 }
 
-func (m CommandMode) cursor_position() (int, int) {
+func (m CommandMode) CursorPosition() (int, int) {
 	e := m.editor
 	r := e.uibuf.Rect
 	return m.buffer.Len() + 1, r.Height - 1
@@ -57,7 +56,7 @@ func (m CommandMode) OnKey(ev *termbox.Event) {
 func (m CommandMode) Exit() {
 }
 
-func (m CommandMode) draw() {
+func (m CommandMode) Draw() {
 	m.editor.draw_status([]byte(":" + m.buffer.String()))
 }
 

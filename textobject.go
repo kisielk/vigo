@@ -5,7 +5,6 @@ import (
 )
 
 type TextObjectMode struct {
-	stub_overlay_mode
 	editor *editor
 	object TextObject
 }

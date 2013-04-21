@@ -6,7 +6,6 @@ import (
 )
 
 type NormalMode struct {
-	stub_overlay_mode
 	editor *editor
 	reps   string
 }

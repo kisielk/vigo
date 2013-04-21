@@ -20,7 +20,6 @@ type editor struct {
 	lastcmdclass      vcommand_class
 	statusbuf         bytes.Buffer
 	quitflag          bool
-	overlay           overlay_mode
 	Events            chan termbox.Event
 	keymacros         []key_event
 	recording         bool
@@ -29,7 +28,8 @@ type editor struct {
 	s_and_r_last_word []byte
 	s_and_r_last_repl []byte
 
-	Mode EditorMode
+	Mode    EditorMode
+	Overlay Overlay
 }
 
 func (g *editor) Quit() {
@@ -252,9 +252,9 @@ func (g *editor) draw_autocompl() {
 }
 
 func (g *editor) draw() {
-	var overlay_needs_cursor bool
-	if g.overlay != nil {
-		overlay_needs_cursor = g.overlay.needs_cursor()
+	var needsCursor bool
+	if g.Overlay != nil {
+		needsCursor = g.Overlay.NeedsCursor()
 	}
 
 	// draw everything
@@ -264,20 +264,20 @@ func (g *editor) draw() {
 	g.draw_status(g.statusbuf.Bytes())
 
 	// draw overlay if any
-	if g.overlay != nil {
-		g.overlay.draw()
+	if g.Overlay != nil {
+		g.Overlay.Draw()
 	}
 
 	// draw autocompletion
-	if !overlay_needs_cursor {
+	if !needsCursor {
 		g.draw_autocompl()
 	}
 
 	// update cursor position
 	var cx, cy int
-	if overlay_needs_cursor {
-		// this can be true, only when g.overlay != nil, see above
-		cx, cy = g.overlay.cursor_position()
+	if needsCursor {
+		// this can be true, only when g.Overlay != nil, see above
+		cx, cy = g.Overlay.CursorPosition()
 	} else {
 		cx, cy = g.cursorPosition()
 	}
@@ -423,8 +423,8 @@ func (g *editor) handleEvent(ev *termbox.Event) error {
 	case termbox.EventResize:
 		termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 		g.resize()
-		if g.overlay != nil {
-			g.overlay.on_resize(ev)
+		if g.Overlay != nil {
+			g.Overlay.OnResize(ev)
 		}
 	case termbox.EventError:
 		return ev.Err
@@ -442,10 +442,10 @@ func (g *editor) SetMode(m EditorMode) {
 		g.Mode.Exit()
 	}
 	g.Mode = m
-	g.overlay = nil
+	g.Overlay = nil
 	// Some modes can be overlays.
-	if o, ok := m.(overlay_mode); ok {
-		g.overlay = o
+	if o, ok := m.(Overlay); ok {
+		g.Overlay = o
 	}
 }
 

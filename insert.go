@@ -5,7 +5,6 @@ import (
 )
 
 type InsertMode struct {
-	stub_overlay_mode
 	editor *editor
 	reps   int
 }
