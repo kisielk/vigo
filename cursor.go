@@ -122,30 +122,18 @@ func (c *cursor) extract_bytes(n int) []byte {
 	return buf.Bytes()
 }
 
-func (c *cursor) move_one_rune_forward() {
-	if c.last_line() && c.eol() {
-		return
-	}
-
+func (c *cursor) NextRune() {
 	if c.eol() {
-		c.line = c.line.next
-		c.line_num++
-		c.boffset = 0
+		return
 	} else {
 		_, rlen := c.rune_under()
 		c.boffset += rlen
 	}
 }
 
-func (c *cursor) move_one_rune_backward() {
-	if c.first_line() && c.bol() {
-		return
-	}
-
+func (c *cursor) PrevRune() {
 	if c.bol() {
-		c.line = c.line.prev
-		c.line_num--
-		c.boffset = len(c.line.data)
+		return
 	} else {
 		_, rlen := c.rune_before()
 		c.boffset -= rlen

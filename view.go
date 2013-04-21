@@ -566,7 +566,7 @@ func (v *view) move_cursor_forward() {
 		return
 	}
 
-	c.move_one_rune_forward()
+	c.NextRune()
 	v.move_cursor_to(c)
 }
 
@@ -578,7 +578,7 @@ func (v *view) move_cursor_backward() {
 		return
 	}
 
-	c.move_one_rune_backward()
+	c.PrevRune()
 	v.move_cursor_to(c)
 }
 
@@ -1312,7 +1312,7 @@ func (v *view) yank() {
 	for len(buf) > 0 {
 		_, rlen := utf8.DecodeRune(buf)
 		buf = buf[rlen:]
-		cursor.move_one_rune_forward()
+		cursor.NextRune()
 	}
 	v.move_cursor_to(cursor)
 }

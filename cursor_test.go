@@ -31,6 +31,66 @@ func makeLines() []*line {
 	return lines[:]
 }
 
+func TestNextRune(t *testing.T) {
+	lines := makeLines()
+	l0 := lines[0]
+
+	// Start of line 1
+	c := &cursor{line: l0, boffset: 0}
+
+	// Go forward one character at a time
+	for i := 1; i < len(l0.data); i++ {
+		c.NextRune()
+		if c.line != l0 {
+			t.Error("Bad cursor line at index", i)
+		}
+		if c.boffset != i {
+			t.Error("Bad cursor offset at index", i)
+		}
+	}
+
+	// Cursor should stay at the end of the line
+	for i := 0; i < 3; i++ {
+		c.NextRune()
+		if c.line != l0 {
+			t.Error("Bad cursor line")
+		}
+		if c.boffset != len(l0.data) {
+			t.Error("Bad cursor index")
+		}
+	}
+}
+
+func TestPrevRune(t *testing.T) {
+	lines := makeLines()
+	l0 := lines[0]
+
+	// End of line 1
+	c := &cursor{line: l0, boffset: 9}
+
+	// Go backwards one character at a time
+	for i := len(l0.data) - 2; i >= 0; i-- {
+		c.PrevRune()
+		if c.line != l0 {
+			t.Error("Bad cursor line at index", i)
+		}
+		if c.boffset != i {
+			t.Error("Bad cursor offset at index", i)
+		}
+	}
+
+	// Cursor should stay at the beginning of the line
+	for i := 0; i < 3; i++ {
+		c.PrevRune()
+		if c.line != l0 {
+			t.Error("Bad cursor line")
+		}
+		if c.boffset != 0 {
+			t.Error("Bad cursor index")
+		}
+	}
+}
+
 func TestNextWord(t *testing.T) {
 	// TODO test EOF, test empty line
 	lines := makeLines()
