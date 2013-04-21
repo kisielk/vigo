@@ -37,11 +37,11 @@ func (m *TextObjectMode) OnKey(ev *termbox.Event) {
 		m.object.Kind = TextObjectWord
 	case 'W':
 		m.object.Kind = TextObjectWhitespaceWord
-	case 's':
+	case 'k':
 		m.object.Kind = TextObjectSentence
 	case 'p':
 		m.object.Kind = TextObjectParagraph
-	case 'S':
+	case 'K':
 		m.object.Kind = TextObjectSection
 	case '%':
 		m.object.Kind = TextObjectPercent
