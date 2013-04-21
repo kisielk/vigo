@@ -22,7 +22,7 @@ func (m InsertMode) OnKey(ev *termbox.Event) {
 
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
-		g.SetMode(NewNormalMode(g))
+		g.SetMode(NewVisualMode(g))
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		v.on_vcommand(ViewCommand{Cmd: vcommand_delete_rune_backward})
 	case termbox.KeyDelete, termbox.KeyCtrlD:

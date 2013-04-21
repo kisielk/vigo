@@ -52,7 +52,7 @@ func NewEditor(filenames []string) *editor {
 	}
 	g.views = new_view_tree_leaf(nil, new_view(g.view_context(), g.buffers[0]))
 	g.active = g.views
-	g.SetMode(NewNormalMode(g))
+	g.SetMode(NewVisualMode(g))
 	g.Events = make(chan termbox.Event, 20)
 	return g
 }
