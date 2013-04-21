@@ -54,10 +54,17 @@ func TestNamedCutBuffers(t *testing.T) {
 	}
 	for i := byte('a'); i <= 'z'; i++ {
 		expected := in + string(i)
-		if out := bufs.Get(i); string(out) != expected {
+		if out := string(bufs.Get(i)); out != expected {
 			t.Logf("%s: got %q, want %q", i, out, expected)
 			t.Fail()
 		}
+	}
+
+	bufs.Set('a', []byte("foo"))
+	bufs.Append('a', []byte("bar"))
+	if out := string(bufs.Get('a')); out != "foobar" {
+		t.Logf("after append got %q, want %q", out, "foobar")
+		t.Fail()
 	}
 }
 
@@ -76,7 +83,7 @@ func TestAnonCutBuffers(t *testing.T) {
 	}
 	for i := byte('1'); i <= '9'; i++ {
 		expected := in + string(i)
-		if out := bufs.Get(i); string(out) != expected {
+		if out := string(bufs.Get(i)); out != expected {
 			t.Logf("%s: got %q, want %q", string(i), out, expected)
 			t.Fail()
 		}

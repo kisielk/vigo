@@ -88,6 +88,12 @@ func (bs *CutBuffers) Set(b byte, s []byte) {
 	(*bs)[b] = s
 }
 
+// Append appends the byte slice s to the contents of buffer b
+func (bs *CutBuffers) Append(b byte, s []byte) {
+	validCutBuffer(b)
+	(*bs)[b] = append((*bs)[b], s...)
+}
+
 // Get returns the contents of the cut buffer b
 func (bs *CutBuffers) Get(b byte) []byte {
 	validCutBuffer(b)
