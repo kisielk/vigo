@@ -685,7 +685,7 @@ func (v *view) move_cursor_word_forward() {
 
 func (v *view) move_cursor_word_backward() {
 	c := v.cursor
-	ok := c.move_one_word_backward()
+	ok := c.PrevWord()
 	v.move_cursor_to(c)
 	if !ok {
 		v.ctx.SetStatus("Beginning of buffer")

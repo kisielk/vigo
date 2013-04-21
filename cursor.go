@@ -214,10 +214,10 @@ func (c *cursor) nextRuneFunc(f func(rune) bool) bool {
 // Skips the rest of the current word, if any. Returns true if
 // the move was successful, false if EOF reached.
 func (c *cursor) NextWord() bool {
-	r, _ := c.rune_under()
 	isNotSpace := func(r rune) bool {
 		return !unicode.IsSpace(r)
 	}
+	r, _ := c.rune_under()
 	if isNotSpace(r) {
 		// Lowercase word motion differentiates words consisting of
 		// (A-Z0-9_) and any other non-whitespace character. Skip until
@@ -267,6 +267,57 @@ func (c *cursor) move_one_word_forward() bool {
 		r, rlen = c.rune_under()
 	}
 	return true
+}
+
+// Move cursor backward until current rune satisfies condition f.
+// Returns true if the move was successful, false if EOF reached.
+func (c *cursor) prevRuneFunc(f func(rune) bool) bool {
+	for {
+		if c.bol() {
+			if c.first_line() {
+				return false
+			} else {
+				c.line = c.line.prev
+				c.line_num--
+				c.boffset = len(c.line.data)
+				continue
+			}
+		}
+		r, rlen := c.rune_before()
+		for !f(r) && !c.bol() {
+			c.boffset -= rlen
+			r, rlen = c.rune_before()
+		}
+		break
+	}
+	return true
+}
+
+// Move cursor forward to beginning of the previous word.
+// Skips the rest of the current word, if any, unless is located at its
+// first character. Returns true if the move was successful, false if EOF reached.
+func (c *cursor) PrevWord() bool {
+	isNotSpace := func(r rune) bool {
+		return !unicode.IsSpace(r)
+	}
+	// Skip remaining whitespace until next word of any type.
+	_ = c.prevRuneFunc(isNotSpace)
+	r, _ := c.rune_before()
+	if isNotSpace(r) {
+		// Lowercase word motion differentiates words consisting of
+		// (A-Z0-9_) and any other non-whitespace character. Skip until
+		// we find either the other word type or whitespace.
+		if IsWord(r) {
+			c.prevRuneFunc(func(r rune) bool {
+				return !IsWord(r) || unicode.IsSpace(r)
+			})
+		} else {
+			c.prevRuneFunc(func(r rune) bool {
+				return IsWord(r) || unicode.IsSpace(r)
+			})
+		}
+	}
+	return !c.bol()
 }
 
 // returns true if the move was successful, false if BOF reached.
