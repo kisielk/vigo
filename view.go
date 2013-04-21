@@ -6,7 +6,6 @@ import (
 	"github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
 	"os"
-	"strings"
 	"unicode/utf8"
 )
 
@@ -116,17 +115,6 @@ type view_context struct {
 }
 
 //----------------------------------------------------------------------------
-// default autocompletion type decision function
-//----------------------------------------------------------------------------
-
-func default_ac_decide(view *view) ac_func {
-	if strings.HasSuffix(view.buf.path, ".go") {
-		return gocode_ac
-	}
-	return local_ac
-}
-
-//----------------------------------------------------------------------------
 // view
 //
 // Think of it as a window. It draws contents from a portion of a buffer into
@@ -141,8 +129,6 @@ type view struct {
 	uibuf            tulib.Buffer
 	dirty            dirty_flag
 	oneline          bool
-	ac               *autocompl
-	ac_decide        ac_decide_func
 	highlight_bytes  []byte
 	highlight_ranges []byte_range
 	tags             []view_tag
@@ -155,7 +141,6 @@ func new_view(ctx view_context, buf *buffer) *view {
 	v.ctx = ctx
 	v.uibuf = tulib.NewBuffer(1, 1)
 	v.attach(buf)
-	v.ac_decide = default_ac_decide
 	v.highlight_ranges = make([]byte_range, 0, 10)
 	v.tags = make([]view_tag, 0, 10)
 	return v
@@ -166,8 +151,6 @@ func (v *view) activate() {
 }
 
 func (v *view) deactivate() {
-	// on deactivation discard autocompl
-	v.ac = nil
 }
 
 func (v *view) attach(b *buffer) {
@@ -175,7 +158,6 @@ func (v *view) attach(b *buffer) {
 		return
 	}
 
-	v.ac = nil
 	if v.buf != nil {
 		v.detach()
 	}
@@ -188,23 +170,6 @@ func (v *view) attach(b *buffer) {
 func (v *view) detach() {
 	v.buf.delete_view(v)
 	v.buf = nil
-}
-
-func (v *view) init_autocompl() {
-	if v.ac_decide == nil {
-		return
-	}
-
-	ac_func := v.ac_decide(v)
-	if ac_func == nil {
-		return
-	}
-
-	v.ac = new_autocompl(ac_func, v)
-	if v.ac != nil && len(v.ac.actual_proposals()) == 1 {
-		v.ac.finalize(v)
-		v.ac = nil
-	}
 }
 
 // Resize the 'v.uibuf', adjusting things accordingly.
@@ -591,14 +556,6 @@ func (v *view) move_cursor_to(c cursor) {
 	v.cursor.line_num = c.line_num
 	v.adjust_line_voffset()
 	v.adjust_top_line()
-
-	if v.ac != nil {
-		// update autocompletion on every cursor move
-		ok := v.ac.update(v.cursor)
-		if !ok {
-			v.ac = nil
-		}
-	}
 }
 
 // Move cursor one character forward.
@@ -1142,15 +1099,6 @@ func (v *view) on_vcommand(c ViewCommand) {
 			v.undo()
 		case vcommand_redo:
 			v.redo()
-		case vcommand_autocompl_init:
-			v.init_autocompl()
-		case vcommand_autocompl_finalize:
-			v.ac.finalize(v)
-			v.ac = nil
-		case vcommand_autocompl_move_cursor_up:
-			v.ac.move_cursor_up()
-		case vcommand_autocompl_move_cursor_down:
-			v.ac.move_cursor_down()
 		case vcommand_indent_region:
 			v.indent_region()
 		case vcommand_deindent_region:
@@ -1777,10 +1725,6 @@ const (
 	vcommand_word_to_upper
 	vcommand_word_to_title
 	vcommand_word_to_lower
-	vcommand_autocompl_init
-	vcommand_autocompl_move_cursor_up
-	vcommand_autocompl_move_cursor_down
-	vcommand_autocompl_finalize
 	_vcommand_misc_end
 )
 
