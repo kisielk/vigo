@@ -8,6 +8,7 @@ import (
 	"github.com/nsf/tulib"
 	"os"
 	"strconv"
+	"time"
 )
 
 var ErrQuit = errors.New("quit")
@@ -425,6 +426,7 @@ func (e *editor) Loop() error {
 
 		e.draw()
 		termbox.Flush()
+		time.Sleep(10 * time.Millisecond)
 	}
 	return nil
 }
