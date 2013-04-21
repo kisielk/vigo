@@ -13,20 +13,15 @@ import (
 var ErrQuit = errors.New("quit")
 
 type editor struct {
-	uibuf             tulib.Buffer
-	active            *view_tree // this one is always a leaf node
-	views             *view_tree // a root node
-	buffers           []*buffer
-	lastcmdclass      vcommand_class
-	statusbuf         bytes.Buffer
-	quitflag          bool
-	Events            chan termbox.Event
-	keymacros         []key_event
-	recording         bool
-	killbuffer        []byte
-	isearch_last_word []byte
-	s_and_r_last_word []byte
-	s_and_r_last_repl []byte
+	uibuf        tulib.Buffer
+	active       *view_tree // this one is always a leaf node
+	views        *view_tree // a root node
+	buffers      []*buffer
+	lastcmdclass vcommand_class
+	statusbuf    bytes.Buffer
+	quitflag     bool
+	Events       chan termbox.Event
+	killbuffer   []byte
 
 	Mode    EditorMode
 	Overlay Overlay
@@ -53,8 +48,6 @@ func NewEditor(filenames []string) *editor {
 	}
 	g.views = new_view_tree_leaf(nil, new_view(g.view_context(), g.buffers[0]))
 	g.active = g.views
-	g.keymacros = make([]key_event, 0, 50)
-	g.isearch_last_word = make([]byte, 0, 32)
 	g.SetMode(NewNormalMode(g))
 	g.Events = make(chan termbox.Event, 20)
 	return g
