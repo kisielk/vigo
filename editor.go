@@ -23,6 +23,8 @@ type editor struct {
 	Events       chan termbox.Event
 	killbuffer   []byte
 
+	CutBuffers *CutBuffers
+
 	Mode    EditorMode
 	Overlay Overlay
 }
@@ -36,6 +38,7 @@ func (g *editor) Quit() {
 func NewEditor(filenames []string) *editor {
 	g := new(editor)
 	g.buffers = make([]*buffer, 0, 20)
+	g.CutBuffers = NewCutBuffers()
 
 	for _, filename := range filenames {
 		//TODO: Check errors here
@@ -51,6 +54,44 @@ func NewEditor(filenames []string) *editor {
 	g.SetMode(NewNormalMode(g))
 	g.Events = make(chan termbox.Event, 20)
 	return g
+}
+
+type CutBuffers map[byte][]byte
+
+func NewCutBuffers() *CutBuffers {
+	c := make(CutBuffers, 36)
+	return &c
+}
+
+// UpdateAnon the contents of the anonymous cut buffer 1
+// with the given byte slice s, and rotates the rest of the buffers
+func (bs *CutBuffers) UpdateAnon(s []byte) {
+	bufs := *bs
+	for i := byte('9'); i > '1'; i-- {
+		bufs[i] = bufs[i-1]
+	}
+	bufs['1'] = s
+	*bs = bufs
+}
+
+// validCutBuffer panics if b is not a valid cut buffer name
+// b must a character between a-z, 1-9, or .
+func validCutBuffer(b byte) {
+	if b != '.' && b < '1' || b > '9' && b < 'a' || b > 'z' {
+		panic(fmt.Errorf("invalid cut buffer: %q", b))
+	}
+}
+
+// Set updates the contents of the cut buffer b with the byte slice s
+func (bs *CutBuffers) Set(b byte, s []byte) {
+	validCutBuffer(b)
+	(*bs)[b] = s
+}
+
+// Get returns the contents of the cut buffer b
+func (bs *CutBuffers) Get(b byte) []byte {
+	validCutBuffer(b)
+	return (*bs)[b]
 }
 
 func (g *editor) KillBuffer(buf *buffer) {
