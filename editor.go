@@ -261,7 +261,7 @@ func (g *editor) draw() {
 	g.views.draw()
 	g.composite_recursively(g.views)
 	g.fix_edges(g.views)
-	g.draw_status()
+	g.draw_status(g.statusbuf.Bytes())
 
 	// draw overlay if any
 	if g.overlay != nil {
@@ -284,13 +284,13 @@ func (g *editor) draw() {
 	termbox.SetCursor(cx, cy)
 }
 
-func (g *editor) draw_status() {
+func (g *editor) draw_status(text []byte) {
 	lp := tulib.DefaultLabelParams
 	r := g.uibuf.Rect
 	r.Y = r.Height - 1
 	r.Height = 1
 	g.uibuf.Fill(r, termbox.Cell{Fg: lp.Fg, Bg: lp.Bg, Ch: ' '})
-	g.uibuf.DrawLabel(r, &lp, g.statusbuf.Bytes())
+	g.uibuf.DrawLabel(r, &lp, text)
 }
 
 func (g *editor) composite_recursively(v *view_tree) {
@@ -442,6 +442,11 @@ func (g *editor) SetMode(m EditorMode) {
 		g.Mode.Exit()
 	}
 	g.Mode = m
+	g.overlay = nil
+	// Some modes can be overlays.
+	if o, ok := m.(overlay_mode); ok {
+		g.overlay = o
+	}
 }
 
 func (g *editor) view_context() view_context {
