@@ -39,13 +39,13 @@ func (m *NormalMode) OnKey(ev *termbox.Event) {
 		case termbox.KeyCtrlR:
 			v.on_vcommand(ViewCommand{Cmd: vcommand_redo, Reps: reps})
 		}
-	case 'h':
+	case 's':
 		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_backward, Reps: reps})
-	case 'j':
+	case 'n':
 		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_next_line, Reps: reps})
-	case 'k':
+	case 'e':
 		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_prev_line, Reps: reps})
-	case 'l':
+	case 't':
 		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_forward, Reps: reps})
 	case 'w':
 		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_word_forward, Reps: reps})
