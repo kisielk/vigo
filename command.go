@@ -65,9 +65,9 @@ func execCommand(e *editor, command string) error {
 	fields := strings.Fields(command)
 	cmd, args := fields[0], fields[1:]
 	switch cmd {
-	case "q":
+	case "q","quit":
 		e.Quit()
-	case "w":
+	case "w","write":
 		if len(args) == 0 {
 			e.active.leaf.buf.save()
 		} else if len(args) == 1 {
@@ -75,7 +75,7 @@ func execCommand(e *editor, command string) error {
 		} else {
 			return fmt.Errorf("too many arguments to :w")
 		}
-	case "e":
+	case "e","edit":
 		var filename string
 		if len(args) == 0 {
 			return fmt.Errorf("TODO re-read current file, if any")
