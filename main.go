@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/nsf/termbox-go"
 	"os"
+	"runtime"
 )
 
 const (
@@ -10,6 +11,10 @@ const (
 	view_vertical_threshold   = 5
 	view_horizontal_threshold = 10
 )
+
+func init() {
+	runtime.GOMAXPROCS(2)
+}
 
 // this is a structure which represents a key press, used for keyboard macros
 type key_event struct {
