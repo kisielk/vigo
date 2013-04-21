@@ -122,22 +122,40 @@ func (c *cursor) extract_bytes(n int) []byte {
 	return buf.Bytes()
 }
 
-func (c *cursor) NextRune() {
-	if c.eol() {
-		return
-	} else {
+// NextRune moves cursor to the next rune. If wrap is true,
+// wraps the cursor to the beginning of next line once the end
+// of the current one is reached. Returns true if motion succeeded,
+// false otherwise.
+func (c *cursor) NextRune(wrap bool) bool {
+	if !c.eol() {
 		_, rlen := c.rune_under()
 		c.boffset += rlen
+		return true
+	} else if wrap && !c.last_line() {
+		c.line = c.line.next
+		c.line_num++
+		c.boffset = 0
+		return true
 	}
+	return false
 }
 
-func (c *cursor) PrevRune() {
-	if c.bol() {
-		return
-	} else {
+// PrevRune moves cursor to the previous rune. If wrap is true,
+// wraps the cursor to the end of next line once the beginning of
+// the current one is reached. Returns true if motion succeeded,
+// false otherwise.
+func (c *cursor) PrevRune(wrap bool) bool {
+	if !c.bol() {
 		_, rlen := c.rune_before()
 		c.boffset -= rlen
+		return true
+	} else if wrap && !c.first_line() {
+		c.line = c.line.prev
+		c.line_num--
+		c.boffset = len(c.line.data)
+		return true
 	}
+	return false
 }
 
 func (c *cursor) move_beginning_of_line() {

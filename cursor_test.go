@@ -40,7 +40,7 @@ func TestNextRune(t *testing.T) {
 
 	// Go forward one character at a time
 	for i := 1; i < len(l0.data); i++ {
-		c.NextRune()
+		c.NextRune(false)
 		if c.line != l0 {
 			t.Error("Bad cursor line at index", i)
 		}
@@ -51,13 +51,31 @@ func TestNextRune(t *testing.T) {
 
 	// Cursor should stay at the end of the line
 	for i := 0; i < 3; i++ {
-		c.NextRune()
+		c.NextRune(false)
 		if c.line != l0 {
 			t.Error("Bad cursor line")
 		}
 		if c.boffset != len(l0.data) {
 			t.Error("Bad cursor index")
 		}
+	}
+}
+
+func TestNextRuneWrap(t *testing.T) {
+	lines := makeLines()
+
+	// End of line 1
+	c := &cursor{line: lines[0], boffset: 9}
+
+	// FIXME currently cursors go to EOL which is one past the last
+	// character; for now, needs an extra motion to wrap to next line.
+	c.NextRune(true)
+	c.NextRune(true)
+	if c.line != lines[1] {
+		t.Error("Cursor did not wrap to next line")
+	}
+	if c.boffset != 0 {
+		t.Error("Cursor wrapped to wrong offset", c.boffset)
 	}
 }
 
@@ -70,7 +88,7 @@ func TestPrevRune(t *testing.T) {
 
 	// Go backwards one character at a time
 	for i := len(l0.data) - 2; i >= 0; i-- {
-		c.PrevRune()
+		c.PrevRune(false)
 		if c.line != l0 {
 			t.Error("Bad cursor line at index", i)
 		}
@@ -81,13 +99,28 @@ func TestPrevRune(t *testing.T) {
 
 	// Cursor should stay at the beginning of the line
 	for i := 0; i < 3; i++ {
-		c.PrevRune()
+		c.PrevRune(false)
 		if c.line != l0 {
 			t.Error("Bad cursor line")
 		}
 		if c.boffset != 0 {
 			t.Error("Bad cursor index")
 		}
+	}
+}
+
+func TestPrevRuneWrap(t *testing.T) {
+	lines := makeLines()
+
+	// Beginning of line 2
+	c := &cursor{line: lines[1], boffset: 0}
+
+	c.PrevRune(true)
+	if c.line != lines[0] {
+		t.Error("Cursor did not wrap to previous line")
+	}
+	if c.boffset != 10 {
+		t.Error("Cursor wrapped to wrong offset", c.boffset)
 	}
 }
 
