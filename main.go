@@ -6,9 +6,11 @@ import (
 	"runtime"
 )
 
+/*
 func init() {
 	runtime.GOMAXPROCS(2)
 }
+*/
 
 func main() {
 	if err := termbox.Init(); err != nil {
