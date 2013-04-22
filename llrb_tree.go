@@ -6,48 +6,48 @@ import (
 
 // LLRB tree with single key values as byte slices.
 // I use 2-3 tree algorithms for it. Only insertion is implemented (no delete).
-type llrb_tree struct {
-	root       *llrb_node
-	count      int
-	free_nodes *llrb_node
+type llrbTree struct {
+	root      *llrbNode
+	count     int
+	freeNodes *llrbNode
 }
 
-func (t *llrb_tree) free_node(n *llrb_node) {
-	*n = llrb_node{left: t.free_nodes}
-	t.free_nodes = n
+func (t *llrbTree) freeNode(n *llrbNode) {
+	*n = llrbNode{left: t.freeNodes}
+	t.freeNodes = n
 }
 
-func (t *llrb_tree) alloc_node(value []byte) *llrb_node {
-	if t.free_nodes == nil {
-		return &llrb_node{value: value}
+func (t *llrbTree) allocNode(value []byte) *llrbNode {
+	if t.freeNodes == nil {
+		return &llrbNode{value: value}
 	}
 
-	n := t.free_nodes
-	t.free_nodes = n.left
-	*n = llrb_node{value: value}
+	n := t.freeNodes
+	t.freeNodes = n.left
+	*n = llrbNode{value: value}
 	return n
 }
 
-func (t *llrb_tree) clear() {
-	t.clear_recursive(t.root)
+func (t *llrbTree) clear() {
+	t.clearRecursive(t.root)
 	t.root = nil
 	t.count = 0
 }
 
-func (t *llrb_tree) clear_recursive(n *llrb_node) {
+func (t *llrbTree) clearRecursive(n *llrbNode) {
 	if n == nil {
 		return
 	}
-	t.clear_recursive(n.left)
-	t.clear_recursive(n.right)
-	t.free_node(n)
+	t.clearRecursive(n.left)
+	t.clearRecursive(n.right)
+	t.freeNode(n)
 }
 
-func (t *llrb_tree) walk(cb func(value []byte)) {
+func (t *llrbTree) walk(cb func(value []byte)) {
 	t.root.walk(cb)
 }
 
-func (t *llrb_tree) insertMaybe(value []byte) bool {
+func (t *llrbTree) insertMaybe(value []byte) bool {
 	var ok bool
 	t.root, ok = t.root.insertMaybe(value)
 	if ok {
@@ -56,51 +56,51 @@ func (t *llrb_tree) insertMaybe(value []byte) bool {
 	return ok
 }
 
-func (t *llrb_tree) insert_maybe_recursive(n *llrb_node, value []byte) (*llrb_node, bool) {
+func (t *llrbTree) insertMaybeRecursive(n *llrbNode, value []byte) (*llrbNode, bool) {
 	if n == nil {
-		return t.alloc_node(value), true
+		return t.allocNode(value), true
 	}
 
 	var inserted bool
 	switch cmp := bytes.Compare(value, n.value); {
 	case cmp < 0:
-		n.left, inserted = t.insert_maybe_recursive(n.left, value)
+		n.left, inserted = t.insertMaybeRecursive(n.left, value)
 	case cmp > 0:
-		n.right, inserted = t.insert_maybe_recursive(n.right, value)
+		n.right, inserted = t.insertMaybeRecursive(n.right, value)
 	default:
 		// don't insert anything
 	}
 
-	if n.right.is_red() && !n.left.is_red() {
-		n = n.rotate_left()
+	if n.right.isRed() && !n.left.isRed() {
+		n = n.rotateLeft()
 	}
-	if n.left.is_red() && n.left.left.is_red() {
-		n = n.rotate_right()
+	if n.left.isRed() && n.left.left.isRed() {
+		n = n.rotateRight()
 	}
-	if n.left.is_red() && n.right.is_red() {
-		n.flip_colors()
+	if n.left.isRed() && n.right.isRed() {
+		n.flipColors()
 	}
 
 	return n, inserted
 }
 
-func (t *llrb_tree) contains(value []byte) bool {
+func (t *llrbTree) contains(value []byte) bool {
 	return t.root.contains(value)
 }
 
 const (
-	llrb_red   = false
-	llrb_black = true
+	llrbRed   = false
+	llrbBlack = true
 )
 
-type llrb_node struct {
+type llrbNode struct {
 	value []byte
-	left  *llrb_node
-	right *llrb_node
+	left  *llrbNode
+	right *llrbNode
 	color bool
 }
 
-func (n *llrb_node) walk(cb func(value []byte)) {
+func (n *llrbNode) walk(cb func(value []byte)) {
 	if n == nil {
 		return
 	}
@@ -109,37 +109,37 @@ func (n *llrb_node) walk(cb func(value []byte)) {
 	n.right.walk(cb)
 }
 
-func (n *llrb_node) rotate_left() *llrb_node {
+func (n *llrbNode) rotateLeft() *llrbNode {
 	x := n.right
 	n.right = x.left
 	x.left = n
 	x.color = n.color
-	n.color = llrb_red
+	n.color = llrbRed
 	return x
 }
 
-func (n *llrb_node) rotate_right() *llrb_node {
+func (n *llrbNode) rotateRight() *llrbNode {
 	x := n.left
 	n.left = x.right
 	x.right = n
 	x.color = n.color
-	n.color = llrb_red
+	n.color = llrbRed
 	return x
 }
 
-func (n *llrb_node) flip_colors() {
+func (n *llrbNode) flipColors() {
 	n.color = !n.color
 	n.left.color = !n.left.color
 	n.right.color = !n.right.color
 }
 
-func (n *llrb_node) is_red() bool {
+func (n *llrbNode) isRed() bool {
 	return n != nil && !n.color
 }
 
-func (n *llrb_node) insertMaybe(value []byte) (*llrb_node, bool) {
+func (n *llrbNode) insertMaybe(value []byte) (*llrbNode, bool) {
 	if n == nil {
-		return &llrb_node{value: value}, true
+		return &llrbNode{value: value}, true
 	}
 
 	var inserted bool
@@ -152,20 +152,20 @@ func (n *llrb_node) insertMaybe(value []byte) (*llrb_node, bool) {
 		// don't insert anything
 	}
 
-	if n.right.is_red() && !n.left.is_red() {
-		n = n.rotate_left()
+	if n.right.isRed() && !n.left.isRed() {
+		n = n.rotateLeft()
 	}
-	if n.left.is_red() && n.left.left.is_red() {
-		n = n.rotate_right()
+	if n.left.isRed() && n.left.left.isRed() {
+		n = n.rotateRight()
 	}
-	if n.left.is_red() && n.right.is_red() {
-		n.flip_colors()
+	if n.left.isRed() && n.right.isRed() {
+		n.flipColors()
 	}
 
 	return n, inserted
 }
 
-func (n *llrb_node) contains(value []byte) bool {
+func (n *llrbNode) contains(value []byte) bool {
 	for n != nil {
 		switch cmp := bytes.Compare(value, n.value); {
 		case cmp < 0:

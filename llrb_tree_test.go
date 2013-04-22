@@ -8,7 +8,7 @@ import "time"
 // Test never fails, just use it with `go test -v`, it prints some values, looks
 // like everything is fine.
 func TestLLRBTree(t *testing.T) {
-	var tree llrb_tree
+	var tree llrbTree
 	rand.Seed(time.Now().UnixNano())
 	p := rand.Perm(1024)
 	// insert 1024 different numbers
@@ -48,8 +48,8 @@ func TestLLRBTree(t *testing.T) {
 	contains(54400)
 
 	max_h := 0
-	var traverse func(n *llrb_node, h int)
-	traverse = func(n *llrb_node, h int) {
+	var traverse func(n *llrbNode, h int)
+	traverse = func(n *llrbNode, h int) {
 		if h > max_h {
 			max_h = h
 		}

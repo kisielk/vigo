@@ -62,7 +62,7 @@ type buffer struct {
 	name string
 
 	// cache for local buffer autocompletion
-	wordsCache      llrb_tree
+	wordsCache      llrbTree
 	wordsCacheValid bool
 }
 
