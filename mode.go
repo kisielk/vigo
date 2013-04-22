@@ -16,7 +16,7 @@ type VisualMode struct {
 
 func NewVisualMode(editor *editor) *VisualMode {
 	m := VisualMode{editor: editor}
-	m.editor.SetStatus("Normal")
+	m.editor.SetStatus("Visual")
 	return &m
 }
 
