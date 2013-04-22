@@ -189,18 +189,18 @@ func (v *view) height() int {
 
 func (v *view) verticalThreshold() int {
 	maxVthreshold := (v.height() - 1) / 2
-	if VIEW_VERTICAL_THRESHOLD > maxVthreshold {
+	if viewVerticalThreshold > maxVthreshold {
 		return maxVthreshold
 	}
-	return VIEW_VERTICAL_THRESHOLD
+	return viewVerticalThreshold
 }
 
 func (v *view) horizontalThreshold() int {
 	max_h_threshold := (v.width() - 1) / 2
-	if VIEW_HORIZONTAL_THRESHOLD > max_h_threshold {
+	if viewHorizontalThreshold > max_h_threshold {
 		return max_h_threshold
 	}
-	return VIEW_HORIZONTAL_THRESHOLD
+	return viewHorizontalThreshold
 }
 
 func (v *view) width() int {
@@ -224,7 +224,7 @@ func (v *view) drawLine(line *line, lineNum, coff, lineVoffset int) {
 		}
 
 		if x == tabstop {
-			tabstop += TABSTOP_LENGTH
+			tabstop += tabstopLength
 		}
 
 		if rx >= v.uiBuf.Width {
@@ -566,7 +566,7 @@ func (v *view) moveCursorForward() {
 		return
 	}
 
-	c.NextRune(CONFIG_WRAP_RIGHT)
+	c.NextRune(configWrapRight)
 	v.moveCursorTo(c)
 }
 
@@ -578,7 +578,7 @@ func (v *view) moveCursorBackward() {
 		return
 	}
 
-	c.PrevRune(CONFIG_WRAP_LEFT)
+	c.PrevRune(configWrapLeft)
 	v.moveCursorTo(c)
 }
 

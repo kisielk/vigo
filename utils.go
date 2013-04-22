@@ -49,7 +49,7 @@ var invisibleRuneTable = []rune{
 func runeAdvanceLen(r rune, pos int) int {
 	switch {
 	case r == '\t':
-		return TABSTOP_LENGTH - pos%TABSTOP_LENGTH
+		return tabstopLength - pos%tabstopLength
 	case r < 32:
 		// for invisible chars like ^R ^@ and such, two cells
 		return 2
