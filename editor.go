@@ -180,7 +180,7 @@ func (e *editor) bufferName(name string) string {
 }
 
 func (g *editor) newBufferFromFile(filename string) (*buffer, error) {
-	fullpath := abs_path(filename)
+	fullpath := absPath(filename)
 	buf := g.findBufferByFullPath(fullpath)
 	if buf != nil {
 		return buf, nil

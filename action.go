@@ -71,7 +71,7 @@ func (a *action) insert(v *view) {
 	nline := 0
 	offset := a.cursor.boffset
 	line := a.cursor.line
-	iter_lines(a.data, func(data []byte) {
+	iterLines(a.data, func(data []byte) {
 		if data[0] == '\n' {
 			v.buf.bytesN++
 			v.buf.linesN++
@@ -92,7 +92,7 @@ func (a *action) insert(v *view) {
 			v.buf.bytesN += len(data)
 
 			// insert a chunk of data
-			line.data = insert_bytes(line.data, offset, data)
+			line.data = insertBytes(line.data, offset, data)
 			offset += len(data)
 		}
 	})
@@ -105,7 +105,7 @@ func (a *action) delete(v *view) {
 	nline := 0
 	offset := a.cursor.boffset
 	line := a.cursor.line
-	iter_lines(a.data, func(data []byte) {
+	iterLines(a.data, func(data []byte) {
 		if data[0] == '\n' {
 			v.buf.bytesN--
 			v.buf.linesN--
