@@ -52,7 +52,7 @@ func newEditor(filenames []string) *editor {
 	}
 	g.views = newViewTreeLeaf(nil, newView(g.viewContext(), g.buffers[0]))
 	g.active = g.views
-	g.setMode(newVisualMode(g))
+	g.setMode(newNormalMode(g))
 	g.events = make(chan termbox.Event, 20)
 	return g
 }
@@ -426,7 +426,6 @@ func (e *editor) Loop() error {
 
 		e.draw()
 		termbox.Flush()
-		time.Sleep(10 * time.Millisecond)
 	}
 	return nil
 }
