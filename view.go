@@ -566,7 +566,7 @@ func (v *view) moveCursorForward() {
 		return
 	}
 
-	c.NextRune(configWrapRight)
+	c.nextRune(configWrapRight)
 	v.moveCursorTo(c)
 }
 
@@ -578,7 +578,7 @@ func (v *view) moveCursorBackward() {
 		return
 	}
 
-	c.PrevRune(configWrapLeft)
+	c.prevRune(configWrapLeft)
 	v.moveCursorTo(c)
 }
 
@@ -607,14 +607,14 @@ func (v *view) moveCursorPrevLine() {
 // Move cursor to the beginning of the line.
 func (v *view) moveCursorBeginningOfLine() {
 	c := v.cursor
-	c.move_beginning_of_line()
+	c.moveBeginningOfLine()
 	v.moveCursorTo(c)
 }
 
 // Move cursor to the end of the line.
 func (v *view) moveCursorEndOfLine() {
 	c := v.cursor
-	c.move_end_of_line()
+	c.moveEndOfLine()
 	v.moveCursorTo(c)
 }
 
@@ -633,7 +633,7 @@ func (v *view) moveCursorEndOfFile() {
 // Move cursor to the end of the next (or current) word.
 func (v *view) moveCursorWordFoward() {
 	c := v.cursor
-	ok := c.NextWord()
+	ok := c.nextWord()
 	v.moveCursorTo(c)
 	if !ok {
 		v.ctx.setStatus("End of buffer")
@@ -642,7 +642,7 @@ func (v *view) moveCursorWordFoward() {
 
 func (v *view) moveCursorWordBackward() {
 	c := v.cursor
-	ok := c.PrevWord()
+	ok := c.prevWord()
 	v.moveCursorTo(c)
 	if !ok {
 		v.ctx.setStatus("Beginning of buffer")
@@ -903,7 +903,7 @@ func (v *view) killWord() {
 func (v *view) killWordBackward() {
 	c2 := v.cursor
 	c1 := c2
-	c1.move_one_word_backward()
+	c1.moveOneWordBackward()
 	d := c1.distance(c2)
 	if d > 0 {
 		v.prependToKillBuffer(c1, d)
@@ -1322,7 +1322,7 @@ func (v *view) yank() {
 	for len(buf) > 0 {
 		_, rlen := utf8.DecodeRune(buf)
 		buf = buf[rlen:]
-		cursor.NextRune(true)
+		cursor.nextRune(true)
 	}
 	v.moveCursorTo(cursor)
 }
