@@ -7,32 +7,32 @@ import (
 	"strings"
 )
 
-type CommandMode struct {
+type commandMode struct {
 	Overlay
 	editor *editor
-	mode   EditorMode
+	mode   editorMode
 	buffer *bytes.Buffer
 }
 
-func NewCommandMode(editor *editor, mode EditorMode) CommandMode {
-	m := CommandMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
+func newCommandMode(editor *editor, mode editorMode) commandMode {
+	m := commandMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
 	return m
 }
 
-func (m CommandMode) NeedsCursor() bool {
+func (m commandMode) needsCursor() bool {
 	return true
 }
 
-func (m CommandMode) CursorPosition() (int, int) {
+func (m commandMode) cursorPosition() (int, int) {
 	e := m.editor
-	r := e.uibuf.Rect
+	r := e.uiBuf.Rect
 	return m.buffer.Len() + 1, r.Height - 1
 }
 
-func (m CommandMode) OnKey(ev *termbox.Event) {
+func (m commandMode) onKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
-		m.editor.SetMode(m.mode)
+		m.editor.setMode(m.mode)
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		l := m.buffer.Len()
 		if l > 0 {
@@ -41,11 +41,11 @@ func (m CommandMode) OnKey(ev *termbox.Event) {
 	case termbox.KeyEnter:
 		c := m.buffer.String()
 		if err := execCommand(m.editor, c); err != nil {
-			m.editor.SetStatus(fmt.Sprintf("error: %s", err))
+			m.editor.setStatus(fmt.Sprintf("error: %s", err))
 		} else {
-			m.editor.SetStatus(":" + c)
+			m.editor.setStatus(":" + c)
 		}
-		m.editor.SetMode(m.mode)
+		m.editor.setMode(m.mode)
 	case termbox.KeySpace:
 		m.buffer.WriteRune(' ')
 	default:
@@ -53,11 +53,11 @@ func (m CommandMode) OnKey(ev *termbox.Event) {
 	}
 }
 
-func (m CommandMode) Exit() {
+func (m commandMode) exit() {
 }
 
-func (m CommandMode) Draw() {
-	m.editor.draw_status([]byte(":" + m.buffer.String()))
+func (m commandMode) draw() {
+	m.editor.drawStatus([]byte(":" + m.buffer.String()))
 }
 
 // Interpret command and apply changes to editor.
@@ -66,13 +66,13 @@ func execCommand(e *editor, command string) error {
 	cmd, args := fields[0], fields[1:]
 	switch cmd {
 	case "q":
-		e.Quit()
+		e.quit()
 	case "w":
 		switch len(args) {
 		case 0:
 			e.active.leaf.buf.save()
 		case 1:
-			e.active.leaf.buf.save_as(args[0])
+			e.active.leaf.buf.saveAs(args[0])
 		default:
 			return fmt.Errorf("too many arguments to :w")
 		}
@@ -88,7 +88,7 @@ func execCommand(e *editor, command string) error {
 		}
 
 		// TODO: Don't replace the current buffer if it has been modified
-		buffer, err := e.NewBufferFromFile(filename)
+		buffer, err := e.newBufferFromFile(filename)
 		if err != nil {
 			return err
 		}

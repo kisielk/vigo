@@ -15,19 +15,19 @@ func TestLLRBTree(t *testing.T) {
 	for _, v := range p {
 		var x []byte
 		x = strconv.AppendInt(x, int64(v), 10)
-		tree.insert_maybe(x)
+		tree.insertMaybe(x)
 	}
 	tree.clear()
 	// try inserting twice
 	for _, v := range p {
 		var x []byte
 		x = strconv.AppendInt(x, int64(v), 10)
-		tree.insert_maybe(x)
+		tree.insertMaybe(x)
 	}
 	for _, v := range p {
 		var x []byte
 		x = strconv.AppendInt(x, int64(v), 10)
-		tree.insert_maybe(x)
+		tree.insertMaybe(x)
 	}
 
 	t.Logf("Length: %d\n", tree.count)

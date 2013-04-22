@@ -13,13 +13,13 @@ import (
 // dirty flag
 //----------------------------------------------------------------------------
 
-type dirty_flag int
+type dirtyFlag int
 
 const (
-	dirty_contents dirty_flag = (1 << iota)
-	dirty_status
+	DIRTY_CONTENTS dirtyFlag = (1 << iota)
+	DIRTY_STATUS
 
-	dirty_everything = dirty_contents | dirty_status
+	DIRTY_EVERYTHING = DIRTY_CONTENTS | DIRTY_STATUS
 )
 
 //----------------------------------------------------------------------------
@@ -30,18 +30,18 @@ const (
 // if at the moment buffer has no views attached to it).
 //----------------------------------------------------------------------------
 
-type view_location struct {
-	cursor       cursor
-	top_line     *line
-	top_line_num int
+type viewLocation struct {
+	cursor     cursor
+	topLine    *line
+	topLineNum int
 
 	// Various cursor offsets from the beginning of the line:
 	// 1. in characters
 	// 2. in visual cells
 	// An example would be the '\t' character, which gives 1 character
 	// offset, but 'tabstop_length' visual cells offset.
-	cursor_coffset int
-	cursor_voffset int
+	cursorCoffset int
+	cursorVoffset int
 
 	// This offset is different from these three above, because it's the
 	// amount of visual cells you need to skip, before starting to show the
@@ -49,57 +49,57 @@ type view_location struct {
 	// within the same line. When cursor jumps from one line to another, the
 	// value is recalculated. The logic behind this variable is somewhat
 	// close to the one behind the 'top_line' variable.
-	line_voffset int
+	lineVoffset int
 
 	// this one is used for choosing the best location while traversing
 	// vertically, every time 'cursor_voffset' changes due to horizontal
 	// movement, this one must be changed as well
-	last_cursor_voffset int
+	lastCursorVoffset int
 }
 
 //----------------------------------------------------------------------------
 // byte_range
 //----------------------------------------------------------------------------
 
-type byte_range struct {
+type byteRange struct {
 	begin int
 	end   int
 }
 
-func (r byte_range) includes(offset int) bool {
+func (r byteRange) includes(offset int) bool {
 	return r.begin <= offset && r.end > offset
 }
 
-const hl_fg = termbox.ColorCyan
-const hl_bg = termbox.ColorBlue
+const hlFG = termbox.ColorCyan
+const hlBG = termbox.ColorBlue
 
 //----------------------------------------------------------------------------
 // view tags
 //----------------------------------------------------------------------------
 
-type view_tag struct {
-	beg_line   int
-	beg_offset int
-	end_line   int
-	end_offset int
-	fg         termbox.Attribute
-	bg         termbox.Attribute
+type viewTag struct {
+	begLine   int
+	begOffset int
+	endLine   int
+	endOffset int
+	fg        termbox.Attribute
+	bg        termbox.Attribute
 }
 
-func (t *view_tag) includes(line, offset int) bool {
-	if line < t.beg_line || line > t.end_line {
+func (t *viewTag) includes(line, offset int) bool {
+	if line < t.begLine || line > t.endLine {
 		return false
 	}
-	if line == t.beg_line && offset < t.beg_offset {
+	if line == t.begLine && offset < t.begOffset {
 		return false
 	}
-	if line == t.end_line && offset >= t.end_offset {
+	if line == t.endLine && offset >= t.endOffset {
 		return false
 	}
 	return true
 }
 
-var default_view_tag = view_tag{
+var defaultViewTag = viewTag{
 	fg: termbox.ColorDefault,
 	bg: termbox.ColorDefault,
 }
@@ -108,9 +108,9 @@ var default_view_tag = view_tag{
 // view context
 //----------------------------------------------------------------------------
 
-type view_context struct {
-	SetStatus  func(format string, args ...interface{})
-	KillBuffer *[]byte
+type viewContext struct {
+	setStatus  func(format string, args ...interface{})
+	killBuffer *[]byte
 	buffers    *[]*buffer
 }
 
@@ -122,32 +122,32 @@ type view_context struct {
 //----------------------------------------------------------------------------
 
 type view struct {
-	view_location
-	ctx              view_context
-	tmpbuf           bytes.Buffer // temporary buffer for status bar text
-	buf              *buffer      // currently displayed buffer
-	uibuf            tulib.Buffer
-	dirty            dirty_flag
-	oneline          bool
-	highlight_bytes  []byte
-	highlight_ranges []byte_range
-	tags             []view_tag
+	viewLocation
+	ctx             viewContext
+	tmpBuf          bytes.Buffer // temporary buffer for status bar text
+	buf             *buffer      // currently displayed buffer
+	uiBuf           tulib.Buffer
+	dirty           dirtyFlag
+	oneline         bool
+	highlightBytes  []byte
+	highlightRanges []byteRange
+	tags            []viewTag
 
-	lastCommand ViewCommand
+	lastCommand viewCommand
 }
 
-func new_view(ctx view_context, buf *buffer) *view {
+func newView(ctx viewContext, buf *buffer) *view {
 	v := new(view)
 	v.ctx = ctx
-	v.uibuf = tulib.NewBuffer(1, 1)
+	v.uiBuf = tulib.NewBuffer(1, 1)
 	v.attach(buf)
-	v.highlight_ranges = make([]byte_range, 0, 10)
-	v.tags = make([]view_tag, 0, 10)
+	v.highlightRanges = make([]byteRange, 0, 10)
+	v.tags = make([]viewTag, 0, 10)
 	return v
 }
 
 func (v *view) activate() {
-	v.lastCommand = ViewCommand{Cmd: vcommand_none}
+	v.lastCommand = viewCommand{Cmd: vCommandNone}
 }
 
 func (v *view) deactivate() {
@@ -162,74 +162,74 @@ func (v *view) attach(b *buffer) {
 		v.detach()
 	}
 	v.buf = b
-	v.view_location = b.loc
-	b.add_view(v)
-	v.dirty = dirty_everything
+	v.viewLocation = b.loc
+	b.addView(v)
+	v.dirty = DIRTY_EVERYTHING
 }
 
 func (v *view) detach() {
-	v.buf.delete_view(v)
+	v.buf.deleteView(v)
 	v.buf = nil
 }
 
 // Resize the 'v.uibuf', adjusting things accordingly.
 func (v *view) resize(w, h int) {
-	v.uibuf.Resize(w, h)
-	v.adjust_line_voffset()
-	v.adjust_top_line()
-	v.dirty = dirty_everything
+	v.uiBuf.Resize(w, h)
+	v.adjustLineVoffset()
+	v.adjustTopLine()
+	v.dirty = DIRTY_EVERYTHING
 }
 
 func (v *view) height() int {
 	if !v.oneline {
-		return v.uibuf.Height - 1
+		return v.uiBuf.Height - 1
 	}
-	return v.uibuf.Height
+	return v.uiBuf.Height
 }
 
-func (v *view) vertical_threshold() int {
-	max_v_threshold := (v.height() - 1) / 2
-	if view_vertical_threshold > max_v_threshold {
-		return max_v_threshold
+func (v *view) verticalThreshold() int {
+	maxVthreshold := (v.height() - 1) / 2
+	if VIEW_VERTICAL_THRESHOLD > maxVthreshold {
+		return maxVthreshold
 	}
-	return view_vertical_threshold
+	return VIEW_VERTICAL_THRESHOLD
 }
 
-func (v *view) horizontal_threshold() int {
+func (v *view) horizontalThreshold() int {
 	max_h_threshold := (v.width() - 1) / 2
-	if view_horizontal_threshold > max_h_threshold {
+	if VIEW_HORIZONTAL_THRESHOLD > max_h_threshold {
 		return max_h_threshold
 	}
-	return view_horizontal_threshold
+	return VIEW_HORIZONTAL_THRESHOLD
 }
 
 func (v *view) width() int {
 	// TODO: perhaps if I want to draw line numbers, I will hack it there
-	return v.uibuf.Width
+	return v.uiBuf.Width
 }
 
-func (v *view) draw_line(line *line, line_num, coff, line_voffset int) {
+func (v *view) drawLine(line *line, lineNum, coff, lineVoffset int) {
 	x := 0
 	tabstop := 0
 	bx := 0
 	data := line.data
 
-	if len(v.highlight_bytes) > 0 {
-		v.find_highlight_ranges_for_line(data)
+	if len(v.highlightBytes) > 0 {
+		v.findHighlightRangesForLine(data)
 	}
 	for {
-		rx := x - line_voffset
+		rx := x - lineVoffset
 		if len(data) == 0 {
 			break
 		}
 
 		if x == tabstop {
-			tabstop += tabstop_length
+			tabstop += TABSTOP_LENGTH
 		}
 
-		if rx >= v.uibuf.Width {
-			last := coff + v.uibuf.Width - 1
-			v.uibuf.Cells[last] = termbox.Cell{
+		if rx >= v.uiBuf.Width {
+			last := coff + v.uiBuf.Width - 1
+			v.uiBuf.Cells[last] = termbox.Cell{
 				Ch: '→',
 				Fg: termbox.ColorDefault,
 				Bg: termbox.ColorDefault,
@@ -242,33 +242,33 @@ func (v *view) draw_line(line *line, line_num, coff, line_voffset int) {
 		case r == '\t':
 			// fill with spaces to the next tabstop
 			for ; x < tabstop; x++ {
-				rx := x - line_voffset
-				if rx >= v.uibuf.Width {
+				rx := x - lineVoffset
+				if rx >= v.uiBuf.Width {
 					break
 				}
 
 				if rx >= 0 {
-					v.uibuf.Cells[coff+rx] = v.make_cell(
-						line_num, bx, ' ')
+					v.uiBuf.Cells[coff+rx] = v.makeCell(
+						lineNum, bx, ' ')
 				}
 			}
 		case r < 32:
 			// invisible chars like ^R or ^@
 			if rx >= 0 {
-				v.uibuf.Cells[coff+rx] = termbox.Cell{
+				v.uiBuf.Cells[coff+rx] = termbox.Cell{
 					Ch: '^',
 					Fg: termbox.ColorRed,
 					Bg: termbox.ColorDefault,
 				}
 			}
 			x++
-			rx = x - line_voffset
-			if rx >= v.uibuf.Width {
+			rx = x - lineVoffset
+			if rx >= v.uiBuf.Width {
 				break
 			}
 			if rx >= 0 {
-				v.uibuf.Cells[coff+rx] = termbox.Cell{
-					Ch: invisible_rune_table[r],
+				v.uiBuf.Cells[coff+rx] = termbox.Cell{
+					Ch: invisibleRuneTable[r],
 					Fg: termbox.ColorRed,
 					Bg: termbox.ColorDefault,
 				}
@@ -276,8 +276,8 @@ func (v *view) draw_line(line *line, line_num, coff, line_voffset int) {
 			x++
 		default:
 			if rx >= 0 {
-				v.uibuf.Cells[coff+rx] = v.make_cell(
-					line_num, bx, r)
+				v.uiBuf.Cells[coff+rx] = v.makeCell(
+					lineNum, bx, r)
 			}
 			x++
 		}
@@ -285,8 +285,8 @@ func (v *view) draw_line(line *line, line_num, coff, line_voffset int) {
 		bx += rlen
 	}
 
-	if line_voffset != 0 {
-		v.uibuf.Cells[coff] = termbox.Cell{
+	if lineVoffset != 0 {
+		v.uiBuf.Cells[coff] = termbox.Cell{
 			Ch: '←',
 			Fg: termbox.ColorDefault,
 			Bg: termbox.ColorDefault,
@@ -294,24 +294,24 @@ func (v *view) draw_line(line *line, line_num, coff, line_voffset int) {
 	}
 }
 
-func (v *view) draw_contents() {
-	if len(v.highlight_bytes) == 0 {
-		v.highlight_ranges = v.highlight_ranges[:0]
+func (v *view) drawContents() {
+	if len(v.highlightBytes) == 0 {
+		v.highlightRanges = v.highlightRanges[:0]
 	}
 
 	// clear the buffer
-	v.uibuf.Fill(v.uibuf.Rect, termbox.Cell{
+	v.uiBuf.Fill(v.uiBuf.Rect, termbox.Cell{
 		Ch: ' ',
 		Fg: termbox.ColorDefault,
 		Bg: termbox.ColorDefault,
 	})
 
-	if v.uibuf.Width == 0 || v.uibuf.Height == 0 {
+	if v.uiBuf.Width == 0 || v.uiBuf.Height == 0 {
 		return
 	}
 
 	// draw lines
-	line := v.top_line
+	line := v.topLine
 	coff := 0
 	for y, h := 0, v.height(); y < h; y++ {
 		if line == nil {
@@ -320,17 +320,17 @@ func (v *view) draw_contents() {
 
 		if line == v.cursor.line {
 			// special case, cursor line
-			v.draw_line(line, v.top_line_num+y, coff, v.line_voffset)
+			v.drawLine(line, v.topLineNum+y, coff, v.lineVoffset)
 		} else {
-			v.draw_line(line, v.top_line_num+y, coff, 0)
+			v.drawLine(line, v.topLineNum+y, coff, 0)
 		}
 
-		coff += v.uibuf.Width
+		coff += v.uiBuf.Width
 		line = line.next
 	}
 }
 
-func (v *view) draw_status() {
+func (v *view) drawStatus() {
 	if v.oneline {
 		return
 	}
@@ -339,85 +339,85 @@ func (v *view) draw_status() {
 	lp := tulib.DefaultLabelParams
 	lp.Bg = termbox.AttrReverse
 	lp.Fg = termbox.AttrReverse | termbox.AttrBold
-	v.uibuf.Fill(tulib.Rect{0, v.height(), v.uibuf.Width, 1}, termbox.Cell{
+	v.uiBuf.Fill(tulib.Rect{0, v.height(), v.uiBuf.Width, 1}, termbox.Cell{
 		Fg: termbox.AttrReverse,
 		Bg: termbox.AttrReverse,
 		Ch: '─',
 	})
 
 	// on disk sync status
-	if !v.buf.synced_with_disk() {
+	if !v.buf.syncedWithDisk() {
 		cell := termbox.Cell{
 			Fg: termbox.AttrReverse,
 			Bg: termbox.AttrReverse,
 			Ch: '*',
 		}
-		v.uibuf.Set(1, v.height(), cell)
-		v.uibuf.Set(2, v.height(), cell)
+		v.uiBuf.Set(1, v.height(), cell)
+		v.uiBuf.Set(2, v.height(), cell)
 	}
 
 	// filename
-	fmt.Fprintf(&v.tmpbuf, "  %s  ", v.buf.name)
-	v.uibuf.DrawLabel(tulib.Rect{5, v.height(), v.uibuf.Width, 1},
-		&lp, v.tmpbuf.Bytes())
-	namel := v.tmpbuf.Len()
+	fmt.Fprintf(&v.tmpBuf, "  %s  ", v.buf.name)
+	v.uiBuf.DrawLabel(tulib.Rect{5, v.height(), v.uiBuf.Width, 1},
+		&lp, v.tmpBuf.Bytes())
+	namel := v.tmpBuf.Len()
 	lp.Fg = termbox.AttrReverse
-	v.tmpbuf.Reset()
-	fmt.Fprintf(&v.tmpbuf, "(%d, %d)  ", v.cursor.line_num, v.cursor_voffset)
-	v.uibuf.DrawLabel(tulib.Rect{5 + namel, v.height(), v.uibuf.Width, 1},
-		&lp, v.tmpbuf.Bytes())
-	v.tmpbuf.Reset()
+	v.tmpBuf.Reset()
+	fmt.Fprintf(&v.tmpBuf, "(%d, %d)  ", v.cursor.lineNum, v.cursorVoffset)
+	v.uiBuf.DrawLabel(tulib.Rect{5 + namel, v.height(), v.uiBuf.Width, 1},
+		&lp, v.tmpBuf.Bytes())
+	v.tmpBuf.Reset()
 }
 
 // Draw the current view to the 'v.uibuf'.
 func (v *view) draw() {
-	if v.dirty&dirty_contents != 0 {
-		v.dirty &^= dirty_contents
-		v.draw_contents()
+	if v.dirty&DIRTY_CONTENTS != 0 {
+		v.dirty &^= DIRTY_CONTENTS
+		v.drawContents()
 	}
 
-	if v.dirty&dirty_status != 0 {
-		v.dirty &^= dirty_status
-		v.draw_status()
+	if v.dirty&DIRTY_STATUS != 0 {
+		v.dirty &^= DIRTY_STATUS
+		v.drawStatus()
 	}
 }
 
 // Center view on the cursor.
-func (v *view) center_view_on_cursor() {
-	v.top_line = v.cursor.line
-	v.top_line_num = v.cursor.line_num
-	v.move_top_line_n_times(-v.height() / 2)
-	v.dirty = dirty_everything
+func (v *view) centerViewOnCursor() {
+	v.topLine = v.cursor.line
+	v.topLineNum = v.cursor.lineNum
+	v.moveTopLineNtimes(-v.height() / 2)
+	v.dirty = DIRTY_EVERYTHING
 }
 
-func (v *view) move_cursor_to_line(n int) {
-	v.move_cursor_beginning_of_file()
-	v.move_cursor_line_n_times(n - 1)
-	v.center_view_on_cursor()
+func (v *view) moveCursorToLine(n int) {
+	v.moveCursorBeginningOfFile()
+	v.moveCursorLineNtimes(n - 1)
+	v.centerViewOnCursor()
 }
 
 // Move top line 'n' times forward or backward.
-func (v *view) move_top_line_n_times(n int) {
+func (v *view) moveTopLineNtimes(n int) {
 	if n == 0 {
 		return
 	}
 
-	top := v.top_line
+	top := v.topLine
 	for top.prev != nil && n < 0 {
 		top = top.prev
-		v.top_line_num--
+		v.topLineNum--
 		n++
 	}
 	for top.next != nil && n > 0 {
 		top = top.next
-		v.top_line_num++
+		v.topLineNum++
 		n--
 	}
-	v.top_line = top
+	v.topLine = top
 }
 
 // Move cursor line 'n' times forward or backward.
-func (v *view) move_cursor_line_n_times(n int) {
+func (v *view) moveCursorLineNtimes(n int) {
 	if n == 0 {
 		return
 	}
@@ -425,12 +425,12 @@ func (v *view) move_cursor_line_n_times(n int) {
 	cursor := v.cursor.line
 	for cursor.prev != nil && n < 0 {
 		cursor = cursor.prev
-		v.cursor.line_num--
+		v.cursor.lineNum--
 		n++
 	}
 	for cursor.next != nil && n > 0 {
 		cursor = cursor.next
-		v.cursor.line_num++
+		v.cursor.lineNum++
 		n--
 	}
 	v.cursor.line = cursor
@@ -438,58 +438,58 @@ func (v *view) move_cursor_line_n_times(n int) {
 
 // When 'top_line' was changed, call this function to possibly adjust the
 // 'cursor_line'.
-func (v *view) adjust_cursor_line() {
-	vt := v.vertical_threshold()
+func (v *view) adjustCursorLine() {
+	vt := v.verticalThreshold()
 	cursor := v.cursor.line
-	co := v.cursor.line_num - v.top_line_num
+	co := v.cursor.lineNum - v.topLineNum
 	h := v.height()
 
 	if cursor.next != nil && co < vt {
-		v.move_cursor_line_n_times(vt - co)
+		v.moveCursorLineNtimes(vt - co)
 	}
 
 	if cursor.prev != nil && co >= h-vt {
-		v.move_cursor_line_n_times((h - vt) - co - 1)
+		v.moveCursorLineNtimes((h - vt) - co - 1)
 	}
 
 	if cursor != v.cursor.line {
 		cursor = v.cursor.line
-		bo, co, vo := cursor.find_closest_offsets(v.last_cursor_voffset)
+		bo, co, vo := cursor.findClosestOffsets(v.lastCursorVoffset)
 		v.cursor.boffset = bo
-		v.cursor_coffset = co
-		v.cursor_voffset = vo
-		v.line_voffset = 0
-		v.adjust_line_voffset()
-		v.dirty = dirty_everything
+		v.cursorCoffset = co
+		v.cursorVoffset = vo
+		v.lineVoffset = 0
+		v.adjustLineVoffset()
+		v.dirty = DIRTY_EVERYTHING
 	}
 }
 
 // When 'cursor_line' was changed, call this function to possibly adjust the
 // 'top_line'.
-func (v *view) adjust_top_line() {
-	vt := v.vertical_threshold()
-	top := v.top_line
-	co := v.cursor.line_num - v.top_line_num
+func (v *view) adjustTopLine() {
+	vt := v.verticalThreshold()
+	top := v.topLine
+	co := v.cursor.lineNum - v.topLineNum
 	h := v.height()
 
 	if top.next != nil && co >= h-vt {
-		v.move_top_line_n_times(co - (h - vt) + 1)
-		v.dirty = dirty_everything
+		v.moveTopLineNtimes(co - (h - vt) + 1)
+		v.dirty = DIRTY_EVERYTHING
 	}
 
 	if top.prev != nil && co < vt {
-		v.move_top_line_n_times(co - vt)
-		v.dirty = dirty_everything
+		v.moveTopLineNtimes(co - vt)
+		v.dirty = DIRTY_EVERYTHING
 	}
 }
 
 // When 'cursor_voffset' was changed usually > 0, then call this function to
 // possibly adjust 'line_voffset'.
-func (v *view) adjust_line_voffset() {
-	ht := v.horizontal_threshold()
-	w := v.uibuf.Width
-	vo := v.line_voffset
-	cvo := v.cursor_voffset
+func (v *view) adjustLineVoffset() {
+	ht := v.horizontalThreshold()
+	w := v.uiBuf.Width
+	vo := v.lineVoffset
+	cvo := v.cursorVoffset
 	threshold := w - 1
 	if vo != 0 {
 		threshold = w - ht
@@ -506,21 +506,21 @@ func (v *view) adjust_line_voffset() {
 		}
 	}
 
-	if v.line_voffset != vo {
-		v.line_voffset = vo
-		v.dirty = dirty_everything
+	if v.lineVoffset != vo {
+		v.lineVoffset = vo
+		v.dirty = DIRTY_EVERYTHING
 	}
 }
 
-func (v *view) cursor_position() (int, int) {
-	y := v.cursor.line_num - v.top_line_num
-	x := v.cursor_voffset - v.line_voffset
+func (v *view) cursorPosition() (int, int) {
+	y := v.cursor.lineNum - v.topLineNum
+	x := v.cursorVoffset - v.lineVoffset
 	return x, y
 }
 
-func (v *view) cursor_position_for(cursor cursor) (int, int) {
-	y := cursor.line_num - v.top_line_num
-	x := cursor.voffset() - v.line_voffset
+func (v *view) cursorPositionFor(cursor cursor) (int, int) {
+	y := cursor.lineNum - v.topLineNum
+	x := cursor.voffset() - v.lineVoffset
 	return x, y
 }
 
@@ -528,144 +528,144 @@ func (v *view) cursor_position_for(cursor cursor) (int, int) {
 // from the attached buffer. If 'boffset' < 0, use 'last_cursor_voffset'. Keep
 // in mind that there is no need to maintain connections between lines (e.g. for
 // moving from a deleted line to another line).
-func (v *view) move_cursor_to(c cursor) {
-	v.dirty |= dirty_status
+func (v *view) moveCursorTo(c cursor) {
+	v.dirty |= DIRTY_STATUS
 	if c.boffset < 0 {
-		bo, co, vo := c.line.find_closest_offsets(v.last_cursor_voffset)
+		bo, co, vo := c.line.findClosestOffsets(v.lastCursorVoffset)
 		v.cursor.boffset = bo
-		v.cursor_coffset = co
-		v.cursor_voffset = vo
+		v.cursorCoffset = co
+		v.cursorVoffset = vo
 	} else {
-		vo, co := c.voffset_coffset()
+		vo, co := c.voffsetCoffset()
 		v.cursor.boffset = c.boffset
-		v.cursor_coffset = co
-		v.cursor_voffset = vo
+		v.cursorCoffset = co
+		v.cursorVoffset = vo
 	}
 
 	if c.boffset >= 0 {
-		v.last_cursor_voffset = v.cursor_voffset
+		v.lastCursorVoffset = v.cursorVoffset
 	}
 
 	if c.line != v.cursor.line {
-		if v.line_voffset != 0 {
-			v.dirty = dirty_everything
+		if v.lineVoffset != 0 {
+			v.dirty = DIRTY_EVERYTHING
 		}
-		v.line_voffset = 0
+		v.lineVoffset = 0
 	}
 	v.cursor.line = c.line
-	v.cursor.line_num = c.line_num
-	v.adjust_line_voffset()
-	v.adjust_top_line()
+	v.cursor.lineNum = c.lineNum
+	v.adjustLineVoffset()
+	v.adjustTopLine()
 }
 
 // Move cursor one character forward.
-func (v *view) move_cursor_forward() {
+func (v *view) moveCursorForward() {
 	c := v.cursor
-	if c.last_line() && c.eol() {
-		v.ctx.SetStatus("End of buffer")
+	if c.lastLine() && c.eol() {
+		v.ctx.setStatus("End of buffer")
 		return
 	}
 
-	c.NextRune(ConfigWrapRight)
-	v.move_cursor_to(c)
+	c.NextRune(CONFIG_WRAP_RIGHT)
+	v.moveCursorTo(c)
 }
 
 // Move cursor one character backward.
-func (v *view) move_cursor_backward() {
+func (v *view) moveCursorBackward() {
 	c := v.cursor
-	if c.first_line() && c.bol() {
-		v.ctx.SetStatus("Beginning of buffer")
+	if c.firstLine() && c.bol() {
+		v.ctx.setStatus("Beginning of buffer")
 		return
 	}
 
-	c.PrevRune(ConfigWrapLeft)
-	v.move_cursor_to(c)
+	c.PrevRune(CONFIG_WRAP_LEFT)
+	v.moveCursorTo(c)
 }
 
 // Move cursor to the next line.
-func (v *view) move_cursor_next_line() {
+func (v *view) moveCursorNextLine() {
 	c := v.cursor
-	if !c.last_line() {
-		c = cursor{c.line.next, c.line_num + 1, -1}
-		v.move_cursor_to(c)
+	if !c.lastLine() {
+		c = cursor{c.line.next, c.lineNum + 1, -1}
+		v.moveCursorTo(c)
 	} else {
-		v.ctx.SetStatus("End of buffer")
+		v.ctx.setStatus("End of buffer")
 	}
 }
 
 // Move cursor to the previous line.
-func (v *view) move_cursor_prev_line() {
+func (v *view) moveCursorPrevLine() {
 	c := v.cursor
-	if !c.first_line() {
-		c = cursor{c.line.prev, c.line_num - 1, -1}
-		v.move_cursor_to(c)
+	if !c.firstLine() {
+		c = cursor{c.line.prev, c.lineNum - 1, -1}
+		v.moveCursorTo(c)
 	} else {
-		v.ctx.SetStatus("Beginning of buffer")
+		v.ctx.setStatus("Beginning of buffer")
 	}
 }
 
 // Move cursor to the beginning of the line.
-func (v *view) move_cursor_beginning_of_line() {
+func (v *view) moveCursorBeginningOfLine() {
 	c := v.cursor
 	c.move_beginning_of_line()
-	v.move_cursor_to(c)
+	v.moveCursorTo(c)
 }
 
 // Move cursor to the end of the line.
-func (v *view) move_cursor_end_of_line() {
+func (v *view) moveCursorEndOfLine() {
 	c := v.cursor
 	c.move_end_of_line()
-	v.move_cursor_to(c)
+	v.moveCursorTo(c)
 }
 
 // Move cursor to the beginning of the file (buffer).
-func (v *view) move_cursor_beginning_of_file() {
-	c := cursor{v.buf.first_line, 1, 0}
-	v.move_cursor_to(c)
+func (v *view) moveCursorBeginningOfFile() {
+	c := cursor{v.buf.firstLine, 1, 0}
+	v.moveCursorTo(c)
 }
 
 // Move cursor to the end of the file (buffer).
-func (v *view) move_cursor_end_of_file() {
-	c := cursor{v.buf.last_line, v.buf.lines_n, len(v.buf.last_line.data)}
-	v.move_cursor_to(c)
+func (v *view) moveCursorEndOfFile() {
+	c := cursor{v.buf.lastLine, v.buf.linesN, len(v.buf.lastLine.data)}
+	v.moveCursorTo(c)
 }
 
 // Move cursor to the end of the next (or current) word.
-func (v *view) move_cursor_word_forward() {
+func (v *view) moveCursorWordFoward() {
 	c := v.cursor
 	ok := c.NextWord()
-	v.move_cursor_to(c)
+	v.moveCursorTo(c)
 	if !ok {
-		v.ctx.SetStatus("End of buffer")
+		v.ctx.setStatus("End of buffer")
 	}
 }
 
-func (v *view) move_cursor_word_backward() {
+func (v *view) moveCursorWordBackward() {
 	c := v.cursor
 	ok := c.PrevWord()
-	v.move_cursor_to(c)
+	v.moveCursorTo(c)
 	if !ok {
-		v.ctx.SetStatus("Beginning of buffer")
+		v.ctx.setStatus("Beginning of buffer")
 	}
 }
 
 // Move view 'n' lines forward or backward.
-func (v *view) move_view_n_lines(n int) {
-	prevtop := v.top_line_num
-	v.move_top_line_n_times(n)
-	if prevtop != v.top_line_num {
-		v.adjust_cursor_line()
-		v.dirty = dirty_everything
+func (v *view) moveViewNlines(n int) {
+	prevtop := v.topLineNum
+	v.moveTopLineNtimes(n)
+	if prevtop != v.topLineNum {
+		v.adjustCursorLine()
+		v.dirty = DIRTY_EVERYTHING
 	}
 }
 
 // Check if it's possible to move view 'n' lines forward or backward.
-func (v *view) can_move_top_line_n_times(n int) bool {
+func (v *view) canMoveTopLineNtimes(n int) bool {
 	if n == 0 {
 		return true
 	}
 
-	top := v.top_line
+	top := v.topLine
 	for top.prev != nil && n < 0 {
 		top = top.prev
 		n++
@@ -682,13 +682,13 @@ func (v *view) can_move_top_line_n_times(n int) bool {
 }
 
 // Move view 'n' lines forward or backward only if it's possible.
-func (v *view) maybe_move_view_n_lines(n int) {
-	if v.can_move_top_line_n_times(n) {
-		v.move_view_n_lines(n)
+func (v *view) maybeMoveViewNlines(n int) {
+	if v.canMoveTopLineNtimes(n) {
+		v.moveViewNlines(n)
 	}
 }
 
-func (v *view) maybe_next_action_group() {
+func (v *view) maybeNextActionGroup() {
 	b := v.buf
 	if b.history.next == nil {
 		// no need to move
@@ -703,13 +703,13 @@ func (v *view) maybe_next_action_group() {
 	b.history.before = v.cursor
 }
 
-func (v *view) finalize_action_group() {
+func (v *view) finalizeActionGroup() {
 	b := v.buf
 	// finalize only if we're at the tip of the undo history, this function
 	// will be called mainly after each cursor movement and actions alike
 	// (that are supposed to finalize action group)
 	if b.history.next == nil {
-		b.history.next = new(action_group)
+		b.history.next = new(actionGroup)
 		b.history.after = v.cursor
 	}
 }
@@ -718,12 +718,12 @@ func (v *view) undo() {
 	b := v.buf
 	if b.history.prev == nil {
 		// we're at the sentinel, no more things to undo
-		v.ctx.SetStatus("No further undo information")
+		v.ctx.setStatus("No further undo information")
 		return
 	}
 
 	// undo action causes finalization, always
-	v.finalize_action_group()
+	v.finalizeActionGroup()
 
 	// undo invariant tells us 'len(b.history.actions) != 0' in case if this is
 	// not a sentinel, revert the actions in the current action group
@@ -731,23 +731,23 @@ func (v *view) undo() {
 		a := &b.history.actions[i]
 		a.revert(v)
 	}
-	v.move_cursor_to(b.history.before)
-	v.last_cursor_voffset = v.cursor_voffset
+	v.moveCursorTo(b.history.before)
+	v.lastCursorVoffset = v.cursorVoffset
 	b.history = b.history.prev
-	v.ctx.SetStatus("Undo!")
+	v.ctx.setStatus("Undo!")
 }
 
 func (v *view) redo() {
 	b := v.buf
 	if b.history.next == nil {
 		// open group, obviously, can't move forward
-		v.ctx.SetStatus("No further redo information")
+		v.ctx.setStatus("No further redo information")
 		return
 	}
 	if len(b.history.next.actions) == 0 {
 		// last finalized group, moving to the next group breaks the
 		// invariant and doesn't make sense (nothing to redo)
-		v.ctx.SetStatus("No further redo information")
+		v.ctx.setStatus("No further redo information")
 		return
 	}
 
@@ -757,19 +757,19 @@ func (v *view) redo() {
 		a := &b.history.actions[i]
 		a.apply(v)
 	}
-	v.move_cursor_to(b.history.after)
-	v.last_cursor_voffset = v.cursor_voffset
-	v.ctx.SetStatus("Redo!")
+	v.moveCursorTo(b.history.after)
+	v.lastCursorVoffset = v.cursorVoffset
+	v.ctx.setStatus("Redo!")
 }
 
-func (v *view) action_insert(c cursor, data []byte) {
+func (v *view) actionInsert(c cursor, data []byte) {
 	if v.oneline {
 		data = bytes.Replace(data, []byte{'\n'}, nil, -1)
 	}
 
-	v.maybe_next_action_group()
+	v.maybeNextActionGroup()
 	a := action{
-		what:   action_insert,
+		what:   actionInsert,
 		data:   data,
 		cursor: c,
 		lines:  make([]*line, bytes.Count(data, []byte{'\n'})),
@@ -781,11 +781,11 @@ func (v *view) action_insert(c cursor, data []byte) {
 	v.buf.history.append(&a)
 }
 
-func (v *view) action_delete(c cursor, nbytes int) {
-	v.maybe_next_action_group()
-	d := c.extract_bytes(nbytes)
+func (v *view) actionDelete(c cursor, nbytes int) {
+	v.maybeNextActionGroup()
+	d := c.extractBytes(nbytes)
 	a := action{
-		what:   action_delete,
+		what:   actionDelete,
 		data:   d,
 		cursor: c,
 		lines:  make([]*line, bytes.Count(d, []byte{'\n'})),
@@ -799,122 +799,122 @@ func (v *view) action_delete(c cursor, nbytes int) {
 }
 
 // Insert a rune 'r' at the current cursor position, advance cursor one character forward.
-func (v *view) insert_rune(r rune) {
+func (v *view) insertRune(r rune) {
 	var data [utf8.UTFMax]byte
 	l := utf8.EncodeRune(data[:], r)
 	c := v.cursor
 	if r == '\n' || r == '\r' {
-		v.action_insert(c, []byte{'\n'})
+		v.actionInsert(c, []byte{'\n'})
 		prev := c.line
 		c.line = c.line.next
-		c.line_num++
+		c.lineNum++
 		c.boffset = 0
 
 		if r == '\n' {
-			i := index_first_non_space(prev.data)
+			i := indexFirstNonSpace(prev.data)
 			if i > 0 {
-				autoindent := clone_byte_slice(prev.data[:i])
-				v.action_insert(c, autoindent)
+				autoindent := cloneByteSlice(prev.data[:i])
+				v.actionInsert(c, autoindent)
 				c.boffset += len(autoindent)
 			}
 		}
 	} else {
-		v.action_insert(c, data[:l])
+		v.actionInsert(c, data[:l])
 		c.boffset += l
 	}
-	v.move_cursor_to(c)
-	v.dirty = dirty_everything
+	v.moveCursorTo(c)
+	v.dirty = DIRTY_EVERYTHING
 }
 
 // If at the beginning of the line, move contents of the current line to the end
 // of the previous line. Otherwise, erase one character backward.
-func (v *view) delete_rune_backward() {
+func (v *view) deleteRuneBackward() {
 	c := v.cursor
 	if c.bol() {
-		if c.first_line() {
+		if c.firstLine() {
 			// beginning of the file
-			v.ctx.SetStatus("Beginning of buffer")
+			v.ctx.setStatus("Beginning of buffer")
 			return
 		}
 		c.line = c.line.prev
-		c.line_num--
+		c.lineNum--
 		c.boffset = len(c.line.data)
-		v.action_delete(c, 1)
-		v.move_cursor_to(c)
-		v.dirty = dirty_everything
+		v.actionDelete(c, 1)
+		v.moveCursorTo(c)
+		v.dirty = DIRTY_EVERYTHING
 		return
 	}
 
-	_, rlen := c.rune_before()
+	_, rlen := c.runeBefore()
 	c.boffset -= rlen
-	v.action_delete(c, rlen)
-	v.move_cursor_to(c)
-	v.dirty = dirty_everything
+	v.actionDelete(c, rlen)
+	v.moveCursorTo(c)
+	v.dirty = DIRTY_EVERYTHING
 }
 
 // If at the EOL, move contents of the next line to the end of the current line,
 // erasing the next line after that. Otherwise, delete one character under the
 // cursor.
-func (v *view) delete_rune() {
+func (v *view) deleteRune() {
 	c := v.cursor
 	if c.eol() {
-		if c.last_line() {
+		if c.lastLine() {
 			// end of the file
-			v.ctx.SetStatus("End of buffer")
+			v.ctx.setStatus("End of buffer")
 			return
 		}
-		v.action_delete(c, 1)
-		v.dirty = dirty_everything
+		v.actionDelete(c, 1)
+		v.dirty = DIRTY_EVERYTHING
 		return
 	}
 
-	_, rlen := c.rune_under()
-	v.action_delete(c, rlen)
-	v.dirty = dirty_everything
+	_, rlen := c.runeUnder()
+	v.actionDelete(c, rlen)
+	v.dirty = DIRTY_EVERYTHING
 }
 
 // If not at the EOL, remove contents of the current line from the cursor to the
 // end. Otherwise behave like 'delete'.
-func (v *view) kill_line() {
+func (v *view) killLine() {
 	c := v.cursor
 	if !c.eol() {
 		// kill data from the cursor to the EOL
 		len := len(c.line.data) - c.boffset
-		v.append_to_kill_buffer(c, len)
-		v.action_delete(c, len)
-		v.dirty = dirty_everything
+		v.appendToKillBuffer(c, len)
+		v.actionDelete(c, len)
+		v.dirty = DIRTY_EVERYTHING
 		return
 	}
-	v.append_to_kill_buffer(c, 1)
-	v.delete_rune()
+	v.appendToKillBuffer(c, 1)
+	v.deleteRune()
 }
 
-func (v *view) kill_word() {
+func (v *view) killWord() {
 	c1 := v.cursor
 	c2 := c1
-	c2.move_one_word_forward()
+	c2.moveOneWordForward()
 	d := c1.distance(c2)
 	if d > 0 {
-		v.append_to_kill_buffer(c1, d)
-		v.action_delete(c1, d)
+		v.appendToKillBuffer(c1, d)
+		v.actionDelete(c1, d)
 	}
 }
 
-func (v *view) kill_word_backward() {
+func (v *view) killWordBackward() {
 	c2 := v.cursor
 	c1 := c2
 	c1.move_one_word_backward()
 	d := c1.distance(c2)
 	if d > 0 {
-		v.prepend_to_kill_buffer(c1, d)
-		v.action_delete(c1, d)
-		v.move_cursor_to(c1)
+		v.prependToKillBuffer(c1, d)
+		v.actionDelete(c1, d)
+		v.moveCursorTo(c1)
 	}
 }
 
-func (v *view) kill_region() {
-	if !v.buf.is_mark_set() {
-		v.ctx.SetStatus("The mark is not set now, so there is no region")
+func (v *view) killRegion() {
+	if !v.buf.isMarkSet() {
+		v.ctx.setStatus("The mark is not set now, so there is no region")
 		return
 	}
 
@@ -926,116 +926,116 @@ func (v *view) kill_region() {
 		return
 	case d < 0:
 		d = -d
-		v.append_to_kill_buffer(c2, d)
-		v.action_delete(c2, d)
-		v.move_cursor_to(c2)
+		v.appendToKillBuffer(c2, d)
+		v.actionDelete(c2, d)
+		v.moveCursorTo(c2)
 	default:
-		v.append_to_kill_buffer(c1, d)
-		v.action_delete(c1, d)
+		v.appendToKillBuffer(c1, d)
+		v.actionDelete(c1, d)
 	}
 }
 
-func (v *view) set_mark() {
+func (v *view) setMark() {
 	v.buf.mark = v.cursor
-	v.ctx.SetStatus("Mark set")
+	v.ctx.setStatus("Mark set")
 }
 
-func (v *view) swap_cursor_and_mark() {
-	if v.buf.is_mark_set() {
+func (v *view) swapCursorAndMark() {
+	if v.buf.isMarkSet() {
 		m := v.buf.mark
 		v.buf.mark = v.cursor
-		v.move_cursor_to(m)
+		v.moveCursorTo(m)
 	}
 }
 
-func (v *view) on_insert_adjust_top_line(a *action) {
-	if a.cursor.line_num < v.top_line_num && len(a.lines) > 0 {
+func (v *view) onInsertAdjustTopLine(a *action) {
+	if a.cursor.lineNum < v.topLineNum && len(a.lines) > 0 {
 		// inserted one or more lines above the view
-		v.top_line_num += len(a.lines)
-		v.dirty |= dirty_status
+		v.topLineNum += len(a.lines)
+		v.dirty |= DIRTY_STATUS
 	}
 }
 
-func (v *view) on_delete_adjust_top_line(a *action) {
-	if a.cursor.line_num < v.top_line_num {
+func (v *view) onDeleteAdjustTopLine(a *action) {
+	if a.cursor.lineNum < v.topLineNum {
 		// deletion above the top line
 		if len(a.lines) == 0 {
 			return
 		}
 
-		topnum := v.top_line_num
-		first, last := a.deleted_lines()
+		topnum := v.topLineNum
+		first, last := a.deletedLines()
 		if first <= topnum && topnum <= last {
 			// deleted the top line, adjust the pointers
 			if a.cursor.line.next != nil {
-				v.top_line = a.cursor.line.next
-				v.top_line_num = a.cursor.line_num + 1
+				v.topLine = a.cursor.line.next
+				v.topLineNum = a.cursor.lineNum + 1
 			} else {
-				v.top_line = a.cursor.line
-				v.top_line_num = a.cursor.line_num
+				v.topLine = a.cursor.line
+				v.topLineNum = a.cursor.lineNum
 			}
-			v.dirty = dirty_everything
+			v.dirty = DIRTY_EVERYTHING
 		} else {
 			// no need to worry
-			v.top_line_num -= len(a.lines)
-			v.dirty |= dirty_status
+			v.topLineNum -= len(a.lines)
+			v.dirty |= DIRTY_STATUS
 		}
 	}
 }
 
-func (v *view) on_insert(a *action) {
-	v.on_insert_adjust_top_line(a)
-	if v.top_line_num+v.height() <= a.cursor.line_num {
+func (v *view) onInsert(a *action) {
+	v.onInsertAdjustTopLine(a)
+	if v.topLineNum+v.height() <= a.cursor.lineNum {
 		// inserted something below the view, don't care
 		return
 	}
-	if a.cursor.line_num < v.top_line_num {
+	if a.cursor.lineNum < v.topLineNum {
 		// inserted something above the top line
 		if len(a.lines) > 0 {
 			// inserted one or more lines, adjust line numbers
-			v.cursor.line_num += len(a.lines)
-			v.dirty |= dirty_status
+			v.cursor.lineNum += len(a.lines)
+			v.dirty |= DIRTY_STATUS
 		}
 		return
 	}
 	c := v.cursor
-	c.on_insert_adjust(a)
-	v.move_cursor_to(c)
-	v.last_cursor_voffset = v.cursor_voffset
-	v.dirty = dirty_everything
+	c.onInsertAdjust(a)
+	v.moveCursorTo(c)
+	v.lastCursorVoffset = v.cursorVoffset
+	v.dirty = DIRTY_EVERYTHING
 }
 
-func (v *view) on_delete(a *action) {
-	v.on_delete_adjust_top_line(a)
-	if v.top_line_num+v.height() <= a.cursor.line_num {
+func (v *view) onDelete(a *action) {
+	v.onDeleteAdjustTopLine(a)
+	if v.topLineNum+v.height() <= a.cursor.lineNum {
 		// deleted something below the view, don't care
 		return
 	}
-	if a.cursor.line_num < v.top_line_num {
+	if a.cursor.lineNum < v.topLineNum {
 		// deletion above the top line
 		if len(a.lines) == 0 {
 			return
 		}
 
-		_, last := a.deleted_lines()
-		if last < v.top_line_num {
+		_, last := a.deletedLines()
+		if last < v.topLineNum {
 			// no need to worry
-			v.cursor.line_num -= len(a.lines)
-			v.dirty |= dirty_status
+			v.cursor.lineNum -= len(a.lines)
+			v.dirty |= DIRTY_STATUS
 			return
 		}
 	}
 	c := v.cursor
-	c.on_delete_adjust(a)
-	v.move_cursor_to(c)
-	v.last_cursor_voffset = v.cursor_voffset
-	v.dirty = dirty_everything
+	c.onDeleteAdjust(a)
+	v.moveCursorTo(c)
+	v.lastCursorVoffset = v.cursorVoffset
+	v.dirty = DIRTY_EVERYTHING
 }
 
-func (v *view) on_vcommand(c ViewCommand) {
-	last_class := v.lastCommand.Cmd.class()
-	if c.Cmd.class() != last_class || last_class == vcommand_class_misc {
-		v.finalize_action_group()
+func (v *view) onVcommand(c viewCommand) {
+	lastClass := v.lastCommand.Cmd.class()
+	if c.Cmd.class() != lastClass || lastClass == vCommandClassMisc {
+		v.finalizeActionGroup()
 	}
 
 	reps := c.Reps
@@ -1045,110 +1045,120 @@ func (v *view) on_vcommand(c ViewCommand) {
 
 	for i := 0; i < reps; i++ {
 		switch c.Cmd {
-		case vcommand_move_cursor_forward:
-			v.move_cursor_forward()
-		case vcommand_move_cursor_backward:
-			v.move_cursor_backward()
-		case vcommand_move_cursor_word_forward:
-			v.move_cursor_word_forward()
-		case vcommand_move_cursor_word_backward:
-			v.move_cursor_word_backward()
-		case vcommand_move_cursor_next_line:
-			v.move_cursor_next_line()
-		case vcommand_move_cursor_prev_line:
-			v.move_cursor_prev_line()
-		case vcommand_move_cursor_beginning_of_line:
-			v.move_cursor_beginning_of_line()
-		case vcommand_move_cursor_end_of_line:
-			v.move_cursor_end_of_line()
-		case vcommand_move_cursor_beginning_of_file:
-			v.move_cursor_beginning_of_file()
-		case vcommand_move_cursor_end_of_file:
-			v.move_cursor_end_of_file()
+		case vCommandMoveCursorForward:
+			v.moveCursorForward()
+
+		case vCommandMoveCursorBackward:
+			v.moveCursorBackward()
+
+		case vCommandMoveCursorWordForward:
+			v.moveCursorWordFoward()
+
+		case vCommandMoveCursorWordBackward:
+			v.moveCursorWordBackward()
+
+		case vCommandMoveCursorNextLine:
+			v.moveCursorNextLine()
+
+		case vCommandMoveCursorPrevLine:
+			v.moveCursorPrevLine()
+
+		case vCommandMoveCursorBeginningOfLine:
+			v.moveCursorBeginningOfLine()
+
+		case vCommandMoveCursorEndOfLine:
+			v.moveCursorEndOfLine()
+
+		case vCommandMoveCursorBeginningOfFile:
+			v.moveCursorBeginningOfFile()
+
+		case vCommandMoveCursorEndOfFile:
+			v.moveCursorEndOfFile()
 			/*
-				case vcommand_move_cursor_to_line:
-					v.move_cursor_to_line(int(arg))
+				case vCommandMoveCursorToLine:
+					v.moveCursorToLine(int(arg))
 			*/
-		case vcommand_move_view_half_forward:
-			v.maybe_move_view_n_lines(v.height() / 2)
-		case vcommand_move_view_half_backward:
-			v.move_view_n_lines(-v.height() / 2)
-		case vcommand_set_mark:
-			v.set_mark()
-		case vcommand_swap_cursor_and_mark:
-			v.swap_cursor_and_mark()
-		case vcommand_insert_rune:
-			v.insert_rune(c.Rune)
-		case vcommand_yank:
+
+		case vCommandMoveViewHalfForward:
+			v.maybeMoveViewNlines(v.height() / 2)
+		case vCommandMoveViewHalfBackward:
+			v.moveViewNlines(-v.height() / 2)
+		case vCommandSetMark:
+			v.setMark()
+		case vCommandSwapCursorAndMark:
+			v.swapCursorAndMark()
+		case vCommandInsertRune:
+			v.insertRune(c.Rune)
+		case vCommandYank:
 			v.yank()
-		case vcommand_delete_rune_backward:
-			v.delete_rune_backward()
-		case vcommand_delete_rune:
-			v.delete_rune()
-		case vcommand_kill_line:
-			v.kill_line()
-		case vcommand_kill_word:
-			v.kill_word()
-		case vcommand_kill_word_backward:
-			v.kill_word_backward()
-		case vcommand_kill_region:
-			v.kill_region()
-		case vcommand_copy_region:
-			v.copy_region()
-		case vcommand_undo:
+		case vCommandDeleteRuneBackward:
+			v.deleteRuneBackward()
+		case vCommandDeleteRune:
+			v.deleteRune()
+		case vCommandKillLine:
+			v.killLine()
+		case vCommandKillWord:
+			v.killWord()
+		case vCommandKillWordBackward:
+			v.killWordBackward()
+		case vCommandKillRegion:
+			v.killRegion()
+		case vCommandCopyRegion:
+			v.copyRegion()
+		case vCommandUndo:
 			v.undo()
-		case vcommand_redo:
+		case vCommandRedo:
 			v.redo()
-		case vcommand_indent_region:
-			v.indent_region()
-		case vcommand_deindent_region:
-			v.deindent_region()
-		case vcommand_region_to_upper:
-			v.region_to(bytes.ToUpper)
-		case vcommand_region_to_lower:
-			v.region_to(bytes.ToLower)
-		case vcommand_word_to_upper:
-			v.word_to(bytes.ToUpper)
-		case vcommand_word_to_title:
-			v.word_to(func(s []byte) []byte {
+		case vCommandIndentRegion:
+			v.indentRegion()
+		case vCommandDeindentRegion:
+			v.deindentRegion()
+		case vCommandRegionToUpper:
+			v.regionTo(bytes.ToUpper)
+		case vCommandRegionToLower:
+			v.regionTo(bytes.ToLower)
+		case vCommandWordToUpper:
+			v.wordTo(bytes.ToUpper)
+		case vCommandWordToTitle:
+			v.wordTo(func(s []byte) []byte {
 				return bytes.Title(bytes.ToLower(s))
 			})
-		case vcommand_word_to_lower:
-			v.word_to(bytes.ToLower)
+		case vCommandWordToLower:
+			v.wordTo(bytes.ToLower)
 		}
 	}
 
 	v.lastCommand = c
 }
 
-func (v *view) dump_info() {
+func (v *view) dumpInfo() {
 	p := func(format string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, format, args...)
 	}
 
-	p("Top line num: %d\n", v.top_line_num)
+	p("Top line num: %d\n", v.topLineNum)
 }
 
-func (v *view) find_highlight_ranges_for_line(data []byte) {
-	v.highlight_ranges = v.highlight_ranges[:0]
+func (v *view) findHighlightRangesForLine(data []byte) {
+	v.highlightRanges = v.highlightRanges[:0]
 	offset := 0
 	for {
-		i := bytes.Index(data, v.highlight_bytes)
+		i := bytes.Index(data, v.highlightBytes)
 		if i == -1 {
 			return
 		}
 
-		v.highlight_ranges = append(v.highlight_ranges, byte_range{
+		v.highlightRanges = append(v.highlightRanges, byteRange{
 			begin: offset + i,
-			end:   offset + i + len(v.highlight_bytes),
+			end:   offset + i + len(v.highlightBytes),
 		})
-		data = data[i+len(v.highlight_bytes):]
-		offset += i + len(v.highlight_bytes)
+		data = data[i+len(v.highlightBytes):]
+		offset += i + len(v.highlightBytes)
 	}
 }
 
-func (v *view) in_one_of_highlight_ranges(offset int) bool {
-	for _, r := range v.highlight_ranges {
+func (v *view) inOneOfHighlightRanges(offset int) bool {
+	for _, r := range v.highlightRanges {
 		if r.includes(offset) {
 			return true
 		}
@@ -1156,19 +1166,19 @@ func (v *view) in_one_of_highlight_ranges(offset int) bool {
 	return false
 }
 
-func (v *view) tag(line, offset int) *view_tag {
+func (v *view) tag(line, offset int) *viewTag {
 	for i := range v.tags {
 		t := &v.tags[i]
 		if t.includes(line, offset) {
 			return t
 		}
 	}
-	return &default_view_tag
+	return &defaultViewTag
 }
 
-func (v *view) make_cell(line, offset int, ch rune) termbox.Cell {
+func (v *view) makeCell(line, offset int, ch rune) termbox.Cell {
 	tag := v.tag(line, offset)
-	if tag != &default_view_tag {
+	if tag != &defaultViewTag {
 		return termbox.Cell{
 			Ch: ch,
 			Fg: tag.fg,
@@ -1181,34 +1191,34 @@ func (v *view) make_cell(line, offset int, ch rune) termbox.Cell {
 		Fg: tag.fg,
 		Bg: tag.bg,
 	}
-	if v.in_one_of_highlight_ranges(offset) {
-		cell.Fg = hl_fg
-		cell.Bg = hl_bg
+	if v.inOneOfHighlightRanges(offset) {
+		cell.Fg = hlFG
+		cell.Bg = hlBG
 	}
 	return cell
 }
 
-func (v *view) cleanup_trailing_whitespaces() {
+func (v *view) cleanupTrailingWhitespaces() {
 	cursor := cursor{
-		line:     v.buf.first_line,
-		line_num: 1,
-		boffset:  0,
+		line:    v.buf.firstLine,
+		lineNum: 1,
+		boffset: 0,
 	}
 
 	for cursor.line != nil {
 		len := len(cursor.line.data)
-		i := index_last_non_space(cursor.line.data)
+		i := indexLastNonSpace(cursor.line.data)
 		if i == -1 && len > 0 {
 			// the whole string is whitespace
-			v.action_delete(cursor, len)
+			v.actionDelete(cursor, len)
 		}
 		if i != -1 && i != len-1 {
 			// some whitespace at the end
 			cursor.boffset = i + 1
-			v.action_delete(cursor, len-cursor.boffset)
+			v.actionDelete(cursor, len-cursor.boffset)
 		}
 		cursor.line = cursor.line.next
-		cursor.line_num++
+		cursor.lineNum++
 		cursor.boffset = 0
 	}
 
@@ -1216,15 +1226,15 @@ func (v *view) cleanup_trailing_whitespaces() {
 	cursor = v.cursor
 	if cursor.boffset > len(cursor.line.data) {
 		cursor.boffset = len(cursor.line.data)
-		v.move_cursor_to(cursor)
+		v.moveCursorTo(cursor)
 	}
 }
 
-func (v *view) cleanup_trailing_newlines() {
+func (v *view) cleanupTrailingNewlines() {
 	cursor := cursor{
-		line:     v.buf.last_line,
-		line_num: v.buf.lines_n,
-		boffset:  0,
+		line:    v.buf.lastLine,
+		lineNum: v.buf.linesN,
+		boffset: 0,
 	}
 
 	for len(cursor.line.data) == 0 {
@@ -1241,86 +1251,86 @@ func (v *view) cleanup_trailing_newlines() {
 		}
 
 		// adjust view cursor just in case
-		if v.cursor.line_num == cursor.line_num {
-			v.move_cursor_prev_line()
+		if v.cursor.lineNum == cursor.lineNum {
+			v.moveCursorPrevLine()
 		}
 
 		cursor.line = prev
-		cursor.line_num--
+		cursor.lineNum--
 		cursor.boffset = 0
-		v.action_delete(cursor, 1)
+		v.actionDelete(cursor, 1)
 	}
 }
 
-func (v *view) ensure_trailing_eol() {
+func (v *view) ensureTrailingEOL() {
 	cursor := cursor{
-		line:     v.buf.last_line,
-		line_num: v.buf.lines_n,
-		boffset:  len(v.buf.last_line.data),
+		line:    v.buf.lastLine,
+		lineNum: v.buf.linesN,
+		boffset: len(v.buf.lastLine.data),
 	}
-	if len(v.buf.last_line.data) > 0 {
-		v.action_insert(cursor, []byte{'\n'})
+	if len(v.buf.lastLine.data) > 0 {
+		v.actionInsert(cursor, []byte{'\n'})
 	}
 }
 
 func (v *view) presave_cleanup(raw bool) {
-	v.finalize_action_group()
-	v.lastCommand = ViewCommand{Cmd: vcommand_none}
+	v.finalizeActionGroup()
+	v.lastCommand = viewCommand{Cmd: vCommandNone}
 	if !raw {
-		v.cleanup_trailing_whitespaces()
-		v.cleanup_trailing_newlines()
-		v.ensure_trailing_eol()
-		v.finalize_action_group()
+		v.cleanupTrailingWhitespaces()
+		v.cleanupTrailingNewlines()
+		v.ensureTrailingEOL()
+		v.finalizeActionGroup()
 	}
 }
 
-func (v *view) append_to_kill_buffer(cursor cursor, nbytes int) {
-	kb := *v.ctx.KillBuffer
+func (v *view) appendToKillBuffer(cursor cursor, nbytes int) {
+	kb := *v.ctx.killBuffer
 
 	switch v.lastCommand.Cmd {
-	case vcommand_kill_word, vcommand_kill_word_backward, vcommand_kill_region, vcommand_kill_line:
+	case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
 	default:
 		kb = kb[:0]
 	}
 
-	kb = append(kb, cursor.extract_bytes(nbytes)...)
-	*v.ctx.KillBuffer = kb
+	kb = append(kb, cursor.extractBytes(nbytes)...)
+	*v.ctx.killBuffer = kb
 }
 
-func (v *view) prepend_to_kill_buffer(cursor cursor, nbytes int) {
-	kb := *v.ctx.KillBuffer
+func (v *view) prependToKillBuffer(cursor cursor, nbytes int) {
+	kb := *v.ctx.killBuffer
 
 	switch v.lastCommand.Cmd {
-	case vcommand_kill_word, vcommand_kill_word_backward, vcommand_kill_region, vcommand_kill_line:
+	case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
 	default:
 		kb = kb[:0]
 	}
 
-	kb = append(cursor.extract_bytes(nbytes), kb...)
-	*v.ctx.KillBuffer = kb
+	kb = append(cursor.extractBytes(nbytes), kb...)
+	*v.ctx.killBuffer = kb
 }
 
 func (v *view) yank() {
-	buf := *v.ctx.KillBuffer
+	buf := *v.ctx.killBuffer
 	cursor := v.cursor
 
 	if len(buf) == 0 {
 		return
 	}
-	cbuf := clone_byte_slice(buf)
-	v.action_insert(cursor, cbuf)
+	cbuf := cloneByteSlice(buf)
+	v.actionInsert(cursor, cbuf)
 	for len(buf) > 0 {
 		_, rlen := utf8.DecodeRune(buf)
 		buf = buf[rlen:]
 		cursor.NextRune(true)
 	}
-	v.move_cursor_to(cursor)
+	v.moveCursorTo(cursor)
 }
 
 // shameless copy & paste from kill_region
-func (v *view) copy_region() {
-	if !v.buf.is_mark_set() {
-		v.ctx.SetStatus("The mark is not set now, so there is no region")
+func (v *view) copyRegion() {
+	if !v.buf.isMarkSet() {
+		v.ctx.setStatus("The mark is not set now, so there is no region")
 		return
 	}
 
@@ -1332,29 +1342,29 @@ func (v *view) copy_region() {
 		return
 	case d < 0:
 		d = -d
-		v.append_to_kill_buffer(c2, d)
+		v.appendToKillBuffer(c2, d)
 	default:
-		v.append_to_kill_buffer(c1, d)
+		v.appendToKillBuffer(c1, d)
 	}
 }
 
 // assumes that filtered text has the same length
-func (v *view) region_to(filter func([]byte) []byte) {
-	if !v.buf.is_mark_set() {
-		v.ctx.SetStatus("The mark is not set now, so there is no region")
+func (v *view) regionTo(filter func([]byte) []byte) {
+	if !v.buf.isMarkSet() {
+		v.ctx.setStatus("The mark is not set now, so there is no region")
 		return
 	}
-	v.filter_text(v.cursor, v.buf.mark, filter)
+	v.filterText(v.cursor, v.buf.mark, filter)
 }
 
-func (v *view) line_region() (beg, end cursor) {
+func (v *view) lineRegion() (beg, end cursor) {
 	beg = v.cursor
 	end = v.cursor
-	if v.buf.is_mark_set() {
+	if v.buf.isMarkSet() {
 		end = v.buf.mark
 	}
 
-	if beg.line_num > end.line_num {
+	if beg.lineNum > end.lineNum {
 		beg, end = end, beg
 	}
 	beg.boffset = 0
@@ -1362,85 +1372,85 @@ func (v *view) line_region() (beg, end cursor) {
 	return
 }
 
-func (v *view) indent_line(line cursor) {
+func (v *view) indentLine(line cursor) {
 	line.boffset = 0
-	v.action_insert(line, []byte{'\t'})
+	v.actionInsert(line, []byte{'\t'})
 	if v.cursor.line == line.line {
 		cursor := v.cursor
 		cursor.boffset += 1
-		v.move_cursor_to(cursor)
+		v.moveCursorTo(cursor)
 	}
 }
 
-func (v *view) deindent_line(line cursor) {
+func (v *view) deindentLine(line cursor) {
 	line.boffset = 0
-	if r, _ := line.rune_under(); r == '\t' {
-		v.action_delete(line, 1)
+	if r, _ := line.runeUnder(); r == '\t' {
+		v.actionDelete(line, 1)
 	}
 	if v.cursor.line == line.line && v.cursor.boffset > 0 {
 		cursor := v.cursor
 		cursor.boffset -= 1
-		v.move_cursor_to(cursor)
+		v.moveCursorTo(cursor)
 	}
 }
 
-func (v *view) indent_region() {
-	beg, end := v.line_region()
+func (v *view) indentRegion() {
+	beg, end := v.lineRegion()
 	for beg.line != end.line {
-		v.indent_line(beg)
+		v.indentLine(beg)
 		beg.line = beg.line.next
-		beg.line_num++
+		beg.lineNum++
 	}
-	v.indent_line(end)
+	v.indentLine(end)
 }
 
-func (v *view) deindent_region() {
-	beg, end := v.line_region()
+func (v *view) deindentRegion() {
+	beg, end := v.lineRegion()
 	for beg.line != end.line {
-		v.deindent_line(beg)
+		v.deindentLine(beg)
 		beg.line = beg.line.next
-		beg.line_num++
+		beg.lineNum++
 	}
-	v.deindent_line(end)
+	v.deindentLine(end)
 }
 
-func (v *view) word_to(filter func([]byte) []byte) {
+func (v *view) wordTo(filter func([]byte) []byte) {
 	c1, c2 := v.cursor, v.cursor
-	c2.move_one_word_forward()
-	v.filter_text(c1, c2, filter)
-	c1.move_one_word_forward()
-	v.move_cursor_to(c1)
+	c2.moveOneWordForward()
+	v.filterText(c1, c2, filter)
+	c1.moveOneWordForward()
+	v.moveCursorTo(c1)
 }
 
 // Filter _must_ return a new slice and shouldn't touch contents of the
 // argument, perfect filter examples are: bytes.Title, bytes.ToUpper,
 // bytes.ToLower
-func (v *view) filter_text(from, to cursor, filter func([]byte) []byte) {
-	c1, c2 := swap_cursors_maybe(from, to)
+func (v *view) filterText(from, to cursor, filter func([]byte) []byte) {
+	c1, c2 := swapCursorMaybe(from, to)
 	d := c1.distance(c2)
-	v.action_delete(c1, d)
-	data := filter(v.buf.history.last_action().data)
-	v.action_insert(c1, data)
+	v.actionDelete(c1, d)
+	data := filter(v.buf.history.lastAction().data)
+	v.actionInsert(c1, data)
 }
 
 //----------------------------------------------------------------------------
 // view commands
 //----------------------------------------------------------------------------
 
-type vcommand_class int
+type vCommandClass int
 
 const (
-	vcommand_class_none vcommand_class = iota
-	vcommand_class_movement
-	vcommand_class_insertion
-	vcommand_class_deletion
-	vcommand_class_history
-	vcommand_class_misc
+	vCommandClassNone vCommandClass = iota
+	vCommandClassMovement
+	vCommandClassInsertion
+	vCommandClassDeletion
+	vCommandClassHistory
+	vCommandClassMisc
 )
 
-type ViewCommand struct {
+type viewCommand struct {
 	// The command to execute
-	Cmd vcommand
+	Cmd vCommand
 
 	// Number of times to repeat the command
 	Reps int
@@ -1449,77 +1459,77 @@ type ViewCommand struct {
 	Rune rune
 }
 
-type vcommand int
+type vCommand int
 
 const (
-	vcommand_none vcommand = iota
+	vCommandNone vCommand = iota
 
 	// movement commands (finalize undo action group)
-	_vcommand_movement_beg
-	vcommand_move_cursor_forward
-	vcommand_move_cursor_backward
-	vcommand_move_cursor_word_forward
-	vcommand_move_cursor_word_backward
-	vcommand_move_cursor_next_line
-	vcommand_move_cursor_prev_line
-	vcommand_move_cursor_beginning_of_line
-	vcommand_move_cursor_end_of_line
-	vcommand_move_cursor_beginning_of_file
-	vcommand_move_cursor_end_of_file
-	vcommand_move_cursor_to_line
-	vcommand_move_view_half_forward
-	vcommand_move_view_half_backward
-	vcommand_set_mark
-	vcommand_swap_cursor_and_mark
-	_vcommand_movement_end
+	_vCommandMovementBeg
+	vCommandMoveCursorForward
+	vCommandMoveCursorBackward
+	vCommandMoveCursorWordForward
+	vCommandMoveCursorWordBackward
+	vCommandMoveCursorNextLine
+	vCommandMoveCursorPrevLine
+	vCommandMoveCursorBeginningOfLine
+	vCommandMoveCursorEndOfLine
+	vCommandMoveCursorBeginningOfFile
+	vCommandMoveCursorEndOfFile
+	vCommandMoveCursorToLine
+	vCommandMoveViewHalfForward
+	vCommandMoveViewHalfBackward
+	vCommandSetMark
+	vCommandSwapCursorAndMark
+	_vCommandMovementEnd
 
 	// insertion commands
-	_vcommand_insertion_beg
-	vcommand_insert_rune
-	vcommand_yank
-	_vcommand_insertion_end
+	_vCommandInsertionBeg
+	vCommandInsertRune
+	vCommandYank
+	_vCommandInsertionEnd
 
 	// deletion commands
-	_vcommand_deletion_beg
-	vcommand_delete_rune_backward
-	vcommand_delete_rune
-	vcommand_kill_line
-	vcommand_kill_word
-	vcommand_kill_word_backward
-	vcommand_kill_region
-	_vcommand_deletion_end
+	_vCommandDeletionBeg
+	vCommandDeleteRuneBackward
+	vCommandDeleteRune
+	vCommandKillLine
+	vCommandKillWord
+	vCommandKillWordBackward
+	vCommandKillRegion
+	_vCommandDeletionEnd
 
 	// history commands (undo/redo)
-	_vcommand_history_beg
-	vcommand_undo
-	vcommand_redo
-	_vcommand_history_end
+	_vCommandHistoryBeg
+	vCommandUndo
+	vCommandRedo
+	_vCommandHistoryEnd
 
 	// misc commands
-	_vcommand_misc_beg
-	vcommand_indent_region
-	vcommand_deindent_region
-	vcommand_copy_region
-	vcommand_region_to_upper
-	vcommand_region_to_lower
-	vcommand_word_to_upper
-	vcommand_word_to_title
-	vcommand_word_to_lower
-	_vcommand_misc_end
+	_vCommandMiscBeg
+	vCommandIndentRegion
+	vCommandDeindentRegion
+	vCommandCopyRegion
+	vCommandRegionToUpper
+	vCommandRegionToLower
+	vCommandWordToUpper
+	vCommandWordToTitle
+	vCommandWordToLower
+	_vCommandMiscEnd
 )
 
-func (c vcommand) class() vcommand_class {
+func (c vCommand) class() vCommandClass {
 	switch {
-	case c > _vcommand_movement_beg && c < _vcommand_movement_end:
-		return vcommand_class_movement
-	case c > _vcommand_insertion_beg && c < _vcommand_insertion_end:
-		return vcommand_class_insertion
-	case c > _vcommand_deletion_beg && c < _vcommand_deletion_end:
-		return vcommand_class_deletion
-	case c > _vcommand_history_beg && c < _vcommand_history_end:
-		return vcommand_class_history
-	case c > _vcommand_misc_beg && c < _vcommand_misc_end:
-		return vcommand_class_misc
+	case c > _vCommandMovementBeg && c < _vCommandMovementEnd:
+		return vCommandClassMovement
+	case c > _vCommandInsertionBeg && c < _vCommandInsertionEnd:
+		return vCommandClassInsertion
+	case c > _vCommandDeletionBeg && c < _vCommandDeletionEnd:
+		return vCommandClassDeletion
+	case c > _vCommandHistoryBeg && c < _vCommandHistoryEnd:
+		return vCommandClassHistory
+	case c > _vCommandMiscBeg && c < _vCommandMiscEnd:
+		return vCommandClassMisc
 	}
-	return vcommand_class_none
+	return vCommandClassNone
 }

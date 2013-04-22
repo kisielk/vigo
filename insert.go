@@ -4,31 +4,31 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-type InsertMode struct {
+type insertMode struct {
 	editor *editor
 	reps   int
 }
 
-func NewInsertMode(editor *editor, reps int) InsertMode {
-	m := InsertMode{editor: editor}
-	m.editor.SetStatus("Insert")
+func newInsertMode(editor *editor, reps int) insertMode {
+	m := insertMode{editor: editor}
+	m.editor.setStatus("Insert")
 	m.reps = reps
 	return m
 }
 
-func (m InsertMode) OnKey(ev *termbox.Event) {
+func (m insertMode) onKey(ev *termbox.Event) {
 	g := m.editor
 	v := g.active.leaf
 
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
-		g.SetMode(NewVisualMode(g))
+		g.setMode(newVisualMode(g))
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
-		v.on_vcommand(ViewCommand{Cmd: vcommand_delete_rune_backward})
+		v.onVcommand(viewCommand{Cmd: vCommandDeleteRuneBackward})
 	case termbox.KeyDelete, termbox.KeyCtrlD:
-		v.on_vcommand(ViewCommand{Cmd: vcommand_delete_rune})
+		v.onVcommand(viewCommand{Cmd: vCommandDeleteRune})
 	case termbox.KeySpace:
-		v.on_vcommand(ViewCommand{Cmd: vcommand_insert_rune, Rune: ' '})
+		v.onVcommand(viewCommand{Cmd: vCommandInsertRune, Rune: ' '})
 	case termbox.KeyEnter, termbox.KeyCtrlJ:
 		c := '\n'
 		if ev.Key == termbox.KeyEnter {
@@ -36,20 +36,20 @@ func (m InsertMode) OnKey(ev *termbox.Event) {
 			// autoindent
 			c = '\r'
 		}
-		v.on_vcommand(ViewCommand{Cmd: vcommand_insert_rune, Rune: c})
+		v.onVcommand(viewCommand{Cmd: vCommandInsertRune, Rune: c})
 	default:
 		if ev.Ch != 0 {
-			v.on_vcommand(ViewCommand{Cmd: vcommand_insert_rune, Rune: ev.Ch})
+			v.onVcommand(viewCommand{Cmd: vCommandInsertRune, Rune: ev.Ch})
 		}
 	}
 }
 
-func (m InsertMode) Exit() {
+func (m insertMode) exit() {
 	// repeat action specified number of times
 	for i := 0; i < m.reps-1; i++ {
 		g := m.editor
 		v := g.active.leaf
-		a := v.buf.history.last_action()
+		a := v.buf.history.lastAction()
 		a.do(v, a.what)
 	}
 }

@@ -5,22 +5,22 @@ import (
 	"strconv"
 )
 
-type EditorMode interface {
-	OnKey(ev *termbox.Event)
-	Exit()
+type editorMode interface {
+	onKey(ev *termbox.Event)
+	exit()
 }
-type VisualMode struct {
+type visualMode struct {
 	editor *editor
 	reps   string
 }
 
-func NewVisualMode(editor *editor) *VisualMode {
-	m := VisualMode{editor: editor}
-	m.editor.SetStatus("Visual")
+func newVisualMode(editor *editor) *visualMode {
+	m := visualMode{editor: editor}
+	m.editor.setStatus("Visual")
 	return &m
 }
 
-func (m *VisualMode) OnKey(ev *termbox.Event) {
+func (m *visualMode) onKey(ev *termbox.Event) {
 	g := m.editor
 	v := g.active.leaf
 
@@ -29,7 +29,7 @@ func (m *VisualMode) OnKey(ev *termbox.Event) {
 	// a non-starting character.
 	if ('0' < ev.Ch && ev.Ch <= '9') || (ev.Ch == '0' && len(m.reps) > 0) {
 		m.reps = m.reps + string(ev.Ch)
-		m.editor.SetStatus(m.reps)
+		m.editor.setStatus(m.reps)
 		return
 	}
 
@@ -39,46 +39,46 @@ func (m *VisualMode) OnKey(ev *termbox.Event) {
 	case 0x0:
 		switch ev.Key {
 		case termbox.KeySpace:
-			v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_forward, Reps: reps})
+			v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward, Reps: reps})
 		case termbox.KeyCtrlR:
-			v.on_vcommand(ViewCommand{Cmd: vcommand_redo, Reps: reps})
+			v.onVcommand(viewCommand{Cmd: vCommandRedo, Reps: reps})
 		}
 	case 's':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_backward, Reps: reps})
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBackward, Reps: reps})
 	case 'n':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_next_line, Reps: reps})
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorNextLine, Reps: reps})
 	case 'e':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_prev_line, Reps: reps})
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorPrevLine, Reps: reps})
 	case 't':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_forward, Reps: reps})
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward, Reps: reps})
 	case 'w':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_word_forward, Reps: reps})
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordForward, Reps: reps})
 	case 'b':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_word_backward, Reps: reps})
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordBackward, Reps: reps})
 	case 'x':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_delete_rune, Reps: reps})
+		v.onVcommand(viewCommand{Cmd: vCommandDeleteRune, Reps: reps})
 	case 'u':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_undo, Reps: reps})
+		v.onVcommand(viewCommand{Cmd: vCommandUndo, Reps: reps})
 	}
 
 	// Insert mode; record first, then repeat.
 	switch ev.Ch {
 	case 'a':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_forward})
-		g.SetMode(NewInsertMode(g, reps))
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward})
+		g.setMode(newInsertMode(g, reps))
 	case 'A':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_end_of_line})
-		g.SetMode(NewInsertMode(g, reps))
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
+		g.setMode(newInsertMode(g, reps))
 	case 'i':
-		g.SetMode(NewInsertMode(g, reps))
+		g.setMode(newInsertMode(g, reps))
 	}
 
 	// No point repeating these commands
 	switch ev.Ch {
 	case '0':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_beginning_of_line})
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBeginningOfLine})
 	case '$':
-		v.on_vcommand(ViewCommand{Cmd: vcommand_move_cursor_end_of_line})
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
 	}
 
 	if ev.Ch == 0x0 {
@@ -86,16 +86,16 @@ func (m *VisualMode) OnKey(ev *termbox.Event) {
 		// TODO Cursor centering after Ctrl-U/D seems off.
 		// TODO Ctrl-U and CTRL-D have configurable ranges of motion.
 		case termbox.KeyCtrlU, termbox.KeyCtrlB:
-			v.on_vcommand(ViewCommand{Cmd: vcommand_move_view_half_backward, Reps: reps})
+			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Reps: reps})
 		case termbox.KeyCtrlD, termbox.KeyCtrlF:
-			v.on_vcommand(ViewCommand{Cmd: vcommand_move_view_half_forward, Reps: reps})
+			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Reps: reps})
 		}
 	}
 
 	// TODO use reps to set range for command mode
 	switch ev.Ch {
 	case ':':
-		g.SetMode(NewCommandMode(g, m))
+		g.setMode(newCommandMode(g, m))
 	}
 
 	// Reset repetitions
@@ -115,5 +115,5 @@ func parseReps(s string) int {
 	return int(n)
 }
 
-func (m *VisualMode) Exit() {
+func (m *visualMode) exit() {
 }

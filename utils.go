@@ -11,7 +11,7 @@ import (
 	"unicode/utf8"
 )
 
-var invisible_rune_table = []rune{
+var invisibleRuneTable = []rune{
 	'@',  // 0
 	'A',  // 1
 	'B',  // 2
@@ -46,10 +46,10 @@ var invisible_rune_table = []rune{
 	'_',  // 31
 }
 
-func rune_advance_len(r rune, pos int) int {
+func runeAdvanceLen(r rune, pos int) int {
 	switch {
 	case r == '\t':
-		return tabstop_length - pos%tabstop_length
+		return TABSTOP_LENGTH - pos%TABSTOP_LENGTH
 	case r < 32:
 		// for invisible chars like ^R ^@ and such, two cells
 		return 2
@@ -62,7 +62,7 @@ func vlen(data []byte, pos int) int {
 	for len(data) > 0 {
 		r, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
-		pos += rune_advance_len(r, pos)
+		pos += runeAdvanceLen(r, pos)
 	}
 	return pos - origin
 }
@@ -86,7 +86,7 @@ func iter_nonspace_words(data []byte, cb func(word []byte)) {
 	}
 }
 
-func iter_words(data []byte, cb func(word []byte)) {
+func iterWords(data []byte, cb func(word []byte)) {
 	for {
 		if len(data) == 0 {
 			return
@@ -156,7 +156,7 @@ func readdir_stat(dir string, f *os.File) ([]os.FileInfo, error) {
 	return fis, nil
 }
 
-func index_first_non_space(s []byte) int {
+func indexFirstNonSpace(s []byte) int {
 	for i := 0; i < len(s); i++ {
 		if s[i] != '\t' && s[i] != ' ' {
 			return i
@@ -165,7 +165,7 @@ func index_first_non_space(s []byte) int {
 	return len(s)
 }
 
-func index_last_non_space(s []byte) int {
+func indexLastNonSpace(s []byte) int {
 	for i := len(s) - 1; i >= 0; i-- {
 		if s[i] != '\t' && s[i] != ' ' {
 			return i
@@ -202,14 +202,14 @@ func insert_bytes(s []byte, offset int, data []byte) []byte {
 
 func copy_byte_slice(dst, src []byte) []byte {
 	if cap(dst) < len(src) {
-		dst = clone_byte_slice(src)
+		dst = cloneByteSlice(src)
 	}
 	dst = dst[:len(src)]
 	copy(dst, src)
 	return dst
 }
 
-func clone_byte_slice(s []byte) []byte {
+func cloneByteSlice(s []byte) []byte {
 	c := make([]byte, len(s))
 	copy(c, s)
 	return c

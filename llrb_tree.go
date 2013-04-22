@@ -47,9 +47,9 @@ func (t *llrb_tree) walk(cb func(value []byte)) {
 	t.root.walk(cb)
 }
 
-func (t *llrb_tree) insert_maybe(value []byte) bool {
+func (t *llrb_tree) insertMaybe(value []byte) bool {
 	var ok bool
-	t.root, ok = t.root.insert_maybe(value)
+	t.root, ok = t.root.insertMaybe(value)
 	if ok {
 		t.count++
 	}
@@ -137,7 +137,7 @@ func (n *llrb_node) is_red() bool {
 	return n != nil && !n.color
 }
 
-func (n *llrb_node) insert_maybe(value []byte) (*llrb_node, bool) {
+func (n *llrb_node) insertMaybe(value []byte) (*llrb_node, bool) {
 	if n == nil {
 		return &llrb_node{value: value}, true
 	}
@@ -145,9 +145,9 @@ func (n *llrb_node) insert_maybe(value []byte) (*llrb_node, bool) {
 	var inserted bool
 	switch cmp := bytes.Compare(value, n.value); {
 	case cmp < 0:
-		n.left, inserted = n.left.insert_maybe(value)
+		n.left, inserted = n.left.insertMaybe(value)
 	case cmp > 0:
-		n.right, inserted = n.right.insert_maybe(value)
+		n.right, inserted = n.right.insertMaybe(value)
 	default:
 		// don't insert anything
 	}

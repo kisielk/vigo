@@ -11,24 +11,24 @@ import (
 //----------------------------------------------------------------------------
 
 type cursor struct {
-	line     *line
-	line_num int
-	boffset  int
+	line    *line
+	lineNum int
+	boffset int
 }
 
-func (c *cursor) rune_under() (rune, int) {
+func (c *cursor) runeUnder() (rune, int) {
 	return utf8.DecodeRune(c.line.data[c.boffset:])
 }
 
-func (c *cursor) rune_before() (rune, int) {
+func (c *cursor) runeBefore() (rune, int) {
 	return utf8.DecodeLastRune(c.line.data[:c.boffset])
 }
 
-func (c *cursor) first_line() bool {
+func (c *cursor) firstLine() bool {
 	return c.line.prev == nil
 }
 
-func (c *cursor) last_line() bool {
+func (c *cursor) lastLine() bool {
 	return c.line.next == nil
 }
 
@@ -45,10 +45,10 @@ func (c *cursor) bol() bool {
 // returns the distance between two locations in bytes
 func (a cursor) distance(b cursor) int {
 	s := 1
-	if b.line_num < a.line_num {
+	if b.lineNum < a.lineNum {
 		a, b = b, a
 		s = -1
-	} else if a.line_num == b.line_num && b.boffset < a.boffset {
+	} else if a.lineNum == b.lineNum && b.boffset < a.boffset {
 		a, b = b, a
 		s = -1
 	}
@@ -64,13 +64,13 @@ func (a cursor) distance(b cursor) int {
 }
 
 // Find a visual and a character offset for a given cursor
-func (c *cursor) voffset_coffset() (vo, co int) {
+func (c *cursor) voffsetCoffset() (vo, co int) {
 	data := c.line.data[:c.boffset]
 	for len(data) > 0 {
 		r, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
 		co += 1
-		vo += rune_advance_len(r, vo)
+		vo += runeAdvanceLen(r, vo)
 	}
 	return
 }
@@ -81,7 +81,7 @@ func (c *cursor) voffset() (vo int) {
 	for len(data) > 0 {
 		r, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
-		vo += rune_advance_len(r, vo)
+		vo += runeAdvanceLen(r, vo)
 	}
 	return
 }
@@ -96,7 +96,7 @@ func (c *cursor) coffset() (co int) {
 	return
 }
 
-func (c *cursor) extract_bytes(n int) []byte {
+func (c *cursor) extractBytes(n int) []byte {
 	var buf bytes.Buffer
 	offset := c.boffset
 	line := c.line
@@ -128,12 +128,12 @@ func (c *cursor) extract_bytes(n int) []byte {
 // false otherwise.
 func (c *cursor) NextRune(wrap bool) bool {
 	if !c.eol() {
-		_, rlen := c.rune_under()
+		_, rlen := c.runeUnder()
 		c.boffset += rlen
 		return true
-	} else if wrap && !c.last_line() {
+	} else if wrap && !c.lastLine() {
 		c.line = c.line.next
-		c.line_num++
+		c.lineNum++
 		c.boffset = 0
 		return true
 	}
@@ -146,12 +146,12 @@ func (c *cursor) NextRune(wrap bool) bool {
 // false otherwise.
 func (c *cursor) PrevRune(wrap bool) bool {
 	if !c.bol() {
-		_, rlen := c.rune_before()
+		_, rlen := c.runeBefore()
 		c.boffset -= rlen
 		return true
-	} else if wrap && !c.first_line() {
+	} else if wrap && !c.firstLine() {
 		c.line = c.line.prev
-		c.line_num--
+		c.lineNum--
 		c.boffset = len(c.line.data)
 		return true
 	}
@@ -168,14 +168,14 @@ func (c *cursor) move_end_of_line() {
 
 func (c *cursor) word_under_cursor() []byte {
 	end, beg := *c, *c
-	r, rlen := beg.rune_before()
+	r, rlen := beg.runeBefore()
 	if r == utf8.RuneError {
 		return nil
 	}
 
 	for IsWord(r) && !beg.bol() {
 		beg.boffset -= rlen
-		r, rlen = beg.rune_before()
+		r, rlen = beg.runeBefore()
 	}
 
 	if beg.boffset == end.boffset {
@@ -190,20 +190,20 @@ func (c *cursor) nextRuneFunc(f func(rune) bool) bool {
 	for {
 
 		if c.eol() {
-			if c.last_line() {
+			if c.lastLine() {
 				return false
 			} else {
 				c.line = c.line.next
-				c.line_num++
+				c.lineNum++
 				c.boffset = 0
 				continue
 			}
 		}
 
-		r, rlen := c.rune_under()
+		r, rlen := c.runeUnder()
 		for !f(r) && !c.eol() {
 			c.boffset += rlen
-			r, rlen = c.rune_under()
+			r, rlen = c.runeUnder()
 		}
 
 		if c.eol() {
@@ -223,7 +223,7 @@ func (c *cursor) NextWord() bool {
 	isNotSpace := func(r rune) bool {
 		return !unicode.IsSpace(r)
 	}
-	r, _ := c.rune_under()
+	r, _ := c.runeUnder()
 	if isNotSpace(r) {
 		// Lowercase word motion differentiates words consisting of
 		// (A-Z0-9_) and any other non-whitespace character. Skip until
@@ -243,23 +243,23 @@ func (c *cursor) NextWord() bool {
 }
 
 // returns true if the move was successful, false if EOF reached.
-func (c *cursor) move_one_word_forward() bool {
+func (c *cursor) moveOneWordForward() bool {
 	// move cursor forward until the first word rune is met
 	for {
 		if c.eol() {
-			if c.last_line() {
+			if c.lastLine() {
 				return false
 			} else {
 				c.line = c.line.next
-				c.line_num++
+				c.lineNum++
 				c.boffset = 0
 				continue
 			}
 		}
-		r, rlen := c.rune_under()
+		r, rlen := c.runeUnder()
 		for !IsWord(r) && !c.eol() {
 			c.boffset += rlen
-			r, rlen = c.rune_under()
+			r, rlen = c.runeUnder()
 		}
 		if c.eol() {
 			continue
@@ -267,10 +267,10 @@ func (c *cursor) move_one_word_forward() bool {
 		break
 	}
 	// now the cursor is under the word rune, skip all of them
-	r, rlen := c.rune_under()
+	r, rlen := c.runeUnder()
 	for IsWord(r) && !c.eol() {
 		c.boffset += rlen
-		r, rlen = c.rune_under()
+		r, rlen = c.runeUnder()
 	}
 	return true
 }
@@ -280,19 +280,19 @@ func (c *cursor) move_one_word_forward() bool {
 func (c *cursor) prevRuneFunc(f func(rune) bool) bool {
 	for {
 		if c.bol() {
-			if c.first_line() {
+			if c.firstLine() {
 				return false
 			} else {
 				c.line = c.line.prev
-				c.line_num--
+				c.lineNum--
 				c.boffset = len(c.line.data)
 				continue
 			}
 		}
-		r, rlen := c.rune_before()
+		r, rlen := c.runeBefore()
 		for !f(r) && !c.bol() {
 			c.boffset -= rlen
-			r, rlen = c.rune_before()
+			r, rlen = c.runeBefore()
 		}
 		break
 	}
@@ -308,7 +308,7 @@ func (c *cursor) PrevWord() bool {
 	}
 	// Skip remaining whitespace until next word of any type.
 	_ = c.prevRuneFunc(isNotSpace)
-	r, _ := c.rune_before()
+	r, _ := c.runeBefore()
 	if isNotSpace(r) {
 		// Lowercase word motion differentiates words consisting of
 		// (A-Z0-9_) and any other non-whitespace character. Skip until
@@ -331,20 +331,20 @@ func (c *cursor) move_one_word_backward() bool {
 	// move cursor backward while previous rune is not a word rune
 	for {
 		if c.bol() {
-			if c.first_line() {
+			if c.firstLine() {
 				return false
 			} else {
 				c.line = c.line.prev
-				c.line_num--
+				c.lineNum--
 				c.boffset = len(c.line.data)
 				continue
 			}
 		}
 
-		r, rlen := c.rune_before()
+		r, rlen := c.runeBefore()
 		for !IsWord(r) && !c.bol() {
 			c.boffset -= rlen
-			r, rlen = c.rune_before()
+			r, rlen = c.runeBefore()
 		}
 
 		if c.bol() {
@@ -355,22 +355,22 @@ func (c *cursor) move_one_word_backward() bool {
 
 	// now the rune behind the cursor is a word rune, while it's true, move
 	// backwards
-	r, rlen := c.rune_before()
+	r, rlen := c.runeBefore()
 	for IsWord(r) && !c.bol() {
 		c.boffset -= rlen
-		r, rlen = c.rune_before()
+		r, rlen = c.runeBefore()
 	}
 
 	return true
 }
 
-func (c *cursor) on_insert_adjust(a *action) {
-	if a.cursor.line_num > c.line_num {
+func (c *cursor) onInsertAdjust(a *action) {
+	if a.cursor.lineNum > c.lineNum {
 		return
 	}
-	if a.cursor.line_num < c.line_num {
+	if a.cursor.lineNum < c.lineNum {
 		// inserted something above the cursor, adjust it
-		c.line_num += len(a.lines)
+		c.lineNum += len(a.lines)
 		return
 	}
 
@@ -383,31 +383,31 @@ func (c *cursor) on_insert_adjust(a *action) {
 		} else {
 			// one or more lines were inserted, adjust cursor
 			// respectively
-			c.line = a.last_line()
-			c.line_num += len(a.lines)
-			c.boffset = a.last_line_affection_len() +
+			c.line = a.lastLine()
+			c.lineNum += len(a.lines)
+			c.boffset = a.lastLineAffectionLen() +
 				c.boffset - a.cursor.boffset
 		}
 	}
 }
 
-func (c *cursor) on_delete_adjust(a *action) {
-	if a.cursor.line_num > c.line_num {
+func (c *cursor) onDeleteAdjust(a *action) {
+	if a.cursor.lineNum > c.lineNum {
 		return
 	}
-	if a.cursor.line_num < c.line_num {
+	if a.cursor.lineNum < c.lineNum {
 		// deletion above the cursor line, may touch the cursor location
 		if len(a.lines) == 0 {
 			// no lines were deleted, no things to adjust
 			return
 		}
 
-		first, last := a.deleted_lines()
-		if first <= c.line_num && c.line_num <= last {
+		first, last := a.deletedLines()
+		if first <= c.lineNum && c.lineNum <= last {
 			// deleted the cursor line, see how much it affects it
 			n := 0
-			if last == c.line_num {
-				n = c.boffset - a.last_line_affection_len()
+			if last == c.lineNum {
+				n = c.boffset - a.lastLineAffectionLen()
 				if n < 0 {
 					n = 0
 				}
@@ -416,7 +416,7 @@ func (c *cursor) on_delete_adjust(a *action) {
 			c.boffset += n
 		} else {
 			// phew.. no worries
-			c.line_num -= len(a.lines)
+			c.lineNum -= len(a.lines)
 			return
 		}
 	}
@@ -427,7 +427,7 @@ func (c *cursor) on_delete_adjust(a *action) {
 		return
 	}
 
-	n := c.boffset - (a.cursor.boffset + a.first_line_affection_len())
+	n := c.boffset - (a.cursor.boffset + a.firstLineAffectionLen())
 	if n < 0 {
 		n = 0
 	}
@@ -443,7 +443,7 @@ func (c cursor) search_forward(word []byte) (cursor, bool) {
 		}
 
 		c.line = c.line.next
-		c.line_num++
+		c.lineNum++
 		c.boffset = 0
 	}
 	return c, false
@@ -461,14 +461,14 @@ func (c cursor) search_backward(word []byte) (cursor, bool) {
 		if c.line == nil {
 			break
 		}
-		c.line_num--
+		c.lineNum--
 		c.boffset = len(c.line.data)
 	}
 	return c, false
 }
 
-func swap_cursors_maybe(c1, c2 cursor) (r1, r2 cursor) {
-	if c1.line_num == c2.line_num {
+func swapCursorMaybe(c1, c2 cursor) (r1, r2 cursor) {
+	if c1.lineNum == c2.lineNum {
 		if c1.boffset > c2.boffset {
 			return c2, c1
 		} else {
@@ -476,7 +476,7 @@ func swap_cursors_maybe(c1, c2 cursor) (r1, r2 cursor) {
 		}
 	}
 
-	if c1.line_num > c2.line_num {
+	if c1.lineNum > c2.lineNum {
 		return c2, c1
 	}
 	return c1, c2

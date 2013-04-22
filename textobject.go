@@ -31,7 +31,7 @@ func NewTextObjectMode(editor *editor, inner bool) *TextObjectMode {
 	return &TextObjectMode{editor: editor, object: TextObject{Inner: inner}}
 }
 
-func (m *TextObjectMode) OnKey(ev *termbox.Event) {
+func (m *TextObjectMode) onKey(ev *termbox.Event) {
 	switch ev.Ch {
 	case 'w':
 		m.object.Kind = TextObjectWord
