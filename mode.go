@@ -43,13 +43,13 @@ func (m *visualMode) onKey(ev *termbox.Event) {
 		case termbox.KeyCtrlR:
 			v.onVcommand(viewCommand{Cmd: vCommandRedo, Reps: reps})
 		}
-	case 's':
+	case 'h':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBackward, Reps: reps})
-	case 'n':
+	case 'j':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorNextLine, Reps: reps})
-	case 'e':
+	case 'k':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorPrevLine, Reps: reps})
-	case 't':
+	case 'l':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward, Reps: reps})
 	case 'w':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordForward, Reps: reps})
