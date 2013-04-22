@@ -9,18 +9,18 @@ type editorMode interface {
 	onKey(ev *termbox.Event)
 	exit()
 }
-type visualMode struct {
+type normalMode struct {
 	editor *editor
 	reps   string
 }
 
-func newVisualMode(editor *editor) *visualMode {
-	m := visualMode{editor: editor}
+func newNormalMode(editor *editor) *normalMode {
+	m := normalMode{editor: editor}
 	m.editor.setStatus("Visual")
 	return &m
 }
 
-func (m *visualMode) onKey(ev *termbox.Event) {
+func (m *normalMode) onKey(ev *termbox.Event) {
 	g := m.editor
 	v := g.active.leaf
 
@@ -115,5 +115,5 @@ func parseReps(s string) int {
 	return int(n)
 }
 
-func (m *visualMode) exit() {
+func (m *normalMode) exit() {
 }

@@ -22,7 +22,7 @@ func (m insertMode) onKey(ev *termbox.Event) {
 
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
-		g.setMode(newVisualMode(g))
+		g.setMode(newNormalMode(g))
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		v.onVcommand(viewCommand{Cmd: vCommandDeleteRuneBackward})
 	case termbox.KeyDelete, termbox.KeyCtrlD:
