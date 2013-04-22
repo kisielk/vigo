@@ -126,7 +126,7 @@ func (c *cursor) extractBytes(n int) []byte {
 // wraps the cursor to the beginning of next line once the end
 // of the current one is reached. Returns true if motion succeeded,
 // false otherwise.
-func (c *cursor) NextRune(wrap bool) bool {
+func (c *cursor) nextRune(wrap bool) bool {
 	if !c.eol() {
 		_, rlen := c.runeUnder()
 		c.boffset += rlen
@@ -144,7 +144,7 @@ func (c *cursor) NextRune(wrap bool) bool {
 // wraps the cursor to the end of next line once the beginning of
 // the current one is reached. Returns true if motion succeeded,
 // false otherwise.
-func (c *cursor) PrevRune(wrap bool) bool {
+func (c *cursor) prevRune(wrap bool) bool {
 	if !c.bol() {
 		_, rlen := c.runeBefore()
 		c.boffset -= rlen
@@ -158,15 +158,15 @@ func (c *cursor) PrevRune(wrap bool) bool {
 	return false
 }
 
-func (c *cursor) move_beginning_of_line() {
+func (c *cursor) moveBeginningOfLine() {
 	c.boffset = 0
 }
 
-func (c *cursor) move_end_of_line() {
+func (c *cursor) moveEndOfLine() {
 	c.boffset = len(c.line.data)
 }
 
-func (c *cursor) word_under_cursor() []byte {
+func (c *cursor) wordUnderCursor() []byte {
 	end, beg := *c, *c
 	r, rlen := beg.runeBefore()
 	if r == utf8.RuneError {
@@ -219,7 +219,7 @@ func (c *cursor) nextRuneFunc(f func(rune) bool) bool {
 // Move cursor forward to beginning of next word.
 // Skips the rest of the current word, if any. Returns true if
 // the move was successful, false if EOF reached.
-func (c *cursor) NextWord() bool {
+func (c *cursor) nextWord() bool {
 	isNotSpace := func(r rune) bool {
 		return !unicode.IsSpace(r)
 	}
@@ -302,7 +302,7 @@ func (c *cursor) prevRuneFunc(f func(rune) bool) bool {
 // Move cursor forward to beginning of the previous word.
 // Skips the rest of the current word, if any, unless is located at its
 // first character. Returns true if the move was successful, false if EOF reached.
-func (c *cursor) PrevWord() bool {
+func (c *cursor) prevWord() bool {
 	isNotSpace := func(r rune) bool {
 		return !unicode.IsSpace(r)
 	}
@@ -327,7 +327,7 @@ func (c *cursor) PrevWord() bool {
 }
 
 // returns true if the move was successful, false if BOF reached.
-func (c *cursor) move_one_word_backward() bool {
+func (c *cursor) moveOneWordBackward() bool {
 	// move cursor backward while previous rune is not a word rune
 	for {
 		if c.bol() {
@@ -434,7 +434,7 @@ func (c *cursor) onDeleteAdjust(a *action) {
 	c.boffset = a.cursor.boffset + n
 }
 
-func (c cursor) search_forward(word []byte) (cursor, bool) {
+func (c cursor) searchForward(word []byte) (cursor, bool) {
 	for c.line != nil {
 		i := bytes.Index(c.line.data[c.boffset:], word)
 		if i != -1 {
@@ -449,7 +449,7 @@ func (c cursor) search_forward(word []byte) (cursor, bool) {
 	return c, false
 }
 
-func (c cursor) search_backward(word []byte) (cursor, bool) {
+func (c cursor) searchBackward(word []byte) (cursor, bool) {
 	for {
 		i := bytes.LastIndex(c.line.data[:c.boffset], word)
 		if i != -1 {
