@@ -8,7 +8,6 @@ import (
 	"github.com/nsf/tulib"
 	"os"
 	"strconv"
-	"time"
 )
 
 var errQuit = errors.New("quit")
