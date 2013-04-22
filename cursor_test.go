@@ -40,7 +40,7 @@ func TestNextRune(t *testing.T) {
 
 	// Go forward one character at a time
 	for i := 1; i < len(l0.data); i++ {
-		c.NextRune(false)
+		c.nextRune(false)
 		if c.line != l0 {
 			t.Error("Bad cursor line at index", i)
 		}
@@ -51,7 +51,7 @@ func TestNextRune(t *testing.T) {
 
 	// Cursor should stay at the end of the line
 	for i := 0; i < 3; i++ {
-		c.NextRune(false)
+		c.nextRune(false)
 		if c.line != l0 {
 			t.Error("Bad cursor line")
 		}
@@ -69,8 +69,8 @@ func TestNextRuneWrap(t *testing.T) {
 
 	// FIXME currently cursors go to EOL which is one past the last
 	// character; for now, needs an extra motion to wrap to next line.
-	c.NextRune(true)
-	c.NextRune(true)
+	c.nextRune(true)
+	c.nextRune(true)
 	if c.line != lines[1] {
 		t.Error("Cursor did not wrap to next line")
 	}
@@ -88,7 +88,7 @@ func TestPrevRune(t *testing.T) {
 
 	// Go backwards one character at a time
 	for i := len(l0.data) - 2; i >= 0; i-- {
-		c.PrevRune(false)
+		c.prevRune(false)
 		if c.line != l0 {
 			t.Error("Bad cursor line at index", i)
 		}
@@ -99,7 +99,7 @@ func TestPrevRune(t *testing.T) {
 
 	// Cursor should stay at the beginning of the line
 	for i := 0; i < 3; i++ {
-		c.PrevRune(false)
+		c.prevRune(false)
 		if c.line != l0 {
 			t.Error("Bad cursor line")
 		}
@@ -115,7 +115,7 @@ func TestPrevRuneWrap(t *testing.T) {
 	// Beginning of line 2
 	c := &cursor{line: lines[1], boffset: 0}
 
-	c.PrevRune(true)
+	c.prevRune(true)
 	if c.line != lines[0] {
 		t.Error("Cursor did not wrap to previous line")
 	}
@@ -143,7 +143,7 @@ func TestNextWord(t *testing.T) {
 	c := &cursor{line: lines[1], boffset: 2}
 
 	for i := 0; i < len(stops); i++ {
-		c.NextWord()
+		c.nextWord()
 		s := stops[i]
 		if c.line != s.line {
 			t.Error("Bad cursor line at index", i, c.line, "!=", s.line)
@@ -174,7 +174,7 @@ func TestPrevWord(t *testing.T) {
 	c := &cursor{line: lines[2], boffset: 8}
 
 	for i := 0; i < len(stops); i++ {
-		c.PrevWord()
+		c.prevWord()
 		s := stops[i]
 		if c.line != s.line {
 			t.Error("Bad cursor line at index", i)

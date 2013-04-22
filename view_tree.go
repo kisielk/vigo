@@ -8,51 +8,51 @@ import (
 // view_tree
 //----------------------------------------------------------------------------
 
-type view_tree struct {
+type viewTree struct {
 	// At the same time only one of these groups can be valid:
 	// 1) 'left', 'right' and 'split'
 	// 2) 'top', 'bottom' and 'split'
 	// 3) 'leaf'
-	parent     *view_tree
-	left       *view_tree
-	top        *view_tree
-	right      *view_tree
-	bottom     *view_tree
+	parent     *viewTree
+	left       *viewTree
+	top        *viewTree
+	right      *viewTree
+	bottom     *viewTree
 	leaf       *view
 	split      float32
 	tulib.Rect // updated with 'resize' call
 }
 
-func new_view_tree_leaf(parent *view_tree, v *view) *view_tree {
-	return &view_tree{
+func newViewTreeLeaf(parent *viewTree, v *view) *viewTree {
+	return &viewTree{
 		parent: parent,
 		leaf:   v,
 	}
 }
 
-func (v *view_tree) split_vertically() {
+func (v *viewTree) splitVertically() {
 	top := v.leaf
-	bottom := new_view(top.ctx, top.buf)
-	*v = view_tree{
+	bottom := newView(top.ctx, top.buf)
+	*v = viewTree{
 		parent: v.parent,
-		top:    new_view_tree_leaf(v, top),
-		bottom: new_view_tree_leaf(v, bottom),
+		top:    newViewTreeLeaf(v, top),
+		bottom: newViewTreeLeaf(v, bottom),
 		split:  0.5,
 	}
 }
 
-func (v *view_tree) split_horizontally() {
+func (v *viewTree) splitHorizontally() {
 	left := v.leaf
-	right := new_view(left.ctx, left.buf)
-	*v = view_tree{
+	right := newView(left.ctx, left.buf)
+	*v = viewTree{
 		parent: v.parent,
-		left:   new_view_tree_leaf(v, left),
-		right:  new_view_tree_leaf(v, right),
+		left:   newViewTreeLeaf(v, left),
+		right:  newViewTreeLeaf(v, right),
 		split:  0.5,
 	}
 }
 
-func (v *view_tree) draw() {
+func (v *viewTree) draw() {
 	if v.leaf != nil {
 		v.leaf.draw()
 		return
@@ -67,7 +67,7 @@ func (v *view_tree) draw() {
 	}
 }
 
-func (v *view_tree) resize(pos tulib.Rect) {
+func (v *viewTree) resize(pos tulib.Rect) {
 	v.Rect = pos
 	if v.leaf != nil {
 		v.leaf.resize(pos.Width, pos.Height)
@@ -97,7 +97,7 @@ func (v *view_tree) resize(pos tulib.Rect) {
 	}
 }
 
-func (v *view_tree) traverse(cb func(*view_tree)) {
+func (v *viewTree) traverse(cb func(*viewTree)) {
 	if v.leaf != nil {
 		cb(v)
 		return
@@ -112,7 +112,7 @@ func (v *view_tree) traverse(cb func(*view_tree)) {
 	}
 }
 
-func (v *view_tree) nearest_vsplit() *view_tree {
+func (v *viewTree) nearestVSplit() *viewTree {
 	v = v.parent
 	for v != nil {
 		if v.top != nil {
@@ -123,7 +123,7 @@ func (v *view_tree) nearest_vsplit() *view_tree {
 	return nil
 }
 
-func (v *view_tree) nearest_hsplit() *view_tree {
+func (v *viewTree) nearestHSplit() *viewTree {
 	v = v.parent
 	for v != nil {
 		if v.left != nil {
@@ -134,7 +134,7 @@ func (v *view_tree) nearest_hsplit() *view_tree {
 	return nil
 }
 
-func (v *view_tree) one_step() float32 {
+func (v *viewTree) oneStep() float32 {
 	if v.top != nil {
 		return 1.0 / float32(v.Height)
 	} else if v.left != nil {
@@ -143,24 +143,24 @@ func (v *view_tree) one_step() float32 {
 	return 0.0
 }
 
-func (v *view_tree) normalize_split() {
+func (v *viewTree) normalizeSplit() {
 	var off int
 	if v.top != nil {
 		off = int(float32(v.Height) * v.split)
 	} else {
 		off = int(float32(v.Width-1) * v.split)
 	}
-	v.split = float32(off) * v.one_step()
+	v.split = float32(off) * v.oneStep()
 }
 
-func (v *view_tree) step_resize(n int) {
+func (v *viewTree) stepResize(n int) {
 	if v.Width <= 1 || v.Height <= 0 {
 		// avoid division by zero, result is really bad
 		return
 	}
 
-	one := v.one_step()
-	v.normalize_split()
+	one := v.oneStep()
+	v.normalizeSplit()
 	v.split += one*float32(n) + (one * 0.5)
 	if v.split > 1.0 {
 		v.split = 1.0
@@ -171,7 +171,7 @@ func (v *view_tree) step_resize(n int) {
 	v.resize(v.Rect)
 }
 
-func (v *view_tree) reparent() {
+func (v *viewTree) reparent() {
 	if v.left != nil {
 		v.left.parent = v
 		v.right.parent = v
@@ -181,7 +181,7 @@ func (v *view_tree) reparent() {
 	}
 }
 
-func (v *view_tree) sibling() *view_tree {
+func (v *viewTree) sibling() *viewTree {
 	p := v.parent
 	if p == nil {
 		return nil
@@ -199,11 +199,11 @@ func (v *view_tree) sibling() *view_tree {
 	panic("unreachable")
 }
 
-func (v *view_tree) first_leaf_node() *view_tree {
+func (v *viewTree) firstLeafNode() *viewTree {
 	if v.left != nil {
-		return v.left.first_leaf_node()
+		return v.left.firstLeafNode()
 	} else if v.top != nil {
-		return v.top.first_leaf_node()
+		return v.top.firstLeafNode()
 	} else if v.leaf != nil {
 		return v
 	}

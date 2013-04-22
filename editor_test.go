@@ -40,9 +40,9 @@ func TestValidCutBuffer(t *testing.T) {
 }
 
 func TestNamedCutBuffers(t *testing.T) {
-	bufs := NewCutBuffers()
+	bufs := newCutBuffers()
 	for i := byte('a'); i <= 'z'; i++ {
-		if b := bufs.Get(i); len(b) != 0 {
+		if b := bufs.get(i); len(b) != 0 {
 			t.Logf("%s: unexpected length: %d", i, len(b))
 			t.Fail()
 		}
@@ -50,28 +50,28 @@ func TestNamedCutBuffers(t *testing.T) {
 
 	in := "foobar"
 	for i := byte('a'); i <= 'z'; i++ {
-		bufs.Set(i, []byte(in+string(i)))
+		bufs.set(i, []byte(in+string(i)))
 	}
 	for i := byte('a'); i <= 'z'; i++ {
 		expected := in + string(i)
-		if out := string(bufs.Get(i)); out != expected {
+		if out := string(bufs.get(i)); out != expected {
 			t.Logf("%s: got %q, want %q", i, out, expected)
 			t.Fail()
 		}
 	}
 
-	bufs.Set('a', []byte("foo"))
-	bufs.Append('a', []byte("bar"))
-	if out := string(bufs.Get('a')); out != "foobar" {
+	bufs.set('a', []byte("foo"))
+	bufs.append('a', []byte("bar"))
+	if out := string(bufs.get('a')); out != "foobar" {
 		t.Logf("after append got %q, want %q", out, "foobar")
 		t.Fail()
 	}
 }
 
 func TestAnonCutBuffers(t *testing.T) {
-	bufs := NewCutBuffers()
+	bufs := newCutBuffers()
 	for i := byte('1'); i <= '9'; i++ {
-		if b := bufs.Get(i); len(b) != 0 {
+		if b := bufs.get(i); len(b) != 0 {
 			t.Logf("%s: unexpected length: %d", i, len(b))
 			t.Fail()
 		}
@@ -79,11 +79,11 @@ func TestAnonCutBuffers(t *testing.T) {
 
 	in := "hello"
 	for i := byte('9'); i >= '1'; i-- {
-		bufs.UpdateAnon([]byte(in + string(i)))
+		bufs.updateAnon([]byte(in + string(i)))
 	}
 	for i := byte('1'); i <= '9'; i++ {
 		expected := in + string(i)
-		if out := string(bufs.Get(i)); out != expected {
+		if out := string(bufs.get(i)); out != expected {
 			t.Logf("%s: got %q, want %q", string(i), out, expected)
 			t.Fail()
 		}

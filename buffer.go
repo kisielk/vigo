@@ -20,13 +20,13 @@ type line struct {
 }
 
 // Find a set of closest offsets for a given visual offset
-func (l *line) find_closest_offsets(voffset int) (bo, co, vo int) {
+func (l *line) findClosestOffsets(voffset int) (bo, co, vo int) {
 	data := l.data
 	for len(data) > 0 {
 		var vodif int
 		r, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
-		vodif = rune_advance_len(r, vo)
+		vodif = runeAdvanceLen(r, vo)
 		if vo+vodif > voffset {
 			return
 		}
@@ -43,15 +43,15 @@ func (l *line) find_closest_offsets(voffset int) (bo, co, vo int) {
 //----------------------------------------------------------------------------
 
 type buffer struct {
-	views      []*view
-	first_line *line
-	last_line  *line
-	loc        view_location
-	lines_n    int
-	bytes_n    int
-	history    *action_group
-	on_disk    *action_group
-	mark       cursor
+	views     []*view
+	firstLine *line
+	lastLine  *line
+	loc       viewLocation
+	linesN    int
+	bytesN    int
+	history   *actionGroup
+	onDisk    *actionGroup
+	mark      cursor
 
 	// absoulte path of the file, if it's empty string, then the file has no
 	// on-disk representation
@@ -62,8 +62,8 @@ type buffer struct {
 	name string
 
 	// cache for local buffer autocompletion
-	words_cache       llrb_tree
-	words_cache_valid bool
+	wordsCache      llrbTree
+	wordsCacheValid bool
 }
 
 func newEmptyBuffer() *buffer {
@@ -71,58 +71,58 @@ func newEmptyBuffer() *buffer {
 	l := new(line)
 	l.next = nil
 	l.prev = nil
-	b.first_line = l
-	b.last_line = l
-	b.lines_n = 1
-	b.loc = view_location{
-		top_line:     l,
-		top_line_num: 1,
+	b.firstLine = l
+	b.lastLine = l
+	b.linesN = 1
+	b.loc = viewLocation{
+		topLine:    l,
+		topLineNum: 1,
 		cursor: cursor{
-			line:     l,
-			line_num: 1,
+			line:    l,
+			lineNum: 1,
 		},
 	}
-	b.init_history()
+	b.initHistory()
 	return b
 }
 
-func NewBuffer(r io.Reader) (*buffer, error) {
+func newBuffer(r io.Reader) (*buffer, error) {
 	var err error
 	var prevline *line
 
 	br := bufio.NewReader(r)
 	l := new(line)
 	b := new(buffer)
-	b.loc = view_location{
-		top_line:     l,
-		top_line_num: 1,
+	b.loc = viewLocation{
+		topLine:    l,
+		topLineNum: 1,
 		cursor: cursor{
-			line:     l,
-			line_num: 1,
+			line:    l,
+			lineNum: 1,
 		},
 	}
-	b.lines_n = 1
-	b.first_line = l
+	b.linesN = 1
+	b.firstLine = l
 	for {
 		l.data, err = br.ReadBytes('\n')
 		if err != nil {
 			// last line was read
 			break
 		} else {
-			b.bytes_n += len(l.data)
+			b.bytesN += len(l.data)
 
 			// cut off the '\n' character
 			l.data = l.data[:len(l.data)-1]
 		}
 
-		b.lines_n++
+		b.linesN++
 		l.next = new(line)
 		l.prev = prevline
 		prevline = l
 		l = l.next
 	}
 	l.prev = prevline
-	b.last_line = l
+	b.lastLine = l
 
 	// io.EOF is not an error
 	if err == io.EOF {
@@ -130,15 +130,15 @@ func NewBuffer(r io.Reader) (*buffer, error) {
 	}
 
 	// history
-	b.init_history()
+	b.initHistory()
 	return b, err
 }
 
-func (b *buffer) add_view(v *view) {
+func (b *buffer) addView(v *view) {
 	b.views = append(b.views, v)
 }
 
-func (b *buffer) delete_view(v *view) {
+func (b *buffer) deleteView(v *view) {
 	vi := -1
 	for i, n := 0, len(b.views); i < n; i++ {
 		if b.views[i] == v {
@@ -154,7 +154,7 @@ func (b *buffer) delete_view(v *view) {
 	}
 }
 
-func (b *buffer) other_views(v *view, cb func(*view)) {
+func (b *buffer) otherViews(v *view, cb func(*view)) {
 	for _, ov := range b.views {
 		if v == ov {
 			continue
@@ -163,24 +163,24 @@ func (b *buffer) other_views(v *view, cb func(*view)) {
 	}
 }
 
-func (b *buffer) init_history() {
+func (b *buffer) initHistory() {
 	// the trick here is that I set 'sentinel' as 'history', it is required
 	// to maintain an invariant, where 'history' is a sentinel or is not
 	// empty
 
-	sentinel := new(action_group)
-	first := new(action_group)
+	sentinel := new(actionGroup)
+	first := new(actionGroup)
 	sentinel.next = first
 	first.prev = sentinel
 	b.history = sentinel
-	b.on_disk = sentinel
+	b.onDisk = sentinel
 }
 
-func (b *buffer) is_mark_set() bool {
+func (b *buffer) isMarkSet() bool {
 	return b.mark.line != nil
 }
 
-func (b *buffer) dump_history() {
+func (b *buffer) dumpHistory() {
 	cur := b.history
 	for cur.prev != nil {
 		cur = cur.prev
@@ -195,12 +195,12 @@ func (b *buffer) dump_history() {
 		p("action group %d: %d actions\n", i, len(cur.actions))
 		for _, a := range cur.actions {
 			switch a.what {
-			case action_insert:
+			case actionInsert:
 				p(" + insert")
-			case action_delete:
+			case actionDelete:
 				p(" - delete")
 			}
-			p(" (%2d,%2d):%q\n", a.cursor.line_num,
+			p(" (%2d,%2d):%q\n", a.cursor.lineNum,
 				a.cursor.boffset, string(a.data))
 		}
 		cur = cur.next
@@ -209,10 +209,10 @@ func (b *buffer) dump_history() {
 }
 
 func (b *buffer) save() error {
-	return b.save_as(b.path)
+	return b.saveAs(b.path)
 }
 
-func (b *buffer) save_as(filename string) error {
+func (b *buffer) saveAs(filename string) error {
 	r := b.reader()
 	f, err := os.Create(filename)
 	if err != nil {
@@ -225,19 +225,19 @@ func (b *buffer) save_as(filename string) error {
 		return err
 	}
 
-	b.on_disk = b.history
+	b.onDisk = b.history
 	for _, v := range b.views {
-		v.dirty |= dirty_status
+		v.dirty |= DIRTY_STATUS
 	}
 	return nil
 }
 
-func (b *buffer) synced_with_disk() bool {
-	return b.on_disk == b.history
+func (b *buffer) syncedWithDisk() bool {
+	return b.onDisk == b.history
 }
 
-func (b *buffer) reader() *buffer_reader {
-	return new_buffer_reader(b)
+func (b *buffer) reader() *bufferReader {
+	return newBufferReader(b)
 }
 
 func (b *buffer) contents() []byte {
@@ -245,45 +245,45 @@ func (b *buffer) contents() []byte {
 	return data
 }
 
-func (b *buffer) refill_words_cache() {
-	b.words_cache.clear()
-	line := b.first_line
+func (b *buffer) refillWordsCache() {
+	b.wordsCache.clear()
+	line := b.firstLine
 	for line != nil {
-		iter_words(line.data, func(word []byte) {
-			b.words_cache.insert_maybe(word)
+		iterWords(line.data, func(word []byte) {
+			b.wordsCache.insertMaybe(word)
 		})
 		line = line.next
 	}
 }
 
-func (b *buffer) update_words_cache() {
-	if b.words_cache_valid {
+func (b *buffer) updateWordsCache() {
+	if b.wordsCacheValid {
 		return
 	}
 
-	b.refill_words_cache()
-	b.words_cache_valid = true
+	b.refillWordsCache()
+	b.wordsCacheValid = true
 }
 
 //----------------------------------------------------------------------------
 // buffer_reader
 //----------------------------------------------------------------------------
 
-type buffer_reader struct {
+type bufferReader struct {
 	buffer *buffer
 	line   *line
 	offset int
 }
 
-func new_buffer_reader(buffer *buffer) *buffer_reader {
-	br := new(buffer_reader)
+func newBufferReader(buffer *buffer) *bufferReader {
+	br := new(bufferReader)
 	br.buffer = buffer
-	br.line = buffer.first_line
+	br.line = buffer.firstLine
 	br.offset = 0
 	return br
 }
 
-func (br *buffer_reader) Read(data []byte) (int, error) {
+func (br *bufferReader) Read(data []byte) (int, error) {
 	nread := 0
 	for len(data) > 0 {
 		if br.line == nil {
@@ -291,8 +291,8 @@ func (br *buffer_reader) Read(data []byte) (int, error) {
 		}
 
 		// how much can we read from current line
-		can_read := len(br.line.data) - br.offset
-		if len(data) <= can_read {
+		canRead := len(br.line.data) - br.offset
+		if len(data) <= canRead {
 			// if this is all we need, return
 			n := copy(data, br.line.data[br.offset:])
 			nread += n
@@ -304,7 +304,7 @@ func (br *buffer_reader) Read(data []byte) (int, error) {
 		n := copy(data, br.line.data[br.offset:])
 		nread += n
 		data = data[n:]
-		if len(data) > 0 && br.line != br.buffer.last_line {
+		if len(data) > 0 && br.line != br.buffer.lastLine {
 			data[0] = '\n'
 			data = data[1:]
 			nread++

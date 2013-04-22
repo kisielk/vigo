@@ -4,7 +4,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-type EditorMode interface {
-	OnKey(ev *termbox.Event)
-	Exit()
+type editorMode interface {
+	onKey(ev *termbox.Event)
+	exit()
 }

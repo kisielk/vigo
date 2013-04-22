@@ -11,15 +11,15 @@ import (
 // must be initiated by an action.
 //----------------------------------------------------------------------------
 
-type action_type int
+type actionType int
 
 const (
-	action_insert action_type = 1
-	action_delete action_type = -1
+	actionInsert actionType = 1
+	actionDelete actionType = -1
 )
 
 type action struct {
-	what   action_type
+	what   actionType
 	data   []byte
 	cursor cursor
 	lines  []*line
@@ -33,7 +33,7 @@ func (a *action) revert(v *view) {
 	a.do(v, -a.what)
 }
 
-func (a *action) insert_line(line, prev *line, v *view) {
+func (a *action) insertLine(line, prev *line, v *view) {
 	bi := prev
 	ai := prev.next
 
@@ -43,25 +43,25 @@ func (a *action) insert_line(line, prev *line, v *view) {
 
 	// 'ai' could be nil (means we're inserting a new last line)
 	if ai == nil {
-		v.buf.last_line = line
+		v.buf.lastLine = line
 	} else {
 		ai.prev = line
 	}
 	line.next = ai
 }
 
-func (a *action) delete_line(line *line, v *view) {
+func (a *action) deleteLine(line *line, v *view) {
 	bi := line.prev
 	ai := line.next
 	if ai != nil {
 		ai.prev = bi
 	} else {
-		v.buf.last_line = bi
+		v.buf.lastLine = bi
 	}
 	if bi != nil {
 		bi.next = ai
 	} else {
-		v.buf.first_line = ai
+		v.buf.firstLine = ai
 	}
 	line.data = line.data[:0]
 }
@@ -71,10 +71,10 @@ func (a *action) insert(v *view) {
 	nline := 0
 	offset := a.cursor.boffset
 	line := a.cursor.line
-	iter_lines(a.data, func(data []byte) {
+	iterLines(a.data, func(data []byte) {
 		if data[0] == '\n' {
-			v.buf.bytes_n++
-			v.buf.lines_n++
+			v.buf.bytesN++
+			v.buf.linesN++
 
 			if offset < len(line.data) {
 				// a case where we insert at the middle of the
@@ -84,15 +84,15 @@ func (a *action) insert(v *view) {
 				line.data = line.data[:offset]
 			}
 			// insert a line
-			a.insert_line(a.lines[nline], line, v)
+			a.insertLine(a.lines[nline], line, v)
 			line = a.lines[nline]
 			nline++
 			offset = 0
 		} else {
-			v.buf.bytes_n += len(data)
+			v.buf.bytesN += len(data)
 
 			// insert a chunk of data
-			line.data = insert_bytes(line.data, offset, data)
+			line.data = insertBytes(line.data, offset, data)
 			offset += len(data)
 		}
 	})
@@ -105,18 +105,18 @@ func (a *action) delete(v *view) {
 	nline := 0
 	offset := a.cursor.boffset
 	line := a.cursor.line
-	iter_lines(a.data, func(data []byte) {
+	iterLines(a.data, func(data []byte) {
 		if data[0] == '\n' {
-			v.buf.bytes_n--
-			v.buf.lines_n--
+			v.buf.bytesN--
+			v.buf.linesN--
 
 			// append the contents of the deleted line the current line
 			line.data = append(line.data, a.lines[nline].data...)
 			// delete a line
-			a.delete_line(a.lines[nline], v)
+			a.deleteLine(a.lines[nline], v)
 			nline++
 		} else {
-			v.buf.bytes_n -= len(data)
+			v.buf.bytesN -= len(data)
 
 			// delete a chunk of data
 			copy(line.data[offset:], line.data[offset+len(data):])
@@ -125,38 +125,38 @@ func (a *action) delete(v *view) {
 	})
 }
 
-func (a *action) do(v *view, what action_type) {
+func (a *action) do(v *view, what actionType) {
 	switch what {
-	case action_insert:
+	case actionInsert:
 		a.insert(v)
-		v.on_insert_adjust_top_line(a)
-		v.buf.other_views(v, func(v *view) {
-			v.on_insert(a)
+		v.onInsertAdjustTopLine(a)
+		v.buf.otherViews(v, func(v *view) {
+			v.onInsert(a)
 		})
-		if v.buf.is_mark_set() {
-			v.buf.mark.on_insert_adjust(a)
+		if v.buf.isMarkSet() {
+			v.buf.mark.onInsertAdjust(a)
 		}
-	case action_delete:
+	case actionDelete:
 		a.delete(v)
-		v.on_delete_adjust_top_line(a)
-		v.buf.other_views(v, func(v *view) {
-			v.on_delete(a)
+		v.onDeleteAdjustTopLine(a)
+		v.buf.otherViews(v, func(v *view) {
+			v.onDelete(a)
 		})
-		if v.buf.is_mark_set() {
-			v.buf.mark.on_delete_adjust(a)
+		if v.buf.isMarkSet() {
+			v.buf.mark.onDeleteAdjust(a)
 		}
 	}
-	v.dirty = dirty_everything
+	v.dirty = DIRTY_EVERYTHING
 
 	// any change to the buffer causes words cache invalidation
-	v.buf.words_cache_valid = false
+	v.buf.wordsCacheValid = false
 }
 
-func (a *action) last_line() *line {
+func (a *action) lastLine() *line {
 	return a.lines[len(a.lines)-1]
 }
 
-func (a *action) last_line_affection_len() int {
+func (a *action) lastLineAffectionLen() int {
 	i := bytes.LastIndex(a.data, []byte{'\n'})
 	if i == -1 {
 		return len(a.data)
@@ -165,7 +165,7 @@ func (a *action) last_line_affection_len() int {
 	return len(a.data) - i - 1
 }
 
-func (a *action) first_line_affection_len() int {
+func (a *action) firstLineAffectionLen() int {
 	i := bytes.Index(a.data, []byte{'\n'})
 	if i == -1 {
 		return len(a.data)
@@ -175,25 +175,25 @@ func (a *action) first_line_affection_len() int {
 }
 
 // returns the range of deleted lines, the first and the last one
-func (a *action) deleted_lines() (int, int) {
-	first := a.cursor.line_num + 1
+func (a *action) deletedLines() (int, int) {
+	first := a.cursor.lineNum + 1
 	last := first + len(a.lines) - 1
 	return first, last
 }
 
-func (a *action) try_merge(b *action) bool {
+func (a *action) tryMerge(b *action) bool {
 	if a.what != b.what {
 		// can only merge actions of the same type
 		return false
 	}
 
-	if a.cursor.line_num != b.cursor.line_num {
+	if a.cursor.lineNum != b.cursor.lineNum {
 		return false
 	}
 
 	if a.cursor.boffset == b.cursor.boffset {
 		pa, pb := a, b
-		if a.what == action_insert {
+		if a.what == actionInsert {
 			// on insertion merge as 'ba', on deletion as 'ab'
 			pa, pb = pb, pa
 		}
@@ -221,20 +221,20 @@ func (a *action) try_merge(b *action) bool {
 // action group
 //----------------------------------------------------------------------------
 
-type action_group struct {
+type actionGroup struct {
 	actions []action
-	next    *action_group
-	prev    *action_group
+	next    *actionGroup
+	prev    *actionGroup
 	before  cursor
 	after   cursor
 }
 
-func (ag *action_group) append(a *action) {
+func (ag *actionGroup) append(a *action) {
 	if len(ag.actions) != 0 {
 		// Oh, we have something in the group already, let's try to
 		// merge this action with the last one.
 		last := &ag.actions[len(ag.actions)-1]
-		if last.try_merge(a) {
+		if last.tryMerge(a) {
 			return
 		}
 	}
@@ -242,7 +242,7 @@ func (ag *action_group) append(a *action) {
 }
 
 // Valid only as long as no new actions were added to the action group.
-func (ag *action_group) last_action() *action {
+func (ag *actionGroup) lastAction() *action {
 	if len(ag.actions) == 0 {
 		return nil
 	}
