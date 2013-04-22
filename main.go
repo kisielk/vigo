@@ -3,14 +3,7 @@ package main
 import (
 	"github.com/nsf/termbox-go"
 	"os"
-	//"runtime"
 )
-
-/*
-func init() {
-	runtime.GOMAXPROCS(2)
-}
-*/
 
 func main() {
 	if err := termbox.Init(); err != nil {
