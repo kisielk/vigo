@@ -194,3 +194,22 @@ func TestPrevWord(t *testing.T) {
 		}
 	}
 }
+
+func TestPrevWordSpaces(t *testing.T) {
+	// Skipping words backward on line with leading spaces
+	lines := makeLines(
+		"  foo",
+		"  bar",
+	)
+	// Second line, beginning of 'bar'
+	c := &cursor{line: lines[1], boffset: 2}
+
+	// Should jump to be beginning of foo
+	c.prevWord()
+	if c.line != lines[0] {
+		t.Error("Bad cursor line")
+	}
+	if c.boffset != 2 {
+		t.Error("Bad cursor position")
+	}
+}

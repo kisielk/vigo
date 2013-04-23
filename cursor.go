@@ -188,7 +188,6 @@ func (c *cursor) wordUnderCursor() []byte {
 // Returns true if the move was successful, false if EOF reached.
 func (c *cursor) nextRuneFunc(f func(rune) bool) bool {
 	for {
-
 		if c.eol() {
 			if c.lastLine() {
 				return false
@@ -199,20 +198,16 @@ func (c *cursor) nextRuneFunc(f func(rune) bool) bool {
 				continue
 			}
 		}
-
 		r, rlen := c.runeUnder()
 		for !f(r) && !c.eol() {
 			c.boffset += rlen
 			r, rlen = c.runeUnder()
 		}
-
 		if c.eol() {
 			continue
 		}
-
 		break
 	}
-
 	return true
 }
 
@@ -345,10 +340,6 @@ func (c *cursor) moveOneWordBackward() bool {
 		for !IsWord(r) && !c.bol() {
 			c.boffset -= rlen
 			r, rlen = c.runeBefore()
-		}
-
-		if c.bol() {
-			continue
 		}
 		break
 	}
