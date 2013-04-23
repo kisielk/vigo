@@ -4,35 +4,26 @@ import (
 	"testing"
 )
 
-// Returns new copy of test data.
-func makeLines() []*line {
-
-	// Create test data
-	text := [][]byte{
-		[]byte("// comment"),
-		[]byte("func bar(i int) {"),
-		[]byte(" return 0"),
-		[]byte("}"),
-	}
-
-	lines := [4]*line{}
-
-	first := &line{data: text[0]}
-	current := first
-	lines[0] = first
-
-	for i := 1; i < len(text); i++ {
-		next := &line{data: text[i], prev: current}
-		current.next = next
+// makeLines converts text into an array of lines.
+func makeLines(text ...string) []*line {
+	lines := []*line{}
+	current := (*line)(nil)
+	for i := 0; i < len(text); i++ {
+		next := &line{data: []byte(text[i]), prev: current}
+		if current != nil {
+			current.next = next
+		}
 		current = next
-		lines[i] = next
+		lines = append(lines, next)
 	}
-
-	return lines[:]
+	return lines
 }
 
 func TestNextRune(t *testing.T) {
-	lines := makeLines()
+	lines := makeLines(
+		"// comment",
+		"func bar(i int) {",
+	)
 	l0 := lines[0]
 
 	// Start of line 1
@@ -62,7 +53,10 @@ func TestNextRune(t *testing.T) {
 }
 
 func TestNextRuneWrap(t *testing.T) {
-	lines := makeLines()
+	lines := makeLines(
+		"// comment",
+		"func bar(i int) {",
+	)
 
 	// End of line 1
 	c := &cursor{line: lines[0], boffset: 9}
@@ -80,7 +74,10 @@ func TestNextRuneWrap(t *testing.T) {
 }
 
 func TestPrevRune(t *testing.T) {
-	lines := makeLines()
+	lines := makeLines(
+		"// comment",
+		"func bar(i int) {",
+	)
 	l0 := lines[0]
 
 	// End of line 1
@@ -110,7 +107,10 @@ func TestPrevRune(t *testing.T) {
 }
 
 func TestPrevRuneWrap(t *testing.T) {
-	lines := makeLines()
+	lines := makeLines(
+		"// comment",
+		"func bar(i int) {",
+	)
 
 	// Beginning of line 2
 	c := &cursor{line: lines[1], boffset: 0}
@@ -126,7 +126,12 @@ func TestPrevRuneWrap(t *testing.T) {
 
 func TestNextWord(t *testing.T) {
 	// TODO test EOF, test empty line
-	lines := makeLines()
+	lines := makeLines(
+		"// comment",
+		"func bar(i int) {",
+		" return 0",
+		"}",
+	)
 	stops := []cursor{
 		{lines[1], 1, 5},
 		{lines[1], 1, 8},
@@ -156,7 +161,12 @@ func TestNextWord(t *testing.T) {
 
 func TestPrevWord(t *testing.T) {
 	// TODO test BOF, test empty line
-	lines := makeLines()
+	lines := makeLines(
+		"// comment",
+		"func bar(i int) {",
+		" return 0",
+		"}",
+	)
 	stops := []cursor{
 		{lines[2], 2, 1},
 		{lines[1], 1, 16},
