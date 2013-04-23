@@ -341,6 +341,9 @@ func (c *cursor) moveOneWordBackward() bool {
 			c.boffset -= rlen
 			r, rlen = c.runeBefore()
 		}
+		if c.bol() {
+			continue
+		}
 		break
 	}
 
