@@ -3,7 +3,6 @@ package editor
 import (
 	"bytes"
 	"unicode"
-	"unicode/utf8"
 )
 
 var invisibleRuneTable = []rune{
@@ -54,25 +53,16 @@ func runeAdvanceLen(r rune, pos int) int {
 
 func iterWords(data []byte, cb func(word []byte)) {
 	for {
-		if len(data) == 0 {
+		i := bytes.IndexFunc(data, IsWord)
+		if i == -1 {
 			return
 		}
-
-		r, rlen := utf8.DecodeRune(data)
-		// skip non-word runes
-		for !IsWord(r) {
-			data = data[rlen:]
-			if len(data) == 0 {
-				return
-			}
-			r, rlen = utf8.DecodeRune(data)
-		}
-
-		// must be on a word rune
-		i := 0
-		for IsWord(r) && i < len(data) {
-			i += rlen
-			r, rlen = utf8.DecodeRune(data[i:])
+		data = data[i:]
+		i = bytes.IndexFunc(data, func(r rune) bool {
+			return !IsWord(r)
+		})
+		if i == -1 {
+			return
 		}
 		cb(data[:i])
 		data = data[i:]
