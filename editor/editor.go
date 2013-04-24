@@ -1,4 +1,4 @@
-package main
+package editor
 
 import (
 	"bytes"
@@ -36,7 +36,7 @@ func (k keyEvent) toTermboxEvent() termbox.Event {
 	}
 }
 
-var errQuit = errors.New("quit")
+var ErrQuit = errors.New("quit")
 
 type editor struct {
 	uiBuf        tulib.Buffer
@@ -46,7 +46,7 @@ type editor struct {
 	lastCmdClass vCommandClass
 	statusBuf    bytes.Buffer
 	quitFlag     bool
-	events       chan termbox.Event
+	Events       chan termbox.Event
 	killBuffer_  []byte
 
 	cutBuffers *cutBuffers
@@ -61,7 +61,7 @@ func (g *editor) quit() {
 	g.quitFlag = true
 }
 
-func newEditor(filenames []string) *editor {
+func NewEditor(filenames []string) *editor {
 	g := new(editor)
 	g.buffers = make([]*buffer, 0, 20)
 	g.cutBuffers = newCutBuffers()
@@ -78,7 +78,7 @@ func newEditor(filenames []string) *editor {
 	g.views = newViewTreeLeaf(nil, newView(g.viewContext(), g.buffers[0]))
 	g.active = g.views
 	g.setMode(newNormalMode(g))
-	g.events = make(chan termbox.Event, 20)
+	g.Events = make(chan termbox.Event, 20)
 	return g
 }
 
@@ -247,7 +247,7 @@ func (g *editor) splitHorizontally() {
 	}
 	g.active.splitHorizontally()
 	g.active = g.active.left
-	g.resize()
+	g.Resize()
 }
 
 func (g *editor) splitVertically() {
@@ -256,7 +256,7 @@ func (g *editor) splitVertically() {
 	}
 	g.active.splitVertically()
 	g.active = g.active.top
-	g.resize()
+	g.Resize()
 }
 
 func (g *editor) killActiveView() {
@@ -276,7 +276,7 @@ func (g *editor) killActiveView() {
 
 	g.active = p.firstLeafNode()
 	g.active.leaf.activate()
-	g.resize()
+	g.Resize()
 }
 
 func (g *editor) killAllViewsButActive() {
@@ -290,18 +290,18 @@ func (g *editor) killAllViewsButActive() {
 	})
 	g.views = g.active
 	g.views.parent = nil
-	g.resize()
+	g.Resize()
 }
 
 // Call it manually only when views layout has changed.
-func (g *editor) resize() {
+func (g *editor) Resize() {
 	g.uiBuf = tulib.TermboxBuffer()
 	views_area := g.uiBuf.Rect
 	views_area.Height -= 1 // reserve space for command line
 	g.views.resize(views_area)
 }
 
-func (g *editor) draw() {
+func (g *editor) Draw() {
 	var needsCursor bool
 	if g.overlay != nil {
 		needsCursor = g.overlay.needsCursor()
@@ -324,7 +324,7 @@ func (g *editor) draw() {
 		// this can be true, only when g.Overlay != nil, see above
 		cx, cy = g.overlay.cursorPosition()
 	} else {
-		cx, cy = g.cursorPosition()
+		cx, cy = g.CursorPosition()
 	}
 	termbox.SetCursor(cx, cy)
 }
@@ -416,7 +416,7 @@ func (g *editor) fixEdges(v *viewTree) {
 }
 
 // cursorPosition returns the absolute screen coordinates of the cursor
-func (g *editor) cursorPosition() (int, int) {
+func (g *editor) CursorPosition() (int, int) {
 	x, y := g.active.leaf.cursorPosition()
 	return g.active.X + x, g.active.Y + y
 }
@@ -432,9 +432,9 @@ func (g *editor) onSysKey(ev *termbox.Event) {
 
 // Loop starts the editor main loop which consumes events from g.Events
 func (e *editor) Loop() error {
-	for ev := range e.events {
+	for ev := range e.Events {
 
-		// The CONSUME loop handles the event and any other events that
+		// The consume loop handles the event and any other events that
 		// until there are no more in the queue.
 	consume:
 		for {
@@ -442,14 +442,14 @@ func (e *editor) Loop() error {
 				return err
 			}
 			select {
-			case nextEv := <-e.events:
+			case nextEv := <-e.Events:
 				ev = nextEv
 			default:
 				break consume
 			}
 		}
 
-		e.draw()
+		e.Draw()
 		termbox.Flush()
 	}
 	return nil
@@ -463,11 +463,11 @@ func (g *editor) handleEvent(ev *termbox.Event) error {
 		g.mode.onKey(ev)
 
 		if g.quitFlag {
-			return errQuit
+			return ErrQuit
 		}
 	case termbox.EventResize:
 		termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-		g.resize()
+		g.Resize()
 		if g.overlay != nil {
 			g.overlay.onResize(ev)
 		}

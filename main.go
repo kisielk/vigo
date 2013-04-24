@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/kisielk/vigo/editor"
 	"github.com/nsf/termbox-go"
 	"os"
 )
@@ -12,17 +13,17 @@ func main() {
 	defer termbox.Close()
 	termbox.SetInputMode(termbox.InputEsc)
 
-	editor := newEditor(os.Args[1:])
-	editor.resize()
-	editor.draw()
-	termbox.SetCursor(editor.cursorPosition())
+	e := editor.NewEditor(os.Args[1:])
+	e.Resize()
+	e.Draw()
+	termbox.SetCursor(e.CursorPosition())
 	termbox.Flush()
 	go func() {
 		for {
-			editor.events <- termbox.PollEvent()
+			e.Events <- termbox.PollEvent()
 		}
 	}()
-	if err := editor.Loop(); err != errQuit {
+	if err := e.Loop(); err != editor.ErrQuit {
 		panic(err)
 	}
 }

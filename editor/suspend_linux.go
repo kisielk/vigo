@@ -1,4 +1,4 @@
-package main
+package editor
 
 import (
 	"github.com/nsf/termbox-go"
@@ -23,5 +23,5 @@ func suspend(g *editor) {
 		panic(err)
 	}
 	termbox.SetInputMode(termbox.InputAlt)
-	g.resize()
+	g.Resize()
 }

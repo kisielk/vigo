@@ -1,4 +1,4 @@
-package main
+package editor
 
 const (
 	configWrapLeft  = true // Allow wrapping cursor to the previous line with 'h' motion.

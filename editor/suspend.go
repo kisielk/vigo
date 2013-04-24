@@ -1,6 +1,6 @@
 // +build !linux
 
-package main
+package editor
 
 // do nothing, it's a linux specific feature at the moment
 func suspend(g *editor) {}
