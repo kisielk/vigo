@@ -11,6 +11,31 @@ import (
 	"strconv"
 )
 
+// this is a structure which represents a key press, used for keyboard macros
+type keyEvent struct {
+	mod termbox.Modifier
+	_   [1]byte
+	key termbox.Key
+	ch  rune
+}
+
+func createKeyEvent(ev *termbox.Event) keyEvent {
+	return keyEvent{
+		mod: ev.Mod,
+		key: ev.Key,
+		ch:  ev.Ch,
+	}
+}
+
+func (k keyEvent) toTermboxEvent() termbox.Event {
+	return termbox.Event{
+		Type: termbox.EventKey,
+		Mod:  k.mod,
+		Key:  k.key,
+		Ch:   k.ch,
+	}
+}
+
 var errQuit = errors.New("quit")
 
 type editor struct {
