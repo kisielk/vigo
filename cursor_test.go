@@ -210,6 +210,6 @@ func TestPrevWordSpaces(t *testing.T) {
 		t.Error("Bad cursor line")
 	}
 	if c.boffset != 2 {
-		t.Error("Bad cursor position")
+		t.Error("Bad cursor position", c.boffset)
 	}
 }

@@ -301,8 +301,16 @@ func (c *cursor) prevWord() bool {
 	isNotSpace := func(r rune) bool {
 		return !unicode.IsSpace(r)
 	}
-	// Skip remaining whitespace until next word of any type.
-	_ = c.prevRuneFunc(isNotSpace)
+	for {
+		// Skip space until we find a word character.
+		// Re-try if we reached beginning-of-line.
+		if !c.prevRuneFunc(isNotSpace) {
+			return false
+		}
+		if !c.bol() {
+			break
+		}
+	}
 	r, _ := c.runeBefore()
 	if isNotSpace(r) {
 		// Lowercase word motion differentiates words consisting of
