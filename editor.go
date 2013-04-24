@@ -7,6 +7,7 @@ import (
 	"github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -179,13 +180,16 @@ func (e *editor) bufferName(name string) string {
 }
 
 func (g *editor) newBufferFromFile(filename string) (*buffer, error) {
-	fullpath := absPath(filename)
+	fullpath, err := filepath.Abs(filename)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't determine absolute path: %s", err)
+	}
 	buf := g.findBufferByFullPath(fullpath)
 	if buf != nil {
 		return buf, nil
 	}
 
-	_, err := os.Stat(fullpath)
+	_, err = os.Stat(fullpath)
 	if err != nil {
 		// assume the file is just not there
 		g.setStatus("(New file)")
