@@ -189,25 +189,22 @@ func (g *editor) newBufferFromFile(filename string) (*buffer, error) {
 		return buf, nil
 	}
 
-	_, err = os.Stat(fullpath)
-	if err != nil {
-		// assume the file is just not there
+	f, err := os.Open(fullpath)
+	if err == os.ErrNotExist {
+		// Assume a new file
 		g.setStatus("(New file)")
 		buf = newEmptyBuffer()
-	} else {
-		f, err := os.Open(fullpath)
-		if err != nil {
-			g.setStatus(err.Error())
-			return nil, err
-		}
-		defer f.Close()
-		buf, err = newBuffer(f)
-		if err != nil {
-			g.setStatus(err.Error())
-			return nil, err
-		}
-		buf.path = fullpath
+	} else if err != nil {
+		g.setStatus(err.Error())
+		return nil, err
 	}
+	defer f.Close()
+	buf, err = newBuffer(f)
+	if err != nil {
+		g.setStatus(err.Error())
+		return nil, err
+	}
+	buf.path = fullpath
 
 	buf.name = g.bufferName(filename)
 	g.buffers = append(g.buffers, buf)
