@@ -55,6 +55,8 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		v.onVcommand(viewCommand{Cmd: vCommandDeleteRune, Reps: reps})
 	case 'u':
 		v.onVcommand(viewCommand{Cmd: vCommandUndo, Reps: reps})
+	case 'G':
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfFile})
 	}
 
 	// Insert mode; record first, then repeat.
