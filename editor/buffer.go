@@ -206,7 +206,7 @@ func (b *buffer) saveAs(filename string) error {
 
 	b.onDisk = b.history
 	for _, v := range b.views {
-		v.dirty |= DIRTY_STATUS
+		v.dirty |= dirtyStatus
 	}
 	return nil
 }

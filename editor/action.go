@@ -146,7 +146,7 @@ func (a *action) do(v *view, what actionType) {
 			v.buf.mark.onDeleteAdjust(a)
 		}
 	}
-	v.dirty = DIRTY_EVERYTHING
+	v.dirty = dirtyEverything
 }
 
 func (a *action) lastLine() *line {

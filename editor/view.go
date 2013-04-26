@@ -16,10 +16,14 @@ import (
 type dirtyFlag int
 
 const (
-	DIRTY_CONTENTS dirtyFlag = (1 << iota)
-	DIRTY_STATUS
+	// dirtyContents indicates that the contents of the views buffer has been modified
+	dirtyContents dirtyFlag = (1 << iota)
 
-	DIRTY_EVERYTHING = DIRTY_CONTENTS | DIRTY_STATUS
+	// dirtyStatus indicates that the status line of the view needs to be updated
+	dirtyStatus
+
+	// diretyEverything indicates that everything needs to be updated
+	dirtyEverything = dirtyContents | dirtyStatus
 )
 
 //----------------------------------------------------------------------------
@@ -171,7 +175,7 @@ func (v *view) attach(b *buffer) {
 		},
 	}
 	b.addView(v)
-	v.dirty = DIRTY_EVERYTHING
+	v.dirty = dirtyEverything
 }
 
 func (v *view) detach() {
@@ -184,7 +188,7 @@ func (v *view) resize(w, h int) {
 	v.uiBuf.Resize(w, h)
 	v.adjustLineVoffset()
 	v.adjustTopLine()
-	v.dirty = DIRTY_EVERYTHING
+	v.dirty = dirtyEverything
 }
 
 func (v *view) height() int {
@@ -378,13 +382,13 @@ func (v *view) drawStatus() {
 
 // Draw the current view to the 'v.uibuf'.
 func (v *view) draw() {
-	if v.dirty&DIRTY_CONTENTS != 0 {
-		v.dirty &^= DIRTY_CONTENTS
+	if v.dirty&dirtyContents != 0 {
+		v.dirty &^= dirtyContents
 		v.drawContents()
 	}
 
-	if v.dirty&DIRTY_STATUS != 0 {
-		v.dirty &^= DIRTY_STATUS
+	if v.dirty&dirtyStatus != 0 {
+		v.dirty &^= dirtyStatus
 		v.drawStatus()
 	}
 }
@@ -394,7 +398,7 @@ func (v *view) centerViewOnCursor() {
 	v.topLine = v.cursor.line
 	v.topLineNum = v.cursor.lineNum
 	v.moveTopLineNtimes(-v.height() / 2)
-	v.dirty = DIRTY_EVERYTHING
+	v.dirty = dirtyEverything
 }
 
 func (v *view) moveCursorToLine(n int) {
@@ -467,7 +471,7 @@ func (v *view) adjustCursorLine() {
 		v.cursorVoffset = vo
 		v.lineVoffset = 0
 		v.adjustLineVoffset()
-		v.dirty = DIRTY_EVERYTHING
+		v.dirty = dirtyEverything
 	}
 }
 
@@ -481,12 +485,12 @@ func (v *view) adjustTopLine() {
 
 	if top.next != nil && co >= h-vt {
 		v.moveTopLineNtimes(co - (h - vt) + 1)
-		v.dirty = DIRTY_EVERYTHING
+		v.dirty = dirtyEverything
 	}
 
 	if top.prev != nil && co < vt {
 		v.moveTopLineNtimes(co - vt)
-		v.dirty = DIRTY_EVERYTHING
+		v.dirty = dirtyEverything
 	}
 }
 
@@ -515,7 +519,7 @@ func (v *view) adjustLineVoffset() {
 
 	if v.lineVoffset != vo {
 		v.lineVoffset = vo
-		v.dirty = DIRTY_EVERYTHING
+		v.dirty = dirtyEverything
 	}
 }
 
@@ -536,7 +540,7 @@ func (v *view) cursorPositionFor(cursor cursor) (int, int) {
 // in mind that there is no need to maintain connections between lines (e.g. for
 // moving from a deleted line to another line).
 func (v *view) moveCursorTo(c cursor) {
-	v.dirty |= DIRTY_STATUS
+	v.dirty |= dirtyStatus
 	if c.boffset < 0 {
 		bo, co, vo := c.line.findClosestOffsets(v.lastCursorVoffset)
 		v.cursor.boffset = bo
@@ -555,7 +559,7 @@ func (v *view) moveCursorTo(c cursor) {
 
 	if c.line != v.cursor.line {
 		if v.lineVoffset != 0 {
-			v.dirty = DIRTY_EVERYTHING
+			v.dirty = dirtyEverything
 		}
 		v.lineVoffset = 0
 	}
@@ -662,7 +666,7 @@ func (v *view) moveViewNlines(n int) {
 	v.moveTopLineNtimes(n)
 	if prevtop != v.topLineNum {
 		v.adjustCursorLine()
-		v.dirty = DIRTY_EVERYTHING
+		v.dirty = dirtyEverything
 	}
 }
 
@@ -830,7 +834,7 @@ func (v *view) insertRune(r rune) {
 		c.boffset += l
 	}
 	v.moveCursorTo(c)
-	v.dirty = DIRTY_EVERYTHING
+	v.dirty = dirtyEverything
 }
 
 // If at the beginning of the line, move contents of the current line to the end
@@ -848,7 +852,7 @@ func (v *view) deleteRuneBackward() {
 		c.boffset = len(c.line.data)
 		v.actionDelete(c, 1)
 		v.moveCursorTo(c)
-		v.dirty = DIRTY_EVERYTHING
+		v.dirty = dirtyEverything
 		return
 	}
 
@@ -856,7 +860,7 @@ func (v *view) deleteRuneBackward() {
 	c.boffset -= rlen
 	v.actionDelete(c, rlen)
 	v.moveCursorTo(c)
-	v.dirty = DIRTY_EVERYTHING
+	v.dirty = dirtyEverything
 }
 
 // If at the EOL, move contents of the next line to the end of the current line,
@@ -871,13 +875,13 @@ func (v *view) deleteRune() {
 			return
 		}
 		v.actionDelete(c, 1)
-		v.dirty = DIRTY_EVERYTHING
+		v.dirty = dirtyEverything
 		return
 	}
 
 	_, rlen := c.runeUnder()
 	v.actionDelete(c, rlen)
-	v.dirty = DIRTY_EVERYTHING
+	v.dirty = dirtyEverything
 }
 
 // If not at the EOL, remove contents of the current line from the cursor to the
@@ -889,7 +893,7 @@ func (v *view) killLine() {
 		len := len(c.line.data) - c.boffset
 		v.appendToKillBuffer(c, len)
 		v.actionDelete(c, len)
-		v.dirty = DIRTY_EVERYTHING
+		v.dirty = dirtyEverything
 		return
 	}
 	v.appendToKillBuffer(c, 1)
@@ -959,7 +963,7 @@ func (v *view) onInsertAdjustTopLine(a *action) {
 	if a.cursor.lineNum < v.topLineNum && len(a.lines) > 0 {
 		// inserted one or more lines above the view
 		v.topLineNum += len(a.lines)
-		v.dirty |= DIRTY_STATUS
+		v.dirty |= dirtyStatus
 	}
 }
 
@@ -981,11 +985,11 @@ func (v *view) onDeleteAdjustTopLine(a *action) {
 				v.topLine = a.cursor.line
 				v.topLineNum = a.cursor.lineNum
 			}
-			v.dirty = DIRTY_EVERYTHING
+			v.dirty = dirtyEverything
 		} else {
 			// no need to worry
 			v.topLineNum -= len(a.lines)
-			v.dirty |= DIRTY_STATUS
+			v.dirty |= dirtyStatus
 		}
 	}
 }
@@ -1001,7 +1005,7 @@ func (v *view) onInsert(a *action) {
 		if len(a.lines) > 0 {
 			// inserted one or more lines, adjust line numbers
 			v.cursor.lineNum += len(a.lines)
-			v.dirty |= DIRTY_STATUS
+			v.dirty |= dirtyStatus
 		}
 		return
 	}
@@ -1009,7 +1013,7 @@ func (v *view) onInsert(a *action) {
 	c.onInsertAdjust(a)
 	v.moveCursorTo(c)
 	v.lastCursorVoffset = v.cursorVoffset
-	v.dirty = DIRTY_EVERYTHING
+	v.dirty = dirtyEverything
 }
 
 func (v *view) onDelete(a *action) {
@@ -1028,7 +1032,7 @@ func (v *view) onDelete(a *action) {
 		if last < v.topLineNum {
 			// no need to worry
 			v.cursor.lineNum -= len(a.lines)
-			v.dirty |= DIRTY_STATUS
+			v.dirty |= dirtyStatus
 			return
 		}
 	}
@@ -1036,7 +1040,7 @@ func (v *view) onDelete(a *action) {
 	c.onDeleteAdjust(a)
 	v.moveCursorTo(c)
 	v.lastCursorVoffset = v.cursorVoffset
-	v.dirty = DIRTY_EVERYTHING
+	v.dirty = dirtyEverything
 }
 
 func (v *view) onVcommand(c viewCommand) {
