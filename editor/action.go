@@ -147,9 +147,6 @@ func (a *action) do(v *view, what actionType) {
 		}
 	}
 	v.dirty = DIRTY_EVERYTHING
-
-	// any change to the buffer causes words cache invalidation
-	v.buf.wordsCacheValid = false
 }
 
 func (a *action) lastLine() *line {
