@@ -626,7 +626,7 @@ func (v *view) moveCursorBeginningOfFile() {
 
 // Move cursor to the end of the file (buffer).
 func (v *view) moveCursorEndOfFile() {
-	c := cursor{v.buf.lastLine, v.buf.linesN, len(v.buf.lastLine.data)}
+	c := cursor{v.buf.lastLine, v.buf.numLines, len(v.buf.lastLine.data)}
 	v.moveCursorTo(c)
 }
 
@@ -1233,7 +1233,7 @@ func (v *view) cleanupTrailingWhitespaces() {
 func (v *view) cleanupTrailingNewlines() {
 	cursor := cursor{
 		line:    v.buf.lastLine,
-		lineNum: v.buf.linesN,
+		lineNum: v.buf.numLines,
 		boffset: 0,
 	}
 
@@ -1265,7 +1265,7 @@ func (v *view) cleanupTrailingNewlines() {
 func (v *view) ensureTrailingEOL() {
 	cursor := cursor{
 		line:    v.buf.lastLine,
-		lineNum: v.buf.linesN,
+		lineNum: v.buf.numLines,
 		boffset: len(v.buf.lastLine.data),
 	}
 	if len(v.buf.lastLine.data) > 0 {

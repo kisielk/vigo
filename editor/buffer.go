@@ -47,8 +47,8 @@ type buffer struct {
 	firstLine *line
 	lastLine  *line
 	loc       viewLocation
-	linesN    int
-	bytesN    int
+	numLines  int
+	numBytes  int
 	history   *actionGroup
 	onDisk    *actionGroup
 	mark      cursor
@@ -69,7 +69,7 @@ func newEmptyBuffer() *buffer {
 	l.prev = nil
 	b.firstLine = l
 	b.lastLine = l
-	b.linesN = 1
+	b.numLines = 1
 	b.loc = viewLocation{
 		topLine:    l,
 		topLineNum: 1,
@@ -97,7 +97,7 @@ func newBuffer(r io.Reader) (*buffer, error) {
 			lineNum: 1,
 		},
 	}
-	b.linesN = 1
+	b.numLines = 1
 	b.firstLine = l
 	for {
 		l.data, err = br.ReadBytes('\n')
@@ -105,13 +105,13 @@ func newBuffer(r io.Reader) (*buffer, error) {
 			// last line was read
 			break
 		} else {
-			b.bytesN += len(l.data)
+			b.numBytes += len(l.data)
 
 			// cut off the '\n' character
 			l.data = l.data[:len(l.data)-1]
 		}
 
-		b.linesN++
+		b.numLines++
 		l.next = new(line)
 		l.prev = prevline
 		prevline = l
