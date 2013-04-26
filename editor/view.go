@@ -910,42 +910,6 @@ func (v *view) killWordBackward() {
 	}
 }
 
-func (v *view) killRegion() {
-	if !v.buf.isMarkSet() {
-		v.ctx.setStatus("The mark is not set now, so there is no region")
-		return
-	}
-
-	c1 := v.cursor
-	c2 := v.buf.mark
-	d := c1.distance(c2)
-	switch {
-	case d == 0:
-		return
-	case d < 0:
-		d = -d
-		v.appendToKillBuffer(c2, d)
-		v.actionDelete(c2, d)
-		v.moveCursorTo(c2)
-	default:
-		v.appendToKillBuffer(c1, d)
-		v.actionDelete(c1, d)
-	}
-}
-
-func (v *view) setMark() {
-	v.buf.mark = v.cursor
-	v.ctx.setStatus("Mark set")
-}
-
-func (v *view) swapCursorAndMark() {
-	if v.buf.isMarkSet() {
-		m := v.buf.mark
-		v.buf.mark = v.cursor
-		v.moveCursorTo(m)
-	}
-}
-
 func (v *view) onInsertAdjustTopLine(a *action) {
 	if a.cursor.lineNum < v.topLineNum && len(a.lines) > 0 {
 		// inserted one or more lines above the view
@@ -1081,10 +1045,6 @@ func (v *view) onVcommand(c viewCommand) {
 			v.maybeMoveViewNlines(v.height() / 2)
 		case vCommandMoveViewHalfBackward:
 			v.moveViewNlines(-v.height() / 2)
-		case vCommandSetMark:
-			v.setMark()
-		case vCommandSwapCursorAndMark:
-			v.swapCursorAndMark()
 		case vCommandInsertRune:
 			v.insertRune(c.Rune)
 		case vCommandYank:
@@ -1099,22 +1059,10 @@ func (v *view) onVcommand(c viewCommand) {
 			v.killWord()
 		case vCommandKillWordBackward:
 			v.killWordBackward()
-		case vCommandKillRegion:
-			v.killRegion()
-		case vCommandCopyRegion:
-			v.copyRegion()
 		case vCommandUndo:
 			v.undo()
 		case vCommandRedo:
 			v.redo()
-		case vCommandIndentRegion:
-			v.indentRegion()
-		case vCommandDeindentRegion:
-			v.deindentRegion()
-		case vCommandRegionToUpper:
-			v.regionTo(bytes.ToUpper)
-		case vCommandRegionToLower:
-			v.regionTo(bytes.ToLower)
 		case vCommandWordToUpper:
 			v.wordTo(bytes.ToUpper)
 		case vCommandWordToTitle:
@@ -1325,51 +1273,6 @@ func (v *view) yank() {
 	v.moveCursorTo(cursor)
 }
 
-// shameless copy & paste from kill_region
-func (v *view) copyRegion() {
-	if !v.buf.isMarkSet() {
-		v.ctx.setStatus("The mark is not set now, so there is no region")
-		return
-	}
-
-	c1 := v.cursor
-	c2 := v.buf.mark
-	d := c1.distance(c2)
-	switch {
-	case d == 0:
-		return
-	case d < 0:
-		d = -d
-		v.appendToKillBuffer(c2, d)
-	default:
-		v.appendToKillBuffer(c1, d)
-	}
-}
-
-// assumes that filtered text has the same length
-func (v *view) regionTo(filter func([]byte) []byte) {
-	if !v.buf.isMarkSet() {
-		v.ctx.setStatus("The mark is not set now, so there is no region")
-		return
-	}
-	v.filterText(v.cursor, v.buf.mark, filter)
-}
-
-func (v *view) lineRegion() (beg, end cursor) {
-	beg = v.cursor
-	end = v.cursor
-	if v.buf.isMarkSet() {
-		end = v.buf.mark
-	}
-
-	if beg.lineNum > end.lineNum {
-		beg, end = end, beg
-	}
-	beg.boffset = 0
-	end.boffset = len(end.line.data)
-	return
-}
-
 func (v *view) indentLine(line cursor) {
 	line.boffset = 0
 	v.actionInsert(line, []byte{'\t'})
@@ -1390,26 +1293,6 @@ func (v *view) deindentLine(line cursor) {
 		cursor.boffset -= 1
 		v.moveCursorTo(cursor)
 	}
-}
-
-func (v *view) indentRegion() {
-	beg, end := v.lineRegion()
-	for beg.line != end.line {
-		v.indentLine(beg)
-		beg.line = beg.line.next
-		beg.lineNum++
-	}
-	v.indentLine(end)
-}
-
-func (v *view) deindentRegion() {
-	beg, end := v.lineRegion()
-	for beg.line != end.line {
-		v.deindentLine(beg)
-		beg.line = beg.line.next
-		beg.lineNum++
-	}
-	v.deindentLine(end)
 }
 
 func (v *view) wordTo(filter func([]byte) []byte) {
@@ -1477,8 +1360,6 @@ const (
 	vCommandMoveCursorToLine
 	vCommandMoveViewHalfForward
 	vCommandMoveViewHalfBackward
-	vCommandSetMark
-	vCommandSwapCursorAndMark
 	_vCommandMovementEnd
 
 	// insertion commands

@@ -133,18 +133,12 @@ func (a *action) do(v *view, what actionType) {
 		v.buf.otherViews(v, func(v *view) {
 			v.onInsert(a)
 		})
-		if v.buf.isMarkSet() {
-			v.buf.mark.onInsertAdjust(a)
-		}
 	case actionDelete:
 		a.delete(v)
 		v.onDeleteAdjustTopLine(a)
 		v.buf.otherViews(v, func(v *view) {
 			v.onDelete(a)
 		})
-		if v.buf.isMarkSet() {
-			v.buf.mark.onDeleteAdjust(a)
-		}
 	}
 	v.dirty = dirtyEverything
 }

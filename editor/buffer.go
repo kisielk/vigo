@@ -50,7 +50,6 @@ type buffer struct {
 	numBytes  int
 	history   *actionGroup
 	onDisk    *actionGroup
-	mark      cursor
 
 	// absoulte path of the file, if it's empty string, then the file has no
 	// on-disk representation
@@ -153,10 +152,6 @@ func (b *buffer) initHistory() {
 	first.prev = sentinel
 	b.history = sentinel
 	b.onDisk = sentinel
-}
-
-func (b *buffer) isMarkSet() bool {
-	return b.mark.line != nil
 }
 
 func (b *buffer) dumpHistory() {
