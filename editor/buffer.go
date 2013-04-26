@@ -46,7 +46,6 @@ type buffer struct {
 	views     []*view
 	firstLine *line
 	lastLine  *line
-	loc       viewLocation
 	numLines  int
 	numBytes  int
 	history   *actionGroup
@@ -70,14 +69,6 @@ func newEmptyBuffer() *buffer {
 	b.firstLine = l
 	b.lastLine = l
 	b.numLines = 1
-	b.loc = viewLocation{
-		topLine:    l,
-		topLineNum: 1,
-		cursor: cursor{
-			line:    l,
-			lineNum: 1,
-		},
-	}
 	b.initHistory()
 	return b
 }
@@ -89,14 +80,6 @@ func newBuffer(r io.Reader) (*buffer, error) {
 	br := bufio.NewReader(r)
 	l := new(line)
 	b := new(buffer)
-	b.loc = viewLocation{
-		topLine:    l,
-		topLineNum: 1,
-		cursor: cursor{
-			line:    l,
-			lineNum: 1,
-		},
-	}
 	b.numLines = 1
 	b.firstLine = l
 	for {

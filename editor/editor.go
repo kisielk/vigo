@@ -475,10 +475,6 @@ func (g *editor) handleEvent(ev *termbox.Event) error {
 		return ev.Err
 	}
 
-	// just dump the current view location from the view to the buffer
-	// after each event, it's cheap and does what it needs to be done
-	v := g.active.leaf
-	v.buf.loc = v.viewLocation
 	return nil
 }
 

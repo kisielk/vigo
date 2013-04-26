@@ -162,7 +162,14 @@ func (v *view) attach(b *buffer) {
 		v.detach()
 	}
 	v.buf = b
-	v.viewLocation = b.loc
+	v.viewLocation = viewLocation{
+		topLine:    b.firstLine,
+		topLineNum: 1,
+		cursor: cursor{
+			line:    b.firstLine,
+			lineNum: 1,
+		},
+	}
 	b.addView(v)
 	v.dirty = DIRTY_EVERYTHING
 }
