@@ -73,8 +73,8 @@ func (a *action) insert(v *view) {
 	line := a.cursor.line
 	iterLines(a.data, func(data []byte) {
 		if data[0] == '\n' {
-			v.buf.bytesN++
-			v.buf.linesN++
+			v.buf.numBytes++
+			v.buf.numLines++
 
 			if offset < len(line.data) {
 				// a case where we insert at the middle of the
@@ -89,7 +89,7 @@ func (a *action) insert(v *view) {
 			nline++
 			offset = 0
 		} else {
-			v.buf.bytesN += len(data)
+			v.buf.numBytes += len(data)
 
 			// insert a chunk of data
 			line.data = insertBytes(line.data, offset, data)
@@ -107,8 +107,8 @@ func (a *action) delete(v *view) {
 	line := a.cursor.line
 	iterLines(a.data, func(data []byte) {
 		if data[0] == '\n' {
-			v.buf.bytesN--
-			v.buf.linesN--
+			v.buf.numBytes--
+			v.buf.numLines--
 
 			// append the contents of the deleted line the current line
 			line.data = append(line.data, a.lines[nline].data...)
@@ -116,7 +116,7 @@ func (a *action) delete(v *view) {
 			a.deleteLine(a.lines[nline], v)
 			nline++
 		} else {
-			v.buf.bytesN -= len(data)
+			v.buf.numBytes -= len(data)
 
 			// delete a chunk of data
 			copy(line.data[offset:], line.data[offset+len(data):])
@@ -147,9 +147,6 @@ func (a *action) do(v *view, what actionType) {
 		}
 	}
 	v.dirty = DIRTY_EVERYTHING
-
-	// any change to the buffer causes words cache invalidation
-	v.buf.wordsCacheValid = false
 }
 
 func (a *action) lastLine() *line {

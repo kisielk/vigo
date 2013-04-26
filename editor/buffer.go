@@ -46,9 +46,8 @@ type buffer struct {
 	views     []*view
 	firstLine *line
 	lastLine  *line
-	loc       viewLocation
-	linesN    int
-	bytesN    int
+	numLines  int
+	numBytes  int
 	history   *actionGroup
 	onDisk    *actionGroup
 	mark      cursor
@@ -60,10 +59,6 @@ type buffer struct {
 	// buffer name (displayed in the status line), must be unique,
 	// uniqueness is maintained by godit methods
 	name string
-
-	// cache for local buffer autocompletion
-	wordsCache      llrbTree
-	wordsCacheValid bool
 }
 
 func newEmptyBuffer() *buffer {
@@ -73,15 +68,7 @@ func newEmptyBuffer() *buffer {
 	l.prev = nil
 	b.firstLine = l
 	b.lastLine = l
-	b.linesN = 1
-	b.loc = viewLocation{
-		topLine:    l,
-		topLineNum: 1,
-		cursor: cursor{
-			line:    l,
-			lineNum: 1,
-		},
-	}
+	b.numLines = 1
 	b.initHistory()
 	return b
 }
@@ -93,15 +80,7 @@ func newBuffer(r io.Reader) (*buffer, error) {
 	br := bufio.NewReader(r)
 	l := new(line)
 	b := new(buffer)
-	b.loc = viewLocation{
-		topLine:    l,
-		topLineNum: 1,
-		cursor: cursor{
-			line:    l,
-			lineNum: 1,
-		},
-	}
-	b.linesN = 1
+	b.numLines = 1
 	b.firstLine = l
 	for {
 		l.data, err = br.ReadBytes('\n')
@@ -109,13 +88,13 @@ func newBuffer(r io.Reader) (*buffer, error) {
 			// last line was read
 			break
 		} else {
-			b.bytesN += len(l.data)
+			b.numBytes += len(l.data)
 
 			// cut off the '\n' character
 			l.data = l.data[:len(l.data)-1]
 		}
 
-		b.linesN++
+		b.numLines++
 		l.next = new(line)
 		l.prev = prevline
 		prevline = l
@@ -243,26 +222,6 @@ func (b *buffer) reader() *bufferReader {
 func (b *buffer) contents() []byte {
 	data, _ := ioutil.ReadAll(b.reader())
 	return data
-}
-
-func (b *buffer) refillWordsCache() {
-	b.wordsCache.clear()
-	line := b.firstLine
-	for line != nil {
-		iterWords(line.data, func(word []byte) {
-			b.wordsCache.insertMaybe(word)
-		})
-		line = line.next
-	}
-}
-
-func (b *buffer) updateWordsCache() {
-	if b.wordsCacheValid {
-		return
-	}
-
-	b.refillWordsCache()
-	b.wordsCacheValid = true
 }
 
 //----------------------------------------------------------------------------
