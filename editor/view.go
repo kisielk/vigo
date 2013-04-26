@@ -798,8 +798,6 @@ func (v *view) actionDelete(c cursor, nbytes int) {
 
 // Insert a rune 'r' at the current cursor position, advance cursor one character forward.
 func (v *view) insertRune(r rune) {
-	var data [utf8.UTFMax]byte
-	l := utf8.EncodeRune(data[:], r)
 	c := v.cursor
 	if r == '\n' || r == '\r' {
 		v.actionInsert(c, []byte{'\n'})
@@ -817,8 +815,10 @@ func (v *view) insertRune(r rune) {
 			}
 		}
 	} else {
-		v.actionInsert(c, data[:l])
-		c.boffset += l
+		var data [utf8.UTFMax]byte
+		nBytes := utf8.EncodeRune(data[:], r)
+		v.actionInsert(c, data[:nBytes])
+		c.boffset += nBytes
 	}
 	v.moveCursorTo(c)
 	v.dirty = dirtyEverything
