@@ -128,14 +128,15 @@ type viewContext struct {
 type view struct {
 	viewLocation
 	ctx             viewContext
-	tmpBuf          bytes.Buffer // temporary buffer for status bar text
-	buf             *buffer      // currently displayed buffer
+	buf             *buffer // currently displayed buffer
 	uiBuf           tulib.Buffer
 	dirty           dirtyFlag
-	oneline         bool
 	highlightBytes  []byte
 	highlightRanges []byteRange
 	tags            []viewTag
+
+	// statusBuf is a buffer used for drawing the status line
+	statusBuf bytes.Buffer
 
 	lastCommand viewCommand
 }
@@ -192,9 +193,6 @@ func (v *view) resize(w, h int) {
 }
 
 func (v *view) height() int {
-	if !v.oneline {
-		return v.uiBuf.Height - 1
-	}
 	return v.uiBuf.Height
 }
 
@@ -342,19 +340,14 @@ func (v *view) drawContents() {
 }
 
 func (v *view) drawStatus() {
-	if v.oneline {
-		return
-	}
-
 	// fill background with '─'
 	lp := tulib.DefaultLabelParams
 	lp.Bg = termbox.AttrReverse
 	lp.Fg = termbox.AttrReverse | termbox.AttrBold
-	v.uiBuf.Fill(tulib.Rect{0, v.height(), v.uiBuf.Width, 1}, termbox.Cell{
-		Fg: termbox.AttrReverse,
-		Bg: termbox.AttrReverse,
-		Ch: '─',
-	})
+	v.uiBuf.Fill(
+		tulib.Rect{X: 0, Y: v.height(), Width: v.uiBuf.Width, Height: 1},
+		termbox.Cell{Fg: termbox.AttrReverse, Bg: termbox.AttrReverse, Ch: '─'},
+	)
 
 	// on disk sync status
 	if !v.buf.syncedWithDisk() {
@@ -368,16 +361,14 @@ func (v *view) drawStatus() {
 	}
 
 	// filename
-	fmt.Fprintf(&v.tmpBuf, "  %s  ", v.buf.name)
-	v.uiBuf.DrawLabel(tulib.Rect{5, v.height(), v.uiBuf.Width, 1},
-		&lp, v.tmpBuf.Bytes())
-	namel := v.tmpBuf.Len()
+	fmt.Fprintf(&v.statusBuf, "  %s  ", v.buf.name)
+	v.uiBuf.DrawLabel(tulib.Rect{X: 5, Y: v.height(), Width: v.uiBuf.Width, Height: 1}, &lp, v.statusBuf.Bytes())
+	namel := v.statusBuf.Len()
 	lp.Fg = termbox.AttrReverse
-	v.tmpBuf.Reset()
-	fmt.Fprintf(&v.tmpBuf, "(%d, %d)  ", v.cursor.lineNum, v.cursorVoffset)
-	v.uiBuf.DrawLabel(tulib.Rect{5 + namel, v.height(), v.uiBuf.Width, 1},
-		&lp, v.tmpBuf.Bytes())
-	v.tmpBuf.Reset()
+	v.statusBuf.Reset()
+	fmt.Fprintf(&v.statusBuf, "(%d, %d)  ", v.cursor.lineNum, v.cursorVoffset)
+	v.uiBuf.DrawLabel(tulib.Rect{X: 5 + namel, Y: v.height(), Width: v.uiBuf.Width, Height: 1}, &lp, v.statusBuf.Bytes())
+	v.statusBuf.Reset()
 }
 
 // Draw the current view to the 'v.uibuf'.
@@ -774,10 +765,6 @@ func (v *view) redo() {
 }
 
 func (v *view) actionInsert(c cursor, data []byte) {
-	if v.oneline {
-		data = bytes.Replace(data, []byte{'\n'}, nil, -1)
-	}
-
 	v.maybeNextActionGroup()
 	a := action{
 		what:   actionInsert,
