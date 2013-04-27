@@ -50,6 +50,6 @@ func (m insertMode) exit() {
 		g := m.editor
 		v := g.active.leaf
 		a := v.buf.history.lastAction()
-		a.do(v, a.what)
+		a.do(v.buf, a.what)
 	}
 }
