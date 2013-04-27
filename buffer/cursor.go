@@ -88,7 +88,7 @@ func (c *Cursor) coffset() (co int) {
 	return
 }
 
-func (c *Cursor) extractBytes(n int) []byte {
+func (c *Cursor) ExtractBytes(n int) []byte {
 	var buf bytes.Buffer
 	offset := c.Boffset
 	line := c.Line
@@ -289,7 +289,7 @@ func (c *Cursor) PrevRuneFunc(f func(rune) bool) bool {
 // Move cursor forward to beginning of the previous word.
 // Skips the rest of the current word, if any, unless is located at its
 // first character. Returns true if the move was successful, false if EOF reached.
-func (c *Cursor) prevWord() bool {
+func (c *Cursor) PrevWord() bool {
 	isNotSpace := func(r rune) bool {
 		return !unicode.IsSpace(r)
 	}
@@ -358,7 +358,7 @@ func (c *Cursor) MoveOneWordBackward() bool {
 	return true
 }
 
-func (c *Cursor) onInsertAdjust(a *Action) {
+func (c *Cursor) OnInsertAdjust(a *Action) {
 	if a.Cursor.LineNum > c.LineNum {
 		return
 	}
@@ -385,7 +385,7 @@ func (c *Cursor) onInsertAdjust(a *Action) {
 	}
 }
 
-func (c *Cursor) onDeleteAdjust(a *Action) {
+func (c *Cursor) OnDeleteAdjust(a *Action) {
 	if a.Cursor.LineNum > c.LineNum {
 		return
 	}
@@ -461,7 +461,7 @@ func (c Cursor) searchBackward(word []byte) (Cursor, bool) {
 	return c, false
 }
 
-func swapCursorMaybe(c1, c2 Cursor) (r1, r2 Cursor) {
+func SwapCursorMaybe(c1, c2 Cursor) (r1, r2 Cursor) {
 	if c1.LineNum == c2.LineNum {
 		if c1.Boffset > c2.Boffset {
 			return c2, c1
