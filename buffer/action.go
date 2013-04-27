@@ -34,7 +34,7 @@ func (a *Action) Revert(buf *Buffer) {
 	a.do(buf, -a.What)
 }
 
-func (a *Action) insertLine(line, prev *Line, buf *Buffer) {
+func (a *Action) InsertLine(line, prev *Line, buf *Buffer) {
 	bi := prev
 	ai := prev.Next
 
@@ -51,7 +51,7 @@ func (a *Action) insertLine(line, prev *Line, buf *Buffer) {
 	line.Next = ai
 }
 
-func (a *Action) deleteLine(line *Line, buf *Buffer) {
+func (a *Action) DeleteLine(line *Line, buf *Buffer) {
 	bi := line.Prev
 	ai := line.Next
 	if ai != nil {
@@ -85,7 +85,7 @@ func (a *Action) insert(buf *Buffer) {
 				line.Data = line.Data[:offset]
 			}
 			// insert a line
-			a.insertLine(a.Lines[nline], line, buf)
+			a.InsertLine(a.Lines[nline], line, buf)
 			line = a.Lines[nline]
 			nline++
 			offset = 0
@@ -115,7 +115,7 @@ func (a *Action) delete(buf *Buffer) {
 			// append the contents of the deleted line the current line
 			line.Data = append(line.Data, a.Lines[nline].Data...)
 			// delete a line
-			a.deleteLine(a.Lines[nline], buf)
+			a.DeleteLine(a.Lines[nline], buf)
 			nline++
 		} else {
 			buf.numBytes -= len(data)
@@ -160,7 +160,7 @@ func (a *Action) firstLineAffectionLen() int {
 }
 
 // returns the range of deleted lines, the first and the last one
-func (a *Action) deletedLines() (int, int) {
+func (a *Action) DeletedLines() (int, int) {
 	first := a.Cursor.LineNum + 1
 	last := first + len(a.Lines) - 1
 	return first, last

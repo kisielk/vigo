@@ -40,7 +40,7 @@ func (c *Cursor) BOL() bool {
 }
 
 // returns the distance between two locations in bytes
-func (a Cursor) distance(b Cursor) int {
+func (a Cursor) Distance(b Cursor) int {
 	s := 1
 	if b.LineNum < a.LineNum {
 		a, b = b, a
@@ -396,7 +396,7 @@ func (c *Cursor) onDeleteAdjust(a *Action) {
 			return
 		}
 
-		first, last := a.deletedLines()
+		first, last := a.DeletedLines()
 		if first <= c.LineNum && c.LineNum <= last {
 			// deleted the cursor line, see how much it affects it
 			n := 0
