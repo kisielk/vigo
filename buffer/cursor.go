@@ -7,66 +7,62 @@ import (
 	"unicode/utf8"
 )
 
-//----------------------------------------------------------------------------
-// cursor location
-//----------------------------------------------------------------------------
-
 type Cursor struct {
-	line    *Line
-	lineNum int
-	boffset int
+	Line    *Line
+	LineNum int
+	Boffset int
 }
 
 func (c *Cursor) runeUnder() (rune, int) {
-	return utf8.DecodeRune(c.line.data[c.boffset:])
+	return utf8.DecodeRune(c.Line.data[c.Boffset:])
 }
 
 func (c *Cursor) runeBefore() (rune, int) {
-	return utf8.DecodeLastRune(c.line.data[:c.boffset])
+	return utf8.DecodeLastRune(c.Line.data[:c.Boffset])
 }
 
 func (c *Cursor) firstLine() bool {
-	return c.line.prev == nil
+	return c.Line.prev == nil
 }
 
 func (c *Cursor) lastLine() bool {
-	return c.line.next == nil
+	return c.Line.next == nil
 }
 
 // end of line
 func (c *Cursor) eol() bool {
-	return c.boffset == len(c.line.data)
+	return c.Boffset == len(c.Line.data)
 }
 
 // beginning of line
 func (c *Cursor) bol() bool {
-	return c.boffset == 0
+	return c.Boffset == 0
 }
 
 // returns the distance between two locations in bytes
 func (a Cursor) distance(b Cursor) int {
 	s := 1
-	if b.lineNum < a.lineNum {
+	if b.LineNum < a.LineNum {
 		a, b = b, a
 		s = -1
-	} else if a.lineNum == b.lineNum && b.boffset < a.boffset {
+	} else if a.LineNum == b.LineNum && b.Boffset < a.Boffset {
 		a, b = b, a
 		s = -1
 	}
 
 	n := 0
-	for a.line != b.line {
-		n += len(a.line.data) - a.boffset + 1
-		a.line = a.line.next
-		a.boffset = 0
+	for a.Line != b.Line {
+		n += len(a.Line.data) - a.Boffset + 1
+		a.Line = a.Line.next
+		a.Boffset = 0
 	}
-	n += b.boffset - a.boffset
+	n += b.Boffset - a.Boffset
 	return n * s
 }
 
 // Find a visual and a character offset for a given cursor
 func (c *Cursor) voffsetCoffset() (vo, co int) {
-	data := c.line.data[:c.boffset]
+	data := c.Line.data[:c.Boffset]
 	for len(data) > 0 {
 		r, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
@@ -78,7 +74,7 @@ func (c *Cursor) voffsetCoffset() (vo, co int) {
 
 // Find a visual offset for a given cursor
 func (c *Cursor) voffset() (vo int) {
-	data := c.line.data[:c.boffset]
+	data := c.Line.data[:c.Boffset]
 	for len(data) > 0 {
 		r, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
@@ -88,7 +84,7 @@ func (c *Cursor) voffset() (vo int) {
 }
 
 func (c *Cursor) coffset() (co int) {
-	data := c.line.data[:c.boffset]
+	data := c.Line.data[:c.Boffset]
 	for len(data) > 0 {
 		_, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
@@ -99,8 +95,8 @@ func (c *Cursor) coffset() (co int) {
 
 func (c *Cursor) extractBytes(n int) []byte {
 	var buf bytes.Buffer
-	offset := c.boffset
-	line := c.line
+	offset := c.Boffset
+	line := c.Line
 	for n > 0 {
 		switch {
 		case offset < len(line.data):
@@ -130,12 +126,12 @@ func (c *Cursor) extractBytes(n int) []byte {
 func (c *Cursor) nextRune(wrap bool) bool {
 	if !c.eol() {
 		_, rlen := c.runeUnder()
-		c.boffset += rlen
+		c.Boffset += rlen
 		return true
 	} else if wrap && !c.lastLine() {
-		c.line = c.line.next
-		c.lineNum++
-		c.boffset = 0
+		c.Line = c.Line.next
+		c.LineNum++
+		c.Boffset = 0
 		return true
 	}
 	return false
@@ -148,23 +144,23 @@ func (c *Cursor) nextRune(wrap bool) bool {
 func (c *Cursor) prevRune(wrap bool) bool {
 	if !c.bol() {
 		_, rlen := c.runeBefore()
-		c.boffset -= rlen
+		c.Boffset -= rlen
 		return true
 	} else if wrap && !c.firstLine() {
-		c.line = c.line.prev
-		c.lineNum--
-		c.boffset = len(c.line.data)
+		c.Line = c.Line.prev
+		c.LineNum--
+		c.Boffset = len(c.Line.data)
 		return true
 	}
 	return false
 }
 
 func (c *Cursor) moveBeginningOfLine() {
-	c.boffset = 0
+	c.Boffset = 0
 }
 
 func (c *Cursor) moveEndOfLine() {
-	c.boffset = len(c.line.data)
+	c.Boffset = len(c.Line.data)
 }
 
 func (c *Cursor) wordUnderCursor() []byte {
@@ -175,14 +171,14 @@ func (c *Cursor) wordUnderCursor() []byte {
 	}
 
 	for utils.IsWord(r) && !beg.bol() {
-		beg.boffset -= rlen
+		beg.Boffset -= rlen
 		r, rlen = beg.runeBefore()
 	}
 
-	if beg.boffset == end.boffset {
+	if beg.Boffset == end.Boffset {
 		return nil
 	}
-	return c.line.data[beg.boffset:end.boffset]
+	return c.Line.data[beg.Boffset:end.Boffset]
 }
 
 // Move cursor forward until current rune satisfies condition f.
@@ -193,15 +189,15 @@ func (c *Cursor) nextRuneFunc(f func(rune) bool) bool {
 			if c.lastLine() {
 				return false
 			} else {
-				c.line = c.line.next
-				c.lineNum++
-				c.boffset = 0
+				c.Line = c.Line.next
+				c.LineNum++
+				c.Boffset = 0
 				continue
 			}
 		}
 		r, rlen := c.runeUnder()
 		for !f(r) && !c.eol() {
-			c.boffset += rlen
+			c.Boffset += rlen
 			r, rlen = c.runeUnder()
 		}
 		if c.eol() {
@@ -246,15 +242,15 @@ func (c *Cursor) moveOneWordForward() bool {
 			if c.lastLine() {
 				return false
 			} else {
-				c.line = c.line.next
-				c.lineNum++
-				c.boffset = 0
+				c.Line = c.Line.next
+				c.LineNum++
+				c.Boffset = 0
 				continue
 			}
 		}
 		r, rlen := c.runeUnder()
 		for !utils.IsWord(r) && !c.eol() {
-			c.boffset += rlen
+			c.Boffset += rlen
 			r, rlen = c.runeUnder()
 		}
 		if c.eol() {
@@ -265,7 +261,7 @@ func (c *Cursor) moveOneWordForward() bool {
 	// now the cursor is under the word rune, skip all of them
 	r, rlen := c.runeUnder()
 	for utils.IsWord(r) && !c.eol() {
-		c.boffset += rlen
+		c.Boffset += rlen
 		r, rlen = c.runeUnder()
 	}
 	return true
@@ -279,15 +275,15 @@ func (c *Cursor) prevRuneFunc(f func(rune) bool) bool {
 			if c.firstLine() {
 				return false
 			} else {
-				c.line = c.line.prev
-				c.lineNum--
-				c.boffset = len(c.line.data)
+				c.Line = c.Line.prev
+				c.LineNum--
+				c.Boffset = len(c.Line.data)
 				continue
 			}
 		}
 		r, rlen := c.runeBefore()
 		for !f(r) && !c.bol() {
-			c.boffset -= rlen
+			c.Boffset -= rlen
 			r, rlen = c.runeBefore()
 		}
 		break
@@ -338,16 +334,16 @@ func (c *Cursor) moveOneWordBackward() bool {
 			if c.firstLine() {
 				return false
 			} else {
-				c.line = c.line.prev
-				c.lineNum--
-				c.boffset = len(c.line.data)
+				c.Line = c.Line.prev
+				c.LineNum--
+				c.Boffset = len(c.Line.data)
 				continue
 			}
 		}
 
 		r, rlen := c.runeBefore()
 		for !utils.IsWord(r) && !c.bol() {
-			c.boffset -= rlen
+			c.Boffset -= rlen
 			r, rlen = c.runeBefore()
 		}
 		if c.bol() {
@@ -360,7 +356,7 @@ func (c *Cursor) moveOneWordBackward() bool {
 	// backwards
 	r, rlen := c.runeBefore()
 	for utils.IsWord(r) && !c.bol() {
-		c.boffset -= rlen
+		c.Boffset -= rlen
 		r, rlen = c.runeBefore()
 	}
 
@@ -368,37 +364,37 @@ func (c *Cursor) moveOneWordBackward() bool {
 }
 
 func (c *Cursor) onInsertAdjust(a *Action) {
-	if a.cursor.lineNum > c.lineNum {
+	if a.cursor.LineNum > c.LineNum {
 		return
 	}
-	if a.cursor.lineNum < c.lineNum {
+	if a.cursor.LineNum < c.LineNum {
 		// inserted something above the cursor, adjust it
-		c.lineNum += len(a.lines)
+		c.LineNum += len(a.lines)
 		return
 	}
 
 	// insertion on the cursor line
-	if a.cursor.boffset < c.boffset {
+	if a.cursor.Boffset < c.Boffset {
 		// insertion before the cursor, move cursor along with insertion
 		if len(a.lines) == 0 {
 			// no lines were inserted, simply adjust the offset
-			c.boffset += len(a.data)
+			c.Boffset += len(a.data)
 		} else {
 			// one or more lines were inserted, adjust cursor
 			// respectively
-			c.line = a.lastLine()
-			c.lineNum += len(a.lines)
-			c.boffset = a.lastLineAffectionLen() +
-				c.boffset - a.cursor.boffset
+			c.Line = a.lastLine()
+			c.LineNum += len(a.lines)
+			c.Boffset = a.lastLineAffectionLen() +
+				c.Boffset - a.cursor.Boffset
 		}
 	}
 }
 
 func (c *Cursor) onDeleteAdjust(a *Action) {
-	if a.cursor.lineNum > c.lineNum {
+	if a.cursor.LineNum > c.LineNum {
 		return
 	}
-	if a.cursor.lineNum < c.lineNum {
+	if a.cursor.LineNum < c.LineNum {
 		// deletion above the cursor line, may touch the cursor location
 		if len(a.lines) == 0 {
 			// no lines were deleted, no things to adjust
@@ -406,80 +402,80 @@ func (c *Cursor) onDeleteAdjust(a *Action) {
 		}
 
 		first, last := a.deletedLines()
-		if first <= c.lineNum && c.lineNum <= last {
+		if first <= c.LineNum && c.LineNum <= last {
 			// deleted the cursor line, see how much it affects it
 			n := 0
-			if last == c.lineNum {
-				n = c.boffset - a.lastLineAffectionLen()
+			if last == c.LineNum {
+				n = c.Boffset - a.lastLineAffectionLen()
 				if n < 0 {
 					n = 0
 				}
 			}
 			*c = a.cursor
-			c.boffset += n
+			c.Boffset += n
 		} else {
 			// phew.. no worries
-			c.lineNum -= len(a.lines)
+			c.LineNum -= len(a.lines)
 			return
 		}
 	}
 
 	// the last case is deletion on the cursor line, see what was deleted
-	if a.cursor.boffset >= c.boffset {
+	if a.cursor.Boffset >= c.Boffset {
 		// deleted something after cursor, don't care
 		return
 	}
 
-	n := c.boffset - (a.cursor.boffset + a.firstLineAffectionLen())
+	n := c.Boffset - (a.cursor.Boffset + a.firstLineAffectionLen())
 	if n < 0 {
 		n = 0
 	}
-	c.boffset = a.cursor.boffset + n
+	c.Boffset = a.cursor.Boffset + n
 }
 
 func (c Cursor) searchForward(word []byte) (Cursor, bool) {
-	for c.line != nil {
-		i := bytes.Index(c.line.data[c.boffset:], word)
+	for c.Line != nil {
+		i := bytes.Index(c.Line.data[c.Boffset:], word)
 		if i != -1 {
-			c.boffset += i
+			c.Boffset += i
 			return c, true
 		}
 
-		c.line = c.line.next
-		c.lineNum++
-		c.boffset = 0
+		c.Line = c.Line.next
+		c.LineNum++
+		c.Boffset = 0
 	}
 	return c, false
 }
 
 func (c Cursor) searchBackward(word []byte) (Cursor, bool) {
 	for {
-		i := bytes.LastIndex(c.line.data[:c.boffset], word)
+		i := bytes.LastIndex(c.Line.data[:c.Boffset], word)
 		if i != -1 {
-			c.boffset = i
+			c.Boffset = i
 			return c, true
 		}
 
-		c.line = c.line.prev
-		if c.line == nil {
+		c.Line = c.Line.prev
+		if c.Line == nil {
 			break
 		}
-		c.lineNum--
-		c.boffset = len(c.line.data)
+		c.LineNum--
+		c.Boffset = len(c.Line.data)
 	}
 	return c, false
 }
 
 func swapCursorMaybe(c1, c2 Cursor) (r1, r2 Cursor) {
-	if c1.lineNum == c2.lineNum {
-		if c1.boffset > c2.boffset {
+	if c1.LineNum == c2.LineNum {
+		if c1.Boffset > c2.Boffset {
 			return c2, c1
 		} else {
 			return c1, c2
 		}
 	}
 
-	if c1.lineNum > c2.lineNum {
+	if c1.LineNum > c2.LineNum {
 		return c2, c1
 	}
 	return c1, c2

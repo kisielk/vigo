@@ -176,8 +176,8 @@ func (b *Buffer) dumpHistory() {
 			case actionDelete:
 				p(" - delete")
 			}
-			p(" (%2d,%2d):%q\n", a.cursor.lineNum,
-				a.cursor.boffset, string(a.data))
+			p(" (%2d,%2d):%q\n", a.cursor.LineNum,
+				a.cursor.Boffset, string(a.data))
 		}
 		cur = cur.next
 		i++
@@ -225,14 +225,14 @@ func (b *Buffer) contents() []byte {
 
 type BufferReader struct {
 	buffer *Buffer
-	line   *Line
+	Line   *Line
 	offset int
 }
 
 func newBufferReader(buffer *Buffer) *BufferReader {
 	br := new(BufferReader)
 	br.buffer = buffer
-	br.line = buffer.FirstLine
+	br.Line = buffer.FirstLine
 	br.offset = 0
 	return br
 }
@@ -240,31 +240,31 @@ func newBufferReader(buffer *Buffer) *BufferReader {
 func (br *BufferReader) Read(data []byte) (int, error) {
 	nread := 0
 	for len(data) > 0 {
-		if br.line == nil {
+		if br.Line == nil {
 			return nread, io.EOF
 		}
 
 		// how much can we read from current line
-		canRead := len(br.line.data) - br.offset
+		canRead := len(br.Line.data) - br.offset
 		if len(data) <= canRead {
 			// if this is all we need, return
-			n := copy(data, br.line.data[br.offset:])
+			n := copy(data, br.Line.data[br.offset:])
 			nread += n
 			br.offset += n
 			break
 		}
 
 		// otherwise try to read '\n' and jump to the next line
-		n := copy(data, br.line.data[br.offset:])
+		n := copy(data, br.Line.data[br.offset:])
 		nread += n
 		data = data[n:]
-		if len(data) > 0 && br.line != br.buffer.LastLine {
+		if len(data) > 0 && br.Line != br.buffer.LastLine {
 			data[0] = '\n'
 			data = data[1:]
 			nread++
 		}
 
-		br.line = br.line.next
+		br.Line = br.Line.next
 		br.offset = 0
 	}
 	return nread, nil

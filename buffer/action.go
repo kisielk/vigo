@@ -70,8 +70,8 @@ func (a *Action) deleteLine(line *Line, buf *Buffer) {
 func (a *Action) insert(buf *Buffer) {
 	var data_chunk []byte
 	nline := 0
-	offset := a.cursor.boffset
-	line := a.cursor.line
+	offset := a.cursor.Boffset
+	line := a.cursor.Line
 	utils.IterLines(a.data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes++
@@ -105,8 +105,8 @@ func (a *Action) insert(buf *Buffer) {
 
 func (a *Action) delete(buf *Buffer) {
 	nline := 0
-	offset := a.cursor.boffset
-	line := a.cursor.line
+	offset := a.cursor.Boffset
+	line := a.cursor.Line
 	utils.IterLines(a.data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes--
@@ -161,7 +161,7 @@ func (a *Action) firstLineAffectionLen() int {
 
 // returns the range of deleted lines, the first and the last one
 func (a *Action) deletedLines() (int, int) {
-	first := a.cursor.lineNum + 1
+	first := a.cursor.LineNum + 1
 	last := first + len(a.lines) - 1
 	return first, last
 }
@@ -172,11 +172,11 @@ func (a *Action) tryMerge(b *Action) bool {
 		return false
 	}
 
-	if a.cursor.lineNum != b.cursor.lineNum {
+	if a.cursor.LineNum != b.cursor.LineNum {
 		return false
 	}
 
-	if a.cursor.boffset == b.cursor.boffset {
+	if a.cursor.Boffset == b.cursor.Boffset {
 		pa, pb := a, b
 		if a.what == actionInsert {
 			// on insertion merge as 'ba', on deletion as 'ab'
@@ -190,10 +190,10 @@ func (a *Action) tryMerge(b *Action) bool {
 
 	// different boffsets, try to restore the sequence
 	pa, pb := a, b
-	if pb.cursor.boffset < pa.cursor.boffset {
+	if pb.cursor.Boffset < pa.cursor.Boffset {
 		pa, pb = pb, pa
 	}
-	if pa.cursor.boffset+len(pa.data) == pb.cursor.boffset {
+	if pa.cursor.Boffset+len(pa.data) == pb.cursor.Boffset {
 		pa.data = append(pa.data, pb.data...)
 		pa.lines = append(pa.lines, pb.lines...)
 		*a = *pa
