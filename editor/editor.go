@@ -126,50 +126,6 @@ func (bs *cutBuffers) get(b byte) []byte {
 	return (*bs)[b]
 }
 
-func (g *editor) killBuffer(buf *buffer) {
-	var replacement *buffer
-	views := make([]*view, len(buf.views))
-	copy(views, buf.views)
-
-	// find replacement buffer
-	if len(views) > 0 {
-		for _, gbuf := range g.buffers {
-			if gbuf == buf {
-				continue
-			}
-			replacement = gbuf
-			break
-		}
-		if replacement == nil {
-			replacement = newEmptyBuffer()
-			replacement.name = g.bufferName("unnamed")
-			g.buffers = append(g.buffers, replacement)
-		}
-	}
-
-	// replace the buffer we're killing with replacement one for
-	// all the views
-	for _, v := range views {
-		v.attach(replacement)
-	}
-
-	// remove buffer from the list
-	bi := -1
-	for i, n := 0, len(g.buffers); i < n; i++ {
-		if g.buffers[i] == buf {
-			bi = i
-			break
-		}
-	}
-
-	if bi == -1 {
-		panic("removing non-existent buffer")
-	}
-
-	copy(g.buffers[bi:], g.buffers[bi+1:])
-	g.buffers = g.buffers[:len(g.buffers)-1]
-}
-
 func (g *editor) findBufferByFullPath(path string) *buffer {
 	for _, buf := range g.buffers {
 		if buf.path == path {

@@ -191,6 +191,8 @@ func (v *view) attach(b *buffer) {
 				v.dirty = dirtyEverything
 				// FIXME for unfocused views, just call onDelete
 				// v.onDelete(e.Action)
+			case BufferEventSave:
+				v.dirty |= dirtyStatus
 			}
 		}
 	}()

@@ -47,6 +47,7 @@ type BufferEventType int
 const (
 	BufferEventInsert BufferEventType = iota
 	BufferEventDelete
+	BufferEventSave
 )
 
 type BufferEvent struct {
@@ -55,8 +56,6 @@ type BufferEvent struct {
 }
 
 type buffer struct {
-	// TODO Now only used in saveAs. Can be removed when that is factored out.
-	views     []*view
 	firstLine *line
 	lastLine  *line
 	numLines  int
@@ -206,9 +205,7 @@ func (b *buffer) saveAs(filename string) error {
 	}
 
 	b.onDisk = b.history
-	for _, v := range b.views {
-		v.dirty |= dirtyStatus
-	}
+	b.Emit(BufferEvent{Type: BufferEventSave})
 	return nil
 }
 
