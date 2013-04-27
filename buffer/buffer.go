@@ -170,14 +170,14 @@ func (b *Buffer) dumpHistory() {
 	for cur != nil {
 		p("action group %d: %d actions\n", i, len(cur.Actions))
 		for _, a := range cur.Actions {
-			switch a.what {
-			case actionInsert:
+			switch a.What {
+			case ActionInsert:
 				p(" + insert")
-			case actionDelete:
+			case ActionDelete:
 				p(" - delete")
 			}
-			p(" (%2d,%2d):%q\n", a.cursor.LineNum,
-				a.cursor.Boffset, string(a.Data))
+			p(" (%2d,%2d):%q\n", a.Cursor.LineNum,
+				a.Cursor.Boffset, string(a.Data))
 		}
 		cur = cur.Next
 		i++

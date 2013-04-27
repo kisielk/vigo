@@ -359,39 +359,39 @@ func (c *Cursor) MoveOneWordBackward() bool {
 }
 
 func (c *Cursor) onInsertAdjust(a *Action) {
-	if a.cursor.LineNum > c.LineNum {
+	if a.Cursor.LineNum > c.LineNum {
 		return
 	}
-	if a.cursor.LineNum < c.LineNum {
+	if a.Cursor.LineNum < c.LineNum {
 		// inserted something above the cursor, adjust it
-		c.LineNum += len(a.lines)
+		c.LineNum += len(a.Lines)
 		return
 	}
 
 	// insertion on the cursor line
-	if a.cursor.Boffset < c.Boffset {
+	if a.Cursor.Boffset < c.Boffset {
 		// insertion before the cursor, move cursor along with insertion
-		if len(a.lines) == 0 {
+		if len(a.Lines) == 0 {
 			// no lines were inserted, simply adjust the offset
 			c.Boffset += len(a.Data)
 		} else {
 			// one or more lines were inserted, adjust cursor
 			// respectively
 			c.Line = a.LastLine()
-			c.LineNum += len(a.lines)
+			c.LineNum += len(a.Lines)
 			c.Boffset = a.lastLineAffectionLen() +
-				c.Boffset - a.cursor.Boffset
+				c.Boffset - a.Cursor.Boffset
 		}
 	}
 }
 
 func (c *Cursor) onDeleteAdjust(a *Action) {
-	if a.cursor.LineNum > c.LineNum {
+	if a.Cursor.LineNum > c.LineNum {
 		return
 	}
-	if a.cursor.LineNum < c.LineNum {
+	if a.Cursor.LineNum < c.LineNum {
 		// deletion above the cursor line, may touch the cursor location
-		if len(a.lines) == 0 {
+		if len(a.Lines) == 0 {
 			// no lines were deleted, no things to adjust
 			return
 		}
@@ -406,26 +406,26 @@ func (c *Cursor) onDeleteAdjust(a *Action) {
 					n = 0
 				}
 			}
-			*c = a.cursor
+			*c = a.Cursor
 			c.Boffset += n
 		} else {
 			// phew.. no worries
-			c.LineNum -= len(a.lines)
+			c.LineNum -= len(a.Lines)
 			return
 		}
 	}
 
 	// the last case is deletion on the cursor line, see what was deleted
-	if a.cursor.Boffset >= c.Boffset {
+	if a.Cursor.Boffset >= c.Boffset {
 		// deleted something after cursor, don't care
 		return
 	}
 
-	n := c.Boffset - (a.cursor.Boffset + a.firstLineAffectionLen())
+	n := c.Boffset - (a.Cursor.Boffset + a.firstLineAffectionLen())
 	if n < 0 {
 		n = 0
 	}
-	c.Boffset = a.cursor.Boffset + n
+	c.Boffset = a.Cursor.Boffset + n
 }
 
 func (c Cursor) searchForward(word []byte) (Cursor, bool) {

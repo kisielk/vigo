@@ -12,26 +12,26 @@ import (
 // must be initiated by an action.
 //----------------------------------------------------------------------------
 
-type actionType int
+type ActionType int
 
 const (
-	actionInsert actionType = 1
-	actionDelete actionType = -1
+	ActionInsert ActionType = 1
+	ActionDelete ActionType = -1
 )
 
 type Action struct {
-	what   actionType
+	What   ActionType
 	Data   []byte
-	cursor Cursor
-	lines  []*Line
+	Cursor Cursor
+	Lines  []*Line
 }
 
 func (a *Action) Apply(buf *Buffer) {
-	a.do(buf, a.what)
+	a.do(buf, a.What)
 }
 
 func (a *Action) Revert(buf *Buffer) {
-	a.do(buf, -a.what)
+	a.do(buf, -a.What)
 }
 
 func (a *Action) insertLine(line, prev *Line, buf *Buffer) {
@@ -70,8 +70,8 @@ func (a *Action) deleteLine(line *Line, buf *Buffer) {
 func (a *Action) insert(buf *Buffer) {
 	var data_chunk []byte
 	nline := 0
-	offset := a.cursor.Boffset
-	line := a.cursor.Line
+	offset := a.Cursor.Boffset
+	line := a.Cursor.Line
 	utils.IterLines(a.Data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes++
@@ -85,8 +85,8 @@ func (a *Action) insert(buf *Buffer) {
 				line.Data = line.Data[:offset]
 			}
 			// insert a line
-			a.insertLine(a.lines[nline], line, buf)
-			line = a.lines[nline]
+			a.insertLine(a.Lines[nline], line, buf)
+			line = a.Lines[nline]
 			nline++
 			offset = 0
 		} else {
@@ -105,17 +105,17 @@ func (a *Action) insert(buf *Buffer) {
 
 func (a *Action) delete(buf *Buffer) {
 	nline := 0
-	offset := a.cursor.Boffset
-	line := a.cursor.Line
+	offset := a.Cursor.Boffset
+	line := a.Cursor.Line
 	utils.IterLines(a.Data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes--
 			buf.numLines--
 
 			// append the contents of the deleted line the current line
-			line.Data = append(line.Data, a.lines[nline].Data...)
+			line.Data = append(line.Data, a.Lines[nline].Data...)
 			// delete a line
-			a.deleteLine(a.lines[nline], buf)
+			a.deleteLine(a.Lines[nline], buf)
 			nline++
 		} else {
 			buf.numBytes -= len(data)
@@ -128,17 +128,17 @@ func (a *Action) delete(buf *Buffer) {
 	buf.Emit(BufferEvent{BufferEventDelete, a})
 }
 
-func (a *Action) do(buf *Buffer, what actionType) {
+func (a *Action) do(buf *Buffer, what ActionType) {
 	switch what {
-	case actionInsert:
+	case ActionInsert:
 		a.insert(buf)
-	case actionDelete:
+	case ActionDelete:
 		a.delete(buf)
 	}
 }
 
 func (a *Action) LastLine() *Line {
-	return a.lines[len(a.lines)-1]
+	return a.Lines[len(a.Lines)-1]
 }
 
 func (a *Action) lastLineAffectionLen() int {
@@ -161,41 +161,41 @@ func (a *Action) firstLineAffectionLen() int {
 
 // returns the range of deleted lines, the first and the last one
 func (a *Action) deletedLines() (int, int) {
-	first := a.cursor.LineNum + 1
-	last := first + len(a.lines) - 1
+	first := a.Cursor.LineNum + 1
+	last := first + len(a.Lines) - 1
 	return first, last
 }
 
 func (a *Action) tryMerge(b *Action) bool {
-	if a.what != b.what {
+	if a.What != b.What {
 		// can only merge actions of the same type
 		return false
 	}
 
-	if a.cursor.LineNum != b.cursor.LineNum {
+	if a.Cursor.LineNum != b.Cursor.LineNum {
 		return false
 	}
 
-	if a.cursor.Boffset == b.cursor.Boffset {
+	if a.Cursor.Boffset == b.Cursor.Boffset {
 		pa, pb := a, b
-		if a.what == actionInsert {
+		if a.What == ActionInsert {
 			// on insertion merge as 'ba', on deletion as 'ab'
 			pa, pb = pb, pa
 		}
 		pa.Data = append(pa.Data, pb.Data...)
-		pa.lines = append(pa.lines, pb.lines...)
+		pa.Lines = append(pa.Lines, pb.Lines...)
 		*a = *pa
 		return true
 	}
 
 	// different boffsets, try to restore the sequence
 	pa, pb := a, b
-	if pb.cursor.Boffset < pa.cursor.Boffset {
+	if pb.Cursor.Boffset < pa.Cursor.Boffset {
 		pa, pb = pb, pa
 	}
-	if pa.cursor.Boffset+len(pa.Data) == pb.cursor.Boffset {
+	if pa.Cursor.Boffset+len(pa.Data) == pb.Cursor.Boffset {
 		pa.Data = append(pa.Data, pb.Data...)
-		pa.lines = append(pa.lines, pb.lines...)
+		pa.Lines = append(pa.Lines, pb.Lines...)
 		*a = *pa
 		return true
 	}
@@ -214,7 +214,7 @@ type ActionGroup struct {
 	After   Cursor
 }
 
-func (ag *ActionGroup) append(a *Action) {
+func (ag *ActionGroup) Append(a *Action) {
 	if len(ag.Actions) != 0 {
 		// Oh, we have something in the group already, let's try to
 		// merge this action with the last one.
