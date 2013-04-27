@@ -34,39 +34,6 @@ func (a *Action) Revert(buf *Buffer) {
 	a.do(buf, -a.What)
 }
 
-func (a *Action) InsertLine(line, prev *Line, buf *Buffer) {
-	bi := prev
-	ai := prev.Next
-
-	// 'bi' is always a non-nil line
-	bi.Next = line
-	line.Prev = bi
-
-	// 'ai' could be nil (means we're inserting a new last line)
-	if ai == nil {
-		buf.LastLine = line
-	} else {
-		ai.Prev = line
-	}
-	line.Next = ai
-}
-
-func (a *Action) DeleteLine(line *Line, buf *Buffer) {
-	bi := line.Prev
-	ai := line.Next
-	if ai != nil {
-		ai.Prev = bi
-	} else {
-		buf.LastLine = bi
-	}
-	if bi != nil {
-		bi.Next = ai
-	} else {
-		buf.FirstLine = ai
-	}
-	line.Data = line.Data[:0]
-}
-
 func (a *Action) insert(buf *Buffer) {
 	var data_chunk []byte
 	nline := 0
@@ -75,8 +42,6 @@ func (a *Action) insert(buf *Buffer) {
 	utils.IterLines(a.Data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes++
-			buf.NumLines++
-
 			if offset < len(line.Data) {
 				// a case where we insert at the middle of the
 				// line, need to save that chunk for later
@@ -85,13 +50,12 @@ func (a *Action) insert(buf *Buffer) {
 				line.Data = line.Data[:offset]
 			}
 			// insert a line
-			a.InsertLine(a.Lines[nline], line, buf)
+			buf.InsertLine(a.Lines[nline], line)
 			line = a.Lines[nline]
 			nline++
 			offset = 0
 		} else {
 			buf.numBytes += len(data)
-
 			// insert a chunk of data
 			line.Data = utils.InsertBytes(line.Data, offset, data)
 			offset += len(data)
@@ -110,16 +74,13 @@ func (a *Action) delete(buf *Buffer) {
 	utils.IterLines(a.Data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes--
-			buf.NumLines--
-
 			// append the contents of the deleted line the current line
 			line.Data = append(line.Data, a.Lines[nline].Data...)
 			// delete a line
-			a.DeleteLine(a.Lines[nline], buf)
+			buf.DeleteLine(a.Lines[nline])
 			nline++
 		} else {
 			buf.numBytes -= len(data)
-
 			// delete a chunk of data
 			copy(line.Data[offset:], line.Data[offset+len(data):])
 			line.Data = line.Data[:len(line.Data)-len(data)]

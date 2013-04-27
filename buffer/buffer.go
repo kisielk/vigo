@@ -148,6 +148,46 @@ func NewBuffer(r io.Reader) (*Buffer, error) {
 	return b, err
 }
 
+func (b *Buffer) InsertLine(line *Line, prev *Line) {
+	// NOTE: 1) does not update b.numBytes
+	//       2) cannot prepend to the first line
+	bi := prev
+	ai := prev.Next
+
+	// 'bi' is always a non-nil line
+	bi.Next = line
+	line.Prev = bi
+
+	// 'ai' could be nil (means we're inserting a new last line)
+	if ai == nil {
+		b.LastLine = line
+	} else {
+		ai.Prev = line
+	}
+
+	line.Next = ai
+	b.NumLines++
+}
+
+func (b *Buffer) DeleteLine(line *Line) {
+	// NOTE: 1) does not update b.numBytes
+	//       2) zeroes line bytes
+	bi := line.Prev
+	ai := line.Next
+	if ai != nil {
+		ai.Prev = bi
+	} else {
+		b.LastLine = bi
+	}
+	if bi != nil {
+		bi.Next = ai
+	} else {
+		b.FirstLine = ai
+	}
+	line.Data = line.Data[:0]
+	b.NumLines--
+}
+
 func (b *Buffer) initHistory() {
 	// the trick here is that I set 'sentinel' as 'history', it is required
 	// to maintain an invariant, where 'history' is a sentinel or is not
