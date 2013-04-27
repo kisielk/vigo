@@ -25,12 +25,12 @@ type action struct {
 	lines  []*line
 }
 
-func (a *action) apply(v *view) {
-	a.do(v, a.what)
+func (a *action) apply(buf *buffer) {
+	a.do(buf, a.what)
 }
 
-func (a *action) revert(v *view) {
-	a.do(v, -a.what)
+func (a *action) revert(buf *buffer) {
+	a.do(buf, -a.what)
 }
 
 func (a *action) insertLine(line, prev *line, buf *buffer) {
@@ -127,13 +127,12 @@ func (a *action) delete(buf *buffer) {
 	buf.Emit(BufferEvent{BufferEventDelete, a})
 }
 
-func (a *action) do(v *view, what actionType) {
-	// TODO pass buffer instead of view
+func (a *action) do(buf *buffer, what actionType) {
 	switch what {
 	case actionInsert:
-		a.insert(v.buf)
+		a.insert(buf)
 	case actionDelete:
-		a.delete(v.buf)
+		a.delete(buf)
 	}
 }
 

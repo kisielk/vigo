@@ -753,7 +753,7 @@ func (v *view) undo() {
 	// not a sentinel, revert the actions in the current action group
 	for i := len(b.history.actions) - 1; i >= 0; i-- {
 		a := &b.history.actions[i]
-		a.revert(v)
+		a.revert(v.buf)
 	}
 	v.moveCursorTo(b.history.before)
 	v.lastCursorVoffset = v.cursorVoffset
@@ -779,7 +779,7 @@ func (v *view) redo() {
 	b.history = b.history.next
 	for i := range b.history.actions {
 		a := &b.history.actions[i]
-		a.apply(v)
+		a.apply(v.buf)
 	}
 	v.moveCursorTo(b.history.after)
 	v.lastCursorVoffset = v.cursorVoffset
@@ -797,7 +797,7 @@ func (v *view) actionInsert(c cursor, data []byte) {
 	for i := range a.lines {
 		a.lines[i] = new(line)
 	}
-	a.apply(v)
+	a.apply(v.buf)
 	v.buf.history.append(&a)
 }
 
@@ -814,7 +814,7 @@ func (v *view) actionDelete(c cursor, nbytes int) {
 		a.lines[i] = c.line.next
 		c.line = c.line.next
 	}
-	a.apply(v)
+	a.apply(v.buf)
 	v.buf.history.append(&a)
 }
 
