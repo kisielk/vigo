@@ -136,7 +136,7 @@ func (c *Cursor) NextRune(wrap bool) bool {
 // wraps the cursor to the end of next line once the beginning of
 // the current one is reached. Returns true if motion succeeded,
 // false otherwise.
-func (c *Cursor) prevRune(wrap bool) bool {
+func (c *Cursor) PrevRune(wrap bool) bool {
 	if !c.BOL() {
 		_, rlen := c.RuneBefore()
 		c.Boffset -= rlen
@@ -150,15 +150,15 @@ func (c *Cursor) prevRune(wrap bool) bool {
 	return false
 }
 
-func (c *Cursor) moveBeginningOfLine() {
+func (c *Cursor) MoveBOL() {
 	c.Boffset = 0
 }
 
-func (c *Cursor) moveEndOfLine() {
+func (c *Cursor) MoveEOL() {
 	c.Boffset = len(c.Line.Data)
 }
 
-func (c *Cursor) wordUnderCursor() []byte {
+func (c *Cursor) WordUnderCursor() []byte {
 	end, beg := *c, *c
 	r, rlen := beg.RuneBefore()
 	if r == utf8.RuneError {
@@ -178,7 +178,7 @@ func (c *Cursor) wordUnderCursor() []byte {
 
 // Move cursor forward until current rune satisfies condition f.
 // Returns true if the move was successful, false if EOF reached.
-func (c *Cursor) nextRuneFunc(f func(rune) bool) bool {
+func (c *Cursor) NextRuneFunc(f func(rune) bool) bool {
 	for {
 		if c.EOL() {
 			if c.LastLine() {
@@ -206,7 +206,7 @@ func (c *Cursor) nextRuneFunc(f func(rune) bool) bool {
 // Move cursor forward to beginning of next word.
 // Skips the rest of the current word, if any. Returns true if
 // the move was successful, false if EOF reached.
-func (c *Cursor) nextWord() bool {
+func (c *Cursor) NextWord() bool {
 	isNotSpace := func(r rune) bool {
 		return !unicode.IsSpace(r)
 	}
@@ -216,21 +216,21 @@ func (c *Cursor) nextWord() bool {
 		// (A-Z0-9_) and any other non-whitespace character. Skip until
 		// we find either the other word type or whitespace.
 		if utils.IsWord(r) {
-			c.nextRuneFunc(func(r rune) bool {
+			c.NextRuneFunc(func(r rune) bool {
 				return !utils.IsWord(r) || unicode.IsSpace(r)
 			})
 		} else {
-			c.nextRuneFunc(func(r rune) bool {
+			c.NextRuneFunc(func(r rune) bool {
 				return utils.IsWord(r) || unicode.IsSpace(r)
 			})
 		}
 	}
 	// Skip remaining whitespace until next word of any type.
-	return c.nextRuneFunc(isNotSpace)
+	return c.NextRuneFunc(isNotSpace)
 }
 
 // returns true if the move was successful, false if EOF reached.
-func (c *Cursor) moveOneWordForward() bool {
+func (c *Cursor) MoveOneWordForward() bool {
 	// move cursor forward until the first word rune is met
 	for {
 		if c.EOL() {
@@ -264,7 +264,7 @@ func (c *Cursor) moveOneWordForward() bool {
 
 // Move cursor backward until current rune satisfies condition f.
 // Returns true if the move was successful, false if EOF reached.
-func (c *Cursor) prevRuneFunc(f func(rune) bool) bool {
+func (c *Cursor) PrevRuneFunc(f func(rune) bool) bool {
 	for {
 		if c.BOL() {
 			if c.FirstLine() {
@@ -296,7 +296,7 @@ func (c *Cursor) prevWord() bool {
 	for {
 		// Skip space until we find a word character.
 		// Re-try if we reached beginning-of-line.
-		if !c.prevRuneFunc(isNotSpace) {
+		if !c.PrevRuneFunc(isNotSpace) {
 			return false
 		}
 		if !c.BOL() {
@@ -309,11 +309,11 @@ func (c *Cursor) prevWord() bool {
 		// (A-Z0-9_) and any other non-whitespace character. Skip until
 		// we find either the other word type or whitespace.
 		if utils.IsWord(r) {
-			c.prevRuneFunc(func(r rune) bool {
+			c.PrevRuneFunc(func(r rune) bool {
 				return !utils.IsWord(r) || unicode.IsSpace(r)
 			})
 		} else {
-			c.prevRuneFunc(func(r rune) bool {
+			c.PrevRuneFunc(func(r rune) bool {
 				return utils.IsWord(r) || unicode.IsSpace(r)
 			})
 		}
@@ -322,7 +322,7 @@ func (c *Cursor) prevWord() bool {
 }
 
 // returns true if the move was successful, false if BOF reached.
-func (c *Cursor) moveOneWordBackward() bool {
+func (c *Cursor) MoveOneWordBackward() bool {
 	// move cursor backward while previous rune is not a word rune
 	for {
 		if c.BOL() {
