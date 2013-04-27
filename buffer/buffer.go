@@ -16,6 +16,11 @@ type Line struct {
 	Prev *Line
 }
 
+// Len returns the length of the line in bytes
+func (l Line) Len() int {
+	return len(l.Data)
+}
+
 // Find a set of closest offsets for a given visual offset
 func (l *Line) FindClosestOffsets(voffset int) (bo, co, vo int) {
 	data := l.Data

@@ -670,7 +670,7 @@ func (v *view) moveCursorEndOfFile() {
 	c := buffer.Cursor{
 		Line:    v.buf.LastLine,
 		LineNum: v.buf.NumLines,
-		Boffset: len(v.buf.LastLine.Data),
+		Boffset: v.buf.LastLine.Len(),
 	}
 	v.moveCursorTo(c)
 }
@@ -879,7 +879,7 @@ func (v *view) deleteRuneBackward() {
 		}
 		c.Line = c.Line.Prev
 		c.LineNum--
-		c.Boffset = len(c.Line.Data)
+		c.Boffset = c.Line.Len()
 		v.actionDelete(c, 1)
 		v.moveCursorTo(c)
 		v.dirty = dirtyEverything
@@ -920,7 +920,7 @@ func (v *view) killLine() {
 	c := v.cursor
 	if !c.EOL() {
 		// kill data from the cursor to the EOL
-		len := len(c.Line.Data) - c.Boffset
+		len := c.Line.Len() - c.Boffset
 		v.appendToKillBuffer(c, len)
 		v.actionDelete(c, len)
 		v.dirty = dirtyEverything
@@ -1195,7 +1195,7 @@ func (v *view) cleanupTrailingWhitespaces() {
 	}
 
 	for cursor.Line != nil {
-		len := len(cursor.Line.Data)
+		len := cursor.Line.Len()
 		i := utils.IndexLastNonSpace(cursor.Line.Data)
 		if i == -1 && len > 0 {
 			// the whole string is whitespace
@@ -1213,8 +1213,8 @@ func (v *view) cleanupTrailingWhitespaces() {
 
 	// adjust cursor after changes possibly
 	cursor = v.cursor
-	if cursor.Boffset > len(cursor.Line.Data) {
-		cursor.Boffset = len(cursor.Line.Data)
+	if cursor.Boffset > cursor.Line.Len() {
+		cursor.Boffset = cursor.Line.Len()
 		v.moveCursorTo(cursor)
 	}
 }
@@ -1226,14 +1226,14 @@ func (v *view) cleanupTrailingNewlines() {
 		Boffset: 0,
 	}
 
-	for len(cursor.Line.Data) == 0 {
+	for cursor.Line.Len() == 0 {
 		prev := cursor.Line.Prev
 		if prev == nil {
 			// beginning of the file, stop
 			break
 		}
 
-		if len(prev.Data) > 0 {
+		if prev.Len() > 0 {
 			// previous line is not empty, leave one empty line at
 			// the end (trailing EOL)
 			break
@@ -1255,9 +1255,9 @@ func (v *view) ensureTrailingEOL() {
 	cursor := buffer.Cursor{
 		Line:    v.buf.LastLine,
 		LineNum: v.buf.NumLines,
-		Boffset: len(v.buf.LastLine.Data),
+		Boffset: v.buf.LastLine.Len(),
 	}
-	if len(v.buf.LastLine.Data) > 0 {
+	if v.buf.LastLine.Len() > 0 {
 		v.actionInsert(cursor, []byte{'\n'})
 	}
 }
