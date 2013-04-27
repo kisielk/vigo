@@ -33,7 +33,7 @@ func (a *action) revert(v *view) {
 	a.do(v, -a.what)
 }
 
-func (a *action) insertLine(line, prev *line, v *view) {
+func (a *action) insertLine(line, prev *line, buf *buffer) {
 	bi := prev
 	ai := prev.next
 
@@ -43,38 +43,38 @@ func (a *action) insertLine(line, prev *line, v *view) {
 
 	// 'ai' could be nil (means we're inserting a new last line)
 	if ai == nil {
-		v.buf.lastLine = line
+		buf.lastLine = line
 	} else {
 		ai.prev = line
 	}
 	line.next = ai
 }
 
-func (a *action) deleteLine(line *line, v *view) {
+func (a *action) deleteLine(line *line, buf *buffer) {
 	bi := line.prev
 	ai := line.next
 	if ai != nil {
 		ai.prev = bi
 	} else {
-		v.buf.lastLine = bi
+		buf.lastLine = bi
 	}
 	if bi != nil {
 		bi.next = ai
 	} else {
-		v.buf.firstLine = ai
+		buf.firstLine = ai
 	}
 	line.data = line.data[:0]
 }
 
-func (a *action) insert(v *view) {
+func (a *action) insert(buf *buffer) {
 	var data_chunk []byte
 	nline := 0
 	offset := a.cursor.boffset
 	line := a.cursor.line
 	iterLines(a.data, func(data []byte) {
 		if data[0] == '\n' {
-			v.buf.numBytes++
-			v.buf.numLines++
+			buf.numBytes++
+			buf.numLines++
 
 			if offset < len(line.data) {
 				// a case where we insert at the middle of the
@@ -84,12 +84,12 @@ func (a *action) insert(v *view) {
 				line.data = line.data[:offset]
 			}
 			// insert a line
-			a.insertLine(a.lines[nline], line, v)
+			a.insertLine(a.lines[nline], line, buf)
 			line = a.lines[nline]
 			nline++
 			offset = 0
 		} else {
-			v.buf.numBytes += len(data)
+			buf.numBytes += len(data)
 
 			// insert a chunk of data
 			line.data = insertBytes(line.data, offset, data)
@@ -101,22 +101,22 @@ func (a *action) insert(v *view) {
 	}
 }
 
-func (a *action) delete(v *view) {
+func (a *action) delete(buf *buffer) {
 	nline := 0
 	offset := a.cursor.boffset
 	line := a.cursor.line
 	iterLines(a.data, func(data []byte) {
 		if data[0] == '\n' {
-			v.buf.numBytes--
-			v.buf.numLines--
+			buf.numBytes--
+			buf.numLines--
 
 			// append the contents of the deleted line the current line
 			line.data = append(line.data, a.lines[nline].data...)
 			// delete a line
-			a.deleteLine(a.lines[nline], v)
+			a.deleteLine(a.lines[nline], buf)
 			nline++
 		} else {
-			v.buf.numBytes -= len(data)
+			buf.numBytes -= len(data)
 
 			// delete a chunk of data
 			copy(line.data[offset:], line.data[offset+len(data):])
@@ -128,13 +128,13 @@ func (a *action) delete(v *view) {
 func (a *action) do(v *view, what actionType) {
 	switch what {
 	case actionInsert:
-		a.insert(v)
+		a.insert(v.buf)
 		v.onInsertAdjustTopLine(a)
 		v.buf.otherViews(v, func(v *view) {
 			v.onInsert(a)
 		})
 	case actionDelete:
-		a.delete(v)
+		a.delete(v.buf)
 		v.onDeleteAdjustTopLine(a)
 		v.buf.otherViews(v, func(v *view) {
 			v.onDelete(a)
