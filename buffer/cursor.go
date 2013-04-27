@@ -61,29 +61,13 @@ func (a Cursor) Distance(b Cursor) int {
 }
 
 // Find a visual and a character offset for a given cursor
-func (c *Cursor) voffsetCoffset() (vo, co int) {
+func (c *Cursor) VoffsetCoffset() (vo, co int) {
 	data := c.Line.Data[:c.Boffset]
 	for len(data) > 0 {
 		r, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
 		co += 1
 		vo += utils.RuneAdvanceLen(r, vo)
-	}
-	return
-}
-
-// Find a visual offset for a given cursor
-func (c *Cursor) VisualOffset() int {
-	vo, _ := c.voffsetCoffset()
-	return vo
-}
-
-func (c *Cursor) coffset() (co int) {
-	data := c.Line.Data[:c.Boffset]
-	for len(data) > 0 {
-		_, rlen := utf8.DecodeRune(data)
-		data = data[rlen:]
-		co += 1
 	}
 	return
 }
