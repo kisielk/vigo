@@ -13,29 +13,29 @@ type Cursor struct {
 	Boffset int
 }
 
-func (c *Cursor) runeUnder() (rune, int) {
+func (c *Cursor) RuneUnder() (rune, int) {
 	return utf8.DecodeRune(c.Line.Data[c.Boffset:])
 }
 
-func (c *Cursor) runeBefore() (rune, int) {
+func (c *Cursor) RuneBefore() (rune, int) {
 	return utf8.DecodeLastRune(c.Line.Data[:c.Boffset])
 }
 
-func (c *Cursor) firstLine() bool {
+func (c *Cursor) FirstLine() bool {
 	return c.Line.Prev == nil
 }
 
-func (c *Cursor) lastLine() bool {
+func (c *Cursor) LastLine() bool {
 	return c.Line.Next == nil
 }
 
 // end of line
-func (c *Cursor) eol() bool {
+func (c *Cursor) EOL() bool {
 	return c.Boffset == len(c.Line.Data)
 }
 
 // beginning of line
-func (c *Cursor) bol() bool {
+func (c *Cursor) BOL() bool {
 	return c.Boffset == 0
 }
 
@@ -73,14 +73,9 @@ func (c *Cursor) voffsetCoffset() (vo, co int) {
 }
 
 // Find a visual offset for a given cursor
-func (c *Cursor) voffset() (vo int) {
-	data := c.Line.Data[:c.Boffset]
-	for len(data) > 0 {
-		r, rlen := utf8.DecodeRune(data)
-		data = data[rlen:]
-		vo += utils.RuneAdvanceLen(r, vo)
-	}
-	return
+func (c *Cursor) VisualOffset() int {
+	vo, _ := c.voffsetCoffset()
+	return vo
 }
 
 func (c *Cursor) coffset() (co int) {
@@ -123,12 +118,12 @@ func (c *Cursor) extractBytes(n int) []byte {
 // wraps the cursor to the beginning of next line once the end
 // of the current one is reached. Returns true if motion succeeded,
 // false otherwise.
-func (c *Cursor) nextRune(wrap bool) bool {
-	if !c.eol() {
-		_, rlen := c.runeUnder()
+func (c *Cursor) NextRune(wrap bool) bool {
+	if !c.EOL() {
+		_, rlen := c.RuneUnder()
 		c.Boffset += rlen
 		return true
-	} else if wrap && !c.lastLine() {
+	} else if wrap && !c.LastLine() {
 		c.Line = c.Line.Next
 		c.LineNum++
 		c.Boffset = 0
@@ -142,11 +137,11 @@ func (c *Cursor) nextRune(wrap bool) bool {
 // the current one is reached. Returns true if motion succeeded,
 // false otherwise.
 func (c *Cursor) prevRune(wrap bool) bool {
-	if !c.bol() {
-		_, rlen := c.runeBefore()
+	if !c.BOL() {
+		_, rlen := c.RuneBefore()
 		c.Boffset -= rlen
 		return true
-	} else if wrap && !c.firstLine() {
+	} else if wrap && !c.FirstLine() {
 		c.Line = c.Line.Prev
 		c.LineNum--
 		c.Boffset = len(c.Line.Data)
@@ -165,14 +160,14 @@ func (c *Cursor) moveEndOfLine() {
 
 func (c *Cursor) wordUnderCursor() []byte {
 	end, beg := *c, *c
-	r, rlen := beg.runeBefore()
+	r, rlen := beg.RuneBefore()
 	if r == utf8.RuneError {
 		return nil
 	}
 
-	for utils.IsWord(r) && !beg.bol() {
+	for utils.IsWord(r) && !beg.BOL() {
 		beg.Boffset -= rlen
-		r, rlen = beg.runeBefore()
+		r, rlen = beg.RuneBefore()
 	}
 
 	if beg.Boffset == end.Boffset {
@@ -185,8 +180,8 @@ func (c *Cursor) wordUnderCursor() []byte {
 // Returns true if the move was successful, false if EOF reached.
 func (c *Cursor) nextRuneFunc(f func(rune) bool) bool {
 	for {
-		if c.eol() {
-			if c.lastLine() {
+		if c.EOL() {
+			if c.LastLine() {
 				return false
 			} else {
 				c.Line = c.Line.Next
@@ -195,12 +190,12 @@ func (c *Cursor) nextRuneFunc(f func(rune) bool) bool {
 				continue
 			}
 		}
-		r, rlen := c.runeUnder()
-		for !f(r) && !c.eol() {
+		r, rlen := c.RuneUnder()
+		for !f(r) && !c.EOL() {
 			c.Boffset += rlen
-			r, rlen = c.runeUnder()
+			r, rlen = c.RuneUnder()
 		}
-		if c.eol() {
+		if c.EOL() {
 			continue
 		}
 		break
@@ -215,7 +210,7 @@ func (c *Cursor) nextWord() bool {
 	isNotSpace := func(r rune) bool {
 		return !unicode.IsSpace(r)
 	}
-	r, _ := c.runeUnder()
+	r, _ := c.RuneUnder()
 	if isNotSpace(r) {
 		// Lowercase word motion differentiates words consisting of
 		// (A-Z0-9_) and any other non-whitespace character. Skip until
@@ -238,8 +233,8 @@ func (c *Cursor) nextWord() bool {
 func (c *Cursor) moveOneWordForward() bool {
 	// move cursor forward until the first word rune is met
 	for {
-		if c.eol() {
-			if c.lastLine() {
+		if c.EOL() {
+			if c.LastLine() {
 				return false
 			} else {
 				c.Line = c.Line.Next
@@ -248,21 +243,21 @@ func (c *Cursor) moveOneWordForward() bool {
 				continue
 			}
 		}
-		r, rlen := c.runeUnder()
-		for !utils.IsWord(r) && !c.eol() {
+		r, rlen := c.RuneUnder()
+		for !utils.IsWord(r) && !c.EOL() {
 			c.Boffset += rlen
-			r, rlen = c.runeUnder()
+			r, rlen = c.RuneUnder()
 		}
-		if c.eol() {
+		if c.EOL() {
 			continue
 		}
 		break
 	}
 	// now the cursor is under the word rune, skip all of them
-	r, rlen := c.runeUnder()
-	for utils.IsWord(r) && !c.eol() {
+	r, rlen := c.RuneUnder()
+	for utils.IsWord(r) && !c.EOL() {
 		c.Boffset += rlen
-		r, rlen = c.runeUnder()
+		r, rlen = c.RuneUnder()
 	}
 	return true
 }
@@ -271,8 +266,8 @@ func (c *Cursor) moveOneWordForward() bool {
 // Returns true if the move was successful, false if EOF reached.
 func (c *Cursor) prevRuneFunc(f func(rune) bool) bool {
 	for {
-		if c.bol() {
-			if c.firstLine() {
+		if c.BOL() {
+			if c.FirstLine() {
 				return false
 			} else {
 				c.Line = c.Line.Prev
@@ -281,10 +276,10 @@ func (c *Cursor) prevRuneFunc(f func(rune) bool) bool {
 				continue
 			}
 		}
-		r, rlen := c.runeBefore()
-		for !f(r) && !c.bol() {
+		r, rlen := c.RuneBefore()
+		for !f(r) && !c.BOL() {
 			c.Boffset -= rlen
-			r, rlen = c.runeBefore()
+			r, rlen = c.RuneBefore()
 		}
 		break
 	}
@@ -304,11 +299,11 @@ func (c *Cursor) prevWord() bool {
 		if !c.prevRuneFunc(isNotSpace) {
 			return false
 		}
-		if !c.bol() {
+		if !c.BOL() {
 			break
 		}
 	}
-	r, _ := c.runeBefore()
+	r, _ := c.RuneBefore()
 	if isNotSpace(r) {
 		// Lowercase word motion differentiates words consisting of
 		// (A-Z0-9_) and any other non-whitespace character. Skip until
@@ -323,15 +318,15 @@ func (c *Cursor) prevWord() bool {
 			})
 		}
 	}
-	return !c.bol()
+	return !c.BOL()
 }
 
 // returns true if the move was successful, false if BOF reached.
 func (c *Cursor) moveOneWordBackward() bool {
 	// move cursor backward while previous rune is not a word rune
 	for {
-		if c.bol() {
-			if c.firstLine() {
+		if c.BOL() {
+			if c.FirstLine() {
 				return false
 			} else {
 				c.Line = c.Line.Prev
@@ -341,12 +336,12 @@ func (c *Cursor) moveOneWordBackward() bool {
 			}
 		}
 
-		r, rlen := c.runeBefore()
-		for !utils.IsWord(r) && !c.bol() {
+		r, rlen := c.RuneBefore()
+		for !utils.IsWord(r) && !c.BOL() {
 			c.Boffset -= rlen
-			r, rlen = c.runeBefore()
+			r, rlen = c.RuneBefore()
 		}
-		if c.bol() {
+		if c.BOL() {
 			continue
 		}
 		break
@@ -354,10 +349,10 @@ func (c *Cursor) moveOneWordBackward() bool {
 
 	// now the rune behind the cursor is a word rune, while it's true, move
 	// backwards
-	r, rlen := c.runeBefore()
-	for utils.IsWord(r) && !c.bol() {
+	r, rlen := c.RuneBefore()
+	for utils.IsWord(r) && !c.BOL() {
 		c.Boffset -= rlen
-		r, rlen = c.runeBefore()
+		r, rlen = c.RuneBefore()
 	}
 
 	return true
@@ -382,7 +377,7 @@ func (c *Cursor) onInsertAdjust(a *Action) {
 		} else {
 			// one or more lines were inserted, adjust cursor
 			// respectively
-			c.Line = a.lastLine()
+			c.Line = a.LastLine()
 			c.LineNum += len(a.lines)
 			c.Boffset = a.lastLineAffectionLen() +
 				c.Boffset - a.cursor.Boffset

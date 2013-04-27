@@ -17,7 +17,7 @@ type Line struct {
 }
 
 // Find a set of closest offsets for a given visual offset
-func (l *Line) findClosestOffsets(voffset int) (bo, co, vo int) {
+func (l *Line) FindClosestOffsets(voffset int) (bo, co, vo int) {
 	data := l.Data
 	for len(data) > 0 {
 		var vodif int

@@ -137,7 +137,7 @@ func (a *Action) do(buf *Buffer, what actionType) {
 	}
 }
 
-func (a *Action) lastLine() *Line {
+func (a *Action) LastLine() *Line {
 	return a.lines[len(a.lines)-1]
 }
 
