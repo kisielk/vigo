@@ -415,6 +415,7 @@ func (e *editor) Loop() error {
 		e.Draw()
 		termbox.Flush()
 	}
+	return nil
 }
 
 func (g *editor) handleEvent(ev *termbox.Event) error {
