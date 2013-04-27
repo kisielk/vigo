@@ -14,24 +14,24 @@ type Cursor struct {
 }
 
 func (c *Cursor) runeUnder() (rune, int) {
-	return utf8.DecodeRune(c.Line.data[c.Boffset:])
+	return utf8.DecodeRune(c.Line.Data[c.Boffset:])
 }
 
 func (c *Cursor) runeBefore() (rune, int) {
-	return utf8.DecodeLastRune(c.Line.data[:c.Boffset])
+	return utf8.DecodeLastRune(c.Line.Data[:c.Boffset])
 }
 
 func (c *Cursor) firstLine() bool {
-	return c.Line.prev == nil
+	return c.Line.Prev == nil
 }
 
 func (c *Cursor) lastLine() bool {
-	return c.Line.next == nil
+	return c.Line.Next == nil
 }
 
 // end of line
 func (c *Cursor) eol() bool {
-	return c.Boffset == len(c.Line.data)
+	return c.Boffset == len(c.Line.Data)
 }
 
 // beginning of line
@@ -52,8 +52,8 @@ func (a Cursor) distance(b Cursor) int {
 
 	n := 0
 	for a.Line != b.Line {
-		n += len(a.Line.data) - a.Boffset + 1
-		a.Line = a.Line.next
+		n += len(a.Line.Data) - a.Boffset + 1
+		a.Line = a.Line.Next
 		a.Boffset = 0
 	}
 	n += b.Boffset - a.Boffset
@@ -62,7 +62,7 @@ func (a Cursor) distance(b Cursor) int {
 
 // Find a visual and a character offset for a given cursor
 func (c *Cursor) voffsetCoffset() (vo, co int) {
-	data := c.Line.data[:c.Boffset]
+	data := c.Line.Data[:c.Boffset]
 	for len(data) > 0 {
 		r, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
@@ -74,7 +74,7 @@ func (c *Cursor) voffsetCoffset() (vo, co int) {
 
 // Find a visual offset for a given cursor
 func (c *Cursor) voffset() (vo int) {
-	data := c.Line.data[:c.Boffset]
+	data := c.Line.Data[:c.Boffset]
 	for len(data) > 0 {
 		r, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
@@ -84,7 +84,7 @@ func (c *Cursor) voffset() (vo int) {
 }
 
 func (c *Cursor) coffset() (co int) {
-	data := c.Line.data[:c.Boffset]
+	data := c.Line.Data[:c.Boffset]
 	for len(data) > 0 {
 		_, rlen := utf8.DecodeRune(data)
 		data = data[rlen:]
@@ -99,18 +99,18 @@ func (c *Cursor) extractBytes(n int) []byte {
 	line := c.Line
 	for n > 0 {
 		switch {
-		case offset < len(line.data):
-			nb := len(line.data) - offset
+		case offset < len(line.Data):
+			nb := len(line.Data) - offset
 			if n < nb {
 				nb = n
 			}
-			buf.Write(line.data[offset : offset+nb])
+			buf.Write(line.Data[offset : offset+nb])
 			n -= nb
 			offset += nb
-		case offset == len(line.data):
+		case offset == len(line.Data):
 			buf.WriteByte('\n')
 			offset = 0
-			line = line.next
+			line = line.Next
 			n -= 1
 		default:
 			panic("unreachable")
@@ -129,7 +129,7 @@ func (c *Cursor) nextRune(wrap bool) bool {
 		c.Boffset += rlen
 		return true
 	} else if wrap && !c.lastLine() {
-		c.Line = c.Line.next
+		c.Line = c.Line.Next
 		c.LineNum++
 		c.Boffset = 0
 		return true
@@ -147,9 +147,9 @@ func (c *Cursor) prevRune(wrap bool) bool {
 		c.Boffset -= rlen
 		return true
 	} else if wrap && !c.firstLine() {
-		c.Line = c.Line.prev
+		c.Line = c.Line.Prev
 		c.LineNum--
-		c.Boffset = len(c.Line.data)
+		c.Boffset = len(c.Line.Data)
 		return true
 	}
 	return false
@@ -160,7 +160,7 @@ func (c *Cursor) moveBeginningOfLine() {
 }
 
 func (c *Cursor) moveEndOfLine() {
-	c.Boffset = len(c.Line.data)
+	c.Boffset = len(c.Line.Data)
 }
 
 func (c *Cursor) wordUnderCursor() []byte {
@@ -178,7 +178,7 @@ func (c *Cursor) wordUnderCursor() []byte {
 	if beg.Boffset == end.Boffset {
 		return nil
 	}
-	return c.Line.data[beg.Boffset:end.Boffset]
+	return c.Line.Data[beg.Boffset:end.Boffset]
 }
 
 // Move cursor forward until current rune satisfies condition f.
@@ -189,7 +189,7 @@ func (c *Cursor) nextRuneFunc(f func(rune) bool) bool {
 			if c.lastLine() {
 				return false
 			} else {
-				c.Line = c.Line.next
+				c.Line = c.Line.Next
 				c.LineNum++
 				c.Boffset = 0
 				continue
@@ -242,7 +242,7 @@ func (c *Cursor) moveOneWordForward() bool {
 			if c.lastLine() {
 				return false
 			} else {
-				c.Line = c.Line.next
+				c.Line = c.Line.Next
 				c.LineNum++
 				c.Boffset = 0
 				continue
@@ -275,9 +275,9 @@ func (c *Cursor) prevRuneFunc(f func(rune) bool) bool {
 			if c.firstLine() {
 				return false
 			} else {
-				c.Line = c.Line.prev
+				c.Line = c.Line.Prev
 				c.LineNum--
-				c.Boffset = len(c.Line.data)
+				c.Boffset = len(c.Line.Data)
 				continue
 			}
 		}
@@ -334,9 +334,9 @@ func (c *Cursor) moveOneWordBackward() bool {
 			if c.firstLine() {
 				return false
 			} else {
-				c.Line = c.Line.prev
+				c.Line = c.Line.Prev
 				c.LineNum--
-				c.Boffset = len(c.Line.data)
+				c.Boffset = len(c.Line.Data)
 				continue
 			}
 		}
@@ -378,7 +378,7 @@ func (c *Cursor) onInsertAdjust(a *Action) {
 		// insertion before the cursor, move cursor along with insertion
 		if len(a.lines) == 0 {
 			// no lines were inserted, simply adjust the offset
-			c.Boffset += len(a.data)
+			c.Boffset += len(a.Data)
 		} else {
 			// one or more lines were inserted, adjust cursor
 			// respectively
@@ -435,13 +435,13 @@ func (c *Cursor) onDeleteAdjust(a *Action) {
 
 func (c Cursor) searchForward(word []byte) (Cursor, bool) {
 	for c.Line != nil {
-		i := bytes.Index(c.Line.data[c.Boffset:], word)
+		i := bytes.Index(c.Line.Data[c.Boffset:], word)
 		if i != -1 {
 			c.Boffset += i
 			return c, true
 		}
 
-		c.Line = c.Line.next
+		c.Line = c.Line.Next
 		c.LineNum++
 		c.Boffset = 0
 	}
@@ -450,18 +450,18 @@ func (c Cursor) searchForward(word []byte) (Cursor, bool) {
 
 func (c Cursor) searchBackward(word []byte) (Cursor, bool) {
 	for {
-		i := bytes.LastIndex(c.Line.data[:c.Boffset], word)
+		i := bytes.LastIndex(c.Line.Data[:c.Boffset], word)
 		if i != -1 {
 			c.Boffset = i
 			return c, true
 		}
 
-		c.Line = c.Line.prev
+		c.Line = c.Line.Prev
 		if c.Line == nil {
 			break
 		}
 		c.LineNum--
-		c.Boffset = len(c.Line.data)
+		c.Boffset = len(c.Line.Data)
 	}
 	return c, false
 }

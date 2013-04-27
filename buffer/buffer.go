@@ -11,14 +11,14 @@ import (
 )
 
 type Line struct {
-	data []byte
-	next *Line
-	prev *Line
+	Data []byte
+	Next *Line
+	Prev *Line
 }
 
 // Find a set of closest offsets for a given visual offset
 func (l *Line) findClosestOffsets(voffset int) (bo, co, vo int) {
-	data := l.data
+	data := l.Data
 	for len(data) > 0 {
 		var vodif int
 		r, rlen := utf8.DecodeRune(data)
@@ -74,8 +74,8 @@ type Buffer struct {
 func NewEmptyBuffer() *Buffer {
 	b := new(Buffer)
 	l := new(Line)
-	l.next = nil
-	l.prev = nil
+	l.Next = nil
+	l.Prev = nil
 	b.FirstLine = l
 	b.LastLine = l
 	b.numLines = 1
@@ -113,24 +113,24 @@ func NewBuffer(r io.Reader) (*Buffer, error) {
 	b.numLines = 1
 	b.FirstLine = l
 	for {
-		l.data, err = br.ReadBytes('\n')
+		l.Data, err = br.ReadBytes('\n')
 		if err != nil {
 			// last line was read
 			break
 		} else {
-			b.numBytes += len(l.data)
+			b.numBytes += len(l.Data)
 
 			// cut off the '\n' character
-			l.data = l.data[:len(l.data)-1]
+			l.Data = l.Data[:len(l.Data)-1]
 		}
 
 		b.numLines++
-		l.next = new(Line)
-		l.prev = prevline
+		l.Next = new(Line)
+		l.Prev = prevline
 		prevline = l
-		l = l.next
+		l = l.Next
 	}
-	l.prev = prevline
+	l.Prev = prevline
 	b.LastLine = l
 
 	// io.EOF is not an error
@@ -150,16 +150,16 @@ func (b *Buffer) initHistory() {
 
 	sentinel := new(ActionGroup)
 	first := new(ActionGroup)
-	sentinel.next = first
-	first.prev = sentinel
+	sentinel.Next = first
+	first.Prev = sentinel
 	b.History = sentinel
 	b.onDisk = sentinel
 }
 
 func (b *Buffer) dumpHistory() {
 	cur := b.History
-	for cur.prev != nil {
-		cur = cur.prev
+	for cur.Prev != nil {
+		cur = cur.Prev
 	}
 
 	p := func(format string, args ...interface{}) {
@@ -177,9 +177,9 @@ func (b *Buffer) dumpHistory() {
 				p(" - delete")
 			}
 			p(" (%2d,%2d):%q\n", a.cursor.LineNum,
-				a.cursor.Boffset, string(a.data))
+				a.cursor.Boffset, string(a.Data))
 		}
-		cur = cur.next
+		cur = cur.Next
 		i++
 	}
 }
@@ -245,17 +245,17 @@ func (br *BufferReader) Read(data []byte) (int, error) {
 		}
 
 		// how much can we read from current line
-		canRead := len(br.Line.data) - br.offset
+		canRead := len(br.Line.Data) - br.offset
 		if len(data) <= canRead {
 			// if this is all we need, return
-			n := copy(data, br.Line.data[br.offset:])
+			n := copy(data, br.Line.Data[br.offset:])
 			nread += n
 			br.offset += n
 			break
 		}
 
 		// otherwise try to read '\n' and jump to the next line
-		n := copy(data, br.Line.data[br.offset:])
+		n := copy(data, br.Line.Data[br.offset:])
 		nread += n
 		data = data[n:]
 		if len(data) > 0 && br.Line != br.buffer.LastLine {
@@ -264,7 +264,7 @@ func (br *BufferReader) Read(data []byte) (int, error) {
 			nread++
 		}
 
-		br.Line = br.Line.next
+		br.Line = br.Line.Next
 		br.offset = 0
 	}
 	return nread, nil

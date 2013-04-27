@@ -21,7 +21,7 @@ const (
 
 type Action struct {
 	what   actionType
-	data   []byte
+	Data   []byte
 	cursor Cursor
 	lines  []*Line
 }
@@ -36,35 +36,35 @@ func (a *Action) Revert(buf *Buffer) {
 
 func (a *Action) insertLine(line, prev *Line, buf *Buffer) {
 	bi := prev
-	ai := prev.next
+	ai := prev.Next
 
 	// 'bi' is always a non-nil line
-	bi.next = line
-	line.prev = bi
+	bi.Next = line
+	line.Prev = bi
 
 	// 'ai' could be nil (means we're inserting a new last line)
 	if ai == nil {
 		buf.LastLine = line
 	} else {
-		ai.prev = line
+		ai.Prev = line
 	}
-	line.next = ai
+	line.Next = ai
 }
 
 func (a *Action) deleteLine(line *Line, buf *Buffer) {
-	bi := line.prev
-	ai := line.next
+	bi := line.Prev
+	ai := line.Next
 	if ai != nil {
-		ai.prev = bi
+		ai.Prev = bi
 	} else {
 		buf.LastLine = bi
 	}
 	if bi != nil {
-		bi.next = ai
+		bi.Next = ai
 	} else {
 		buf.FirstLine = ai
 	}
-	line.data = line.data[:0]
+	line.Data = line.Data[:0]
 }
 
 func (a *Action) insert(buf *Buffer) {
@@ -72,17 +72,17 @@ func (a *Action) insert(buf *Buffer) {
 	nline := 0
 	offset := a.cursor.Boffset
 	line := a.cursor.Line
-	utils.IterLines(a.data, func(data []byte) {
+	utils.IterLines(a.Data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes++
 			buf.numLines++
 
-			if offset < len(line.data) {
+			if offset < len(line.Data) {
 				// a case where we insert at the middle of the
 				// line, need to save that chunk for later
 				// insertion at the end of the operation
-				data_chunk = line.data[offset:]
-				line.data = line.data[:offset]
+				data_chunk = line.Data[offset:]
+				line.Data = line.Data[:offset]
 			}
 			// insert a line
 			a.insertLine(a.lines[nline], line, buf)
@@ -93,12 +93,12 @@ func (a *Action) insert(buf *Buffer) {
 			buf.numBytes += len(data)
 
 			// insert a chunk of data
-			line.data = utils.InsertBytes(line.data, offset, data)
+			line.Data = utils.InsertBytes(line.Data, offset, data)
 			offset += len(data)
 		}
 	})
 	if data_chunk != nil {
-		line.data = append(line.data, data_chunk...)
+		line.Data = append(line.Data, data_chunk...)
 	}
 	buf.Emit(BufferEvent{BufferEventInsert, a})
 }
@@ -107,13 +107,13 @@ func (a *Action) delete(buf *Buffer) {
 	nline := 0
 	offset := a.cursor.Boffset
 	line := a.cursor.Line
-	utils.IterLines(a.data, func(data []byte) {
+	utils.IterLines(a.Data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes--
 			buf.numLines--
 
 			// append the contents of the deleted line the current line
-			line.data = append(line.data, a.lines[nline].data...)
+			line.Data = append(line.Data, a.lines[nline].Data...)
 			// delete a line
 			a.deleteLine(a.lines[nline], buf)
 			nline++
@@ -121,8 +121,8 @@ func (a *Action) delete(buf *Buffer) {
 			buf.numBytes -= len(data)
 
 			// delete a chunk of data
-			copy(line.data[offset:], line.data[offset+len(data):])
-			line.data = line.data[:len(line.data)-len(data)]
+			copy(line.Data[offset:], line.Data[offset+len(data):])
+			line.Data = line.Data[:len(line.Data)-len(data)]
 		}
 	})
 	buf.Emit(BufferEvent{BufferEventDelete, a})
@@ -142,18 +142,18 @@ func (a *Action) lastLine() *Line {
 }
 
 func (a *Action) lastLineAffectionLen() int {
-	i := bytes.LastIndex(a.data, []byte{'\n'})
+	i := bytes.LastIndex(a.Data, []byte{'\n'})
 	if i == -1 {
-		return len(a.data)
+		return len(a.Data)
 	}
 
-	return len(a.data) - i - 1
+	return len(a.Data) - i - 1
 }
 
 func (a *Action) firstLineAffectionLen() int {
-	i := bytes.Index(a.data, []byte{'\n'})
+	i := bytes.Index(a.Data, []byte{'\n'})
 	if i == -1 {
-		return len(a.data)
+		return len(a.Data)
 	}
 
 	return i
@@ -182,7 +182,7 @@ func (a *Action) tryMerge(b *Action) bool {
 			// on insertion merge as 'ba', on deletion as 'ab'
 			pa, pb = pb, pa
 		}
-		pa.data = append(pa.data, pb.data...)
+		pa.Data = append(pa.Data, pb.Data...)
 		pa.lines = append(pa.lines, pb.lines...)
 		*a = *pa
 		return true
@@ -193,8 +193,8 @@ func (a *Action) tryMerge(b *Action) bool {
 	if pb.cursor.Boffset < pa.cursor.Boffset {
 		pa, pb = pb, pa
 	}
-	if pa.cursor.Boffset+len(pa.data) == pb.cursor.Boffset {
-		pa.data = append(pa.data, pb.data...)
+	if pa.cursor.Boffset+len(pa.Data) == pb.cursor.Boffset {
+		pa.Data = append(pa.Data, pb.Data...)
 		pa.lines = append(pa.lines, pb.lines...)
 		*a = *pa
 		return true
@@ -208,8 +208,8 @@ func (a *Action) tryMerge(b *Action) bool {
 
 type ActionGroup struct {
 	actions []Action
-	next    *ActionGroup
-	prev    *ActionGroup
+	Next    *ActionGroup
+	Prev    *ActionGroup
 	before  Cursor
 	after   Cursor
 }
