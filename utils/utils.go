@@ -5,7 +5,8 @@ import (
 	"unicode"
 )
 
-const TabstopLength = 4
+// TODO keep synched with editor/config.go/tabstopLength
+const TabstopLength = 8
 
 var InvisibleRuneTable = []rune{
 	'@',  // 0
