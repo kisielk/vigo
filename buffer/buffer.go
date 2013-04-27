@@ -168,8 +168,8 @@ func (b *Buffer) dumpHistory() {
 
 	i := 0
 	for cur != nil {
-		p("action group %d: %d actions\n", i, len(cur.actions))
-		for _, a := range cur.actions {
+		p("action group %d: %d actions\n", i, len(cur.Actions))
+		for _, a := range cur.Actions {
 			switch a.what {
 			case actionInsert:
 				p(" + insert")

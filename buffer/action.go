@@ -207,29 +207,29 @@ func (a *Action) tryMerge(b *Action) bool {
 //----------------------------------------------------------------------------
 
 type ActionGroup struct {
-	actions []Action
+	Actions []Action
 	Next    *ActionGroup
 	Prev    *ActionGroup
-	before  Cursor
-	after   Cursor
+	Before  Cursor
+	After   Cursor
 }
 
 func (ag *ActionGroup) append(a *Action) {
-	if len(ag.actions) != 0 {
+	if len(ag.Actions) != 0 {
 		// Oh, we have something in the group already, let's try to
 		// merge this action with the last one.
-		last := &ag.actions[len(ag.actions)-1]
+		last := &ag.Actions[len(ag.Actions)-1]
 		if last.tryMerge(a) {
 			return
 		}
 	}
-	ag.actions = append(ag.actions, *a)
+	ag.Actions = append(ag.Actions, *a)
 }
 
 // Valid only as long as no new actions were added to the action group.
 func (ag *ActionGroup) LastAction() *Action {
-	if len(ag.actions) == 0 {
+	if len(ag.Actions) == 0 {
 		return nil
 	}
-	return &ag.actions[len(ag.actions)-1]
+	return &ag.Actions[len(ag.Actions)-1]
 }
