@@ -136,6 +136,7 @@ type view struct {
 	highlightBytes  []byte
 	highlightRanges []byteRange
 	tags            []viewTag
+	redraw          chan struct{}
 
 	// statusBuf is a buffer used for drawing the status line
 	statusBuf bytes.Buffer
@@ -145,13 +146,14 @@ type view struct {
 	bufferEvents chan buffer.BufferEvent
 }
 
-func newView(ctx viewContext, buf *buffer.Buffer) *view {
+func newView(ctx viewContext, buf *buffer.Buffer, redraw chan struct{}) *view {
 	v := new(view)
 	v.ctx = ctx
 	v.uiBuf = tulib.NewBuffer(1, 1)
 	v.attach(buf)
 	v.highlightRanges = make([]byteRange, 0, 10)
 	v.tags = make([]viewTag, 0, 10)
+	v.redraw = redraw
 	return v
 }
 
@@ -196,6 +198,7 @@ func (v *view) attach(b *buffer.Buffer) {
 			case buffer.BufferEventSave:
 				v.dirty |= dirtyStatus
 			}
+			v.redraw <- struct{}{}
 		}
 	}()
 	v.buf.AddListener(v.bufferEvents)

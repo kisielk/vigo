@@ -47,8 +47,11 @@ type editor struct {
 	lastCmdClass vCommandClass
 	statusBuf    bytes.Buffer
 	quitFlag     bool
-	Events       chan termbox.Event
 	killBuffer_  []byte
+
+	// Event channels
+	Events chan termbox.Event
+	redraw chan struct{}
 
 	cutBuffers *cutBuffers
 
@@ -76,7 +79,8 @@ func NewEditor(filenames []string) *editor {
 		buf.Name = g.bufferName("unnamed")
 		g.buffers = append(g.buffers, buf)
 	}
-	g.views = newViewTreeLeaf(nil, newView(g.viewContext(), g.buffers[0]))
+	g.redraw = make(chan struct{})
+	g.views = newViewTreeLeaf(nil, newView(g.viewContext(), g.buffers[0], g.redraw))
 	g.active = g.views
 	g.setMode(newNormalMode(g))
 	g.Events = make(chan termbox.Event, 20)
@@ -389,27 +393,28 @@ func (g *editor) onSysKey(ev *termbox.Event) {
 
 // Loop starts the editor main loop which consumes events from g.Events
 func (e *editor) Loop() error {
-	for ev := range e.Events {
-
-		// The consume loop handles the event and any other events that
-		// until there are no more in the queue.
-	consume:
-		for {
-			if err := e.handleEvent(&ev); err != nil {
-				return err
+	for {
+		select {
+		case ev := <-e.Events:
+			// The consume loop handles the event and any other events that
+			// until there are no more in the queue.
+		consume:
+			for {
+				if err := e.handleEvent(&ev); err != nil {
+					return err
+				}
+				select {
+				case nextEv := <-e.Events:
+					ev = nextEv
+				default:
+					break consume
+				}
 			}
-			select {
-			case nextEv := <-e.Events:
-				ev = nextEv
-			default:
-				break consume
-			}
+		case <-e.redraw:
 		}
-
 		e.Draw()
 		termbox.Flush()
 	}
-	return nil
 }
 
 func (g *editor) handleEvent(ev *termbox.Event) error {

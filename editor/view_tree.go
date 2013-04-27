@@ -32,7 +32,7 @@ func newViewTreeLeaf(parent *viewTree, v *view) *viewTree {
 
 func (v *viewTree) splitVertically() {
 	top := v.leaf
-	bottom := newView(top.ctx, top.buf)
+	bottom := newView(top.ctx, top.buf, top.redraw)
 	*v = viewTree{
 		parent: v.parent,
 		top:    newViewTreeLeaf(v, top),
@@ -43,7 +43,7 @@ func (v *viewTree) splitVertically() {
 
 func (v *viewTree) splitHorizontally() {
 	left := v.leaf
-	right := newView(left.ctx, left.buf)
+	right := newView(left.ctx, left.buf, left.redraw)
 	*v = viewTree{
 		parent: v.parent,
 		left:   newViewTreeLeaf(v, left),
