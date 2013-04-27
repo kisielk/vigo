@@ -75,7 +75,7 @@ func (a *Action) insert(buf *Buffer) {
 	utils.IterLines(a.Data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes++
-			buf.numLines++
+			buf.NumLines++
 
 			if offset < len(line.Data) {
 				// a case where we insert at the middle of the
@@ -110,7 +110,7 @@ func (a *Action) delete(buf *Buffer) {
 	utils.IterLines(a.Data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes--
-			buf.numLines--
+			buf.NumLines--
 
 			// append the contents of the deleted line the current line
 			line.Data = append(line.Data, a.Lines[nline].Data...)

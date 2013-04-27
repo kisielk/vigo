@@ -55,7 +55,7 @@ type BufferEvent struct {
 type Buffer struct {
 	FirstLine *Line
 	LastLine  *Line
-	numLines  int
+	NumLines  int
 	numBytes  int
 	History   *ActionGroup
 	onDisk    *ActionGroup
@@ -78,7 +78,7 @@ func NewEmptyBuffer() *Buffer {
 	l.Prev = nil
 	b.FirstLine = l
 	b.LastLine = l
-	b.numLines = 1
+	b.NumLines = 1
 	b.listeners = []chan BufferEvent{}
 	b.initHistory()
 	return b
@@ -110,7 +110,7 @@ func NewBuffer(r io.Reader) (*Buffer, error) {
 	br := bufio.NewReader(r)
 	l := new(Line)
 	b := new(Buffer)
-	b.numLines = 1
+	b.NumLines = 1
 	b.FirstLine = l
 	for {
 		l.Data, err = br.ReadBytes('\n')
@@ -124,7 +124,7 @@ func NewBuffer(r io.Reader) (*Buffer, error) {
 			l.Data = l.Data[:len(l.Data)-1]
 		}
 
-		b.numLines++
+		b.NumLines++
 		l.Next = new(Line)
 		l.Prev = prevline
 		prevline = l
