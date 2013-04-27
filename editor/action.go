@@ -99,6 +99,7 @@ func (a *action) insert(buf *buffer) {
 	if data_chunk != nil {
 		line.data = append(line.data, data_chunk...)
 	}
+	buf.Emit(BufferEvent{BufferEventInsert, a})
 }
 
 func (a *action) delete(buf *buffer) {
@@ -123,24 +124,17 @@ func (a *action) delete(buf *buffer) {
 			line.data = line.data[:len(line.data)-len(data)]
 		}
 	})
+	buf.Emit(BufferEvent{BufferEventDelete, a})
 }
 
 func (a *action) do(v *view, what actionType) {
+	// TODO pass buffer instead of view
 	switch what {
 	case actionInsert:
 		a.insert(v.buf)
-		v.onInsertAdjustTopLine(a)
-		v.buf.otherViews(v, func(v *view) {
-			v.onInsert(a)
-		})
 	case actionDelete:
 		a.delete(v.buf)
-		v.onDeleteAdjustTopLine(a)
-		v.buf.otherViews(v, func(v *view) {
-			v.onDelete(a)
-		})
 	}
-	v.dirty = dirtyEverything
 }
 
 func (a *action) lastLine() *line {

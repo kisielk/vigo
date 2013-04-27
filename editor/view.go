@@ -139,6 +139,8 @@ type view struct {
 	statusBuf bytes.Buffer
 
 	lastCommand viewCommand
+
+	bufferEvents chan BufferEvent
 }
 
 func newView(ctx viewContext, buf *buffer) *view {
@@ -175,12 +177,32 @@ func (v *view) attach(b *buffer) {
 			lineNum: 1,
 		},
 	}
-	b.addView(v)
+	v.bufferEvents = make(chan BufferEvent)
+	go func() {
+		for e := range v.bufferEvents {
+			switch e.Type {
+			case BufferEventInsert:
+				v.onInsertAdjustTopLine(e.Action)
+				v.dirty = dirtyEverything
+				// FIXME for unfocused views, just call onInsert
+				// v.onInsert(e.Action)
+			case BufferEventDelete:
+				v.onDeleteAdjustTopLine(e.Action)
+				v.dirty = dirtyEverything
+				// FIXME for unfocused views, just call onDelete
+				// v.onDelete(e.Action)
+			}
+		}
+	}()
+	v.buf.AddListener(v.bufferEvents)
 	v.dirty = dirtyEverything
 }
 
 func (v *view) detach() {
-	v.buf.deleteView(v)
+	// Stop listening to current buffer and close event loop.
+	v.buf.RemoveListener(v.bufferEvents)
+	close(v.bufferEvents)
+	v.bufferEvents = nil
 	v.buf = nil
 }
 

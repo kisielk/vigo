@@ -42,7 +42,20 @@ func (l *line) findClosestOffsets(voffset int) (bo, co, vo int) {
 // buffer
 //----------------------------------------------------------------------------
 
+type BufferEventType int
+
+const (
+	BufferEventInsert BufferEventType = iota
+	BufferEventDelete
+)
+
+type BufferEvent struct {
+	Type   BufferEventType
+	Action *action
+}
+
 type buffer struct {
+	// TODO Now only used in saveAs. Can be removed when that is factored out.
 	views     []*view
 	firstLine *line
 	lastLine  *line
@@ -58,6 +71,8 @@ type buffer struct {
 	// buffer name (displayed in the status line), must be unique,
 	// uniqueness is maintained by godit methods
 	name string
+
+	listeners []chan BufferEvent
 }
 
 func newEmptyBuffer() *buffer {
@@ -68,8 +83,28 @@ func newEmptyBuffer() *buffer {
 	b.firstLine = l
 	b.lastLine = l
 	b.numLines = 1
+	b.listeners = []chan BufferEvent{}
 	b.initHistory()
 	return b
+}
+
+func (b *buffer) AddListener(c chan BufferEvent) {
+	b.listeners = append(b.listeners, c)
+}
+
+func (b *buffer) RemoveListener(c chan BufferEvent) {
+	for i := 0; i < len(b.listeners); i++ {
+		if b.listeners[i] == c {
+			b.listeners = append(b.listeners[:i], b.listeners[i+1:]...)
+			return
+		}
+	}
+}
+
+func (b *buffer) Emit(e BufferEvent) {
+	for i := 0; i < len(b.listeners); i++ {
+		b.listeners[i] <- e
+	}
 }
 
 func newBuffer(r io.Reader) (*buffer, error) {
@@ -110,35 +145,6 @@ func newBuffer(r io.Reader) (*buffer, error) {
 	// history
 	b.initHistory()
 	return b, err
-}
-
-func (b *buffer) addView(v *view) {
-	b.views = append(b.views, v)
-}
-
-func (b *buffer) deleteView(v *view) {
-	vi := -1
-	for i, n := 0, len(b.views); i < n; i++ {
-		if b.views[i] == v {
-			vi = i
-			break
-		}
-	}
-
-	if vi != -1 {
-		lasti := len(b.views) - 1
-		b.views[vi], b.views[lasti] = b.views[lasti], b.views[vi]
-		b.views = b.views[:lasti]
-	}
-}
-
-func (b *buffer) otherViews(v *view, cb func(*view)) {
-	for _, ov := range b.views {
-		if v == ov {
-			continue
-		}
-		cb(ov)
-	}
 }
 
 func (b *buffer) initHistory() {
