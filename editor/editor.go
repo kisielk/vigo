@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/kisielk/vigo/buffer"
 	"github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
 	"os"
@@ -42,7 +43,7 @@ type editor struct {
 	uiBuf        tulib.Buffer
 	active       *viewTree // this one is always a leaf node
 	views        *viewTree // a root node
-	buffers      []*buffer
+	buffers      []*buffer.Buffer
 	lastCmdClass vCommandClass
 	statusBuf    bytes.Buffer
 	quitFlag     bool
@@ -63,7 +64,7 @@ func (g *editor) quit() {
 
 func NewEditor(filenames []string) *editor {
 	g := new(editor)
-	g.buffers = make([]*buffer, 0, 20)
+	g.buffers = make([]*buffer.Buffer, 0, 20)
 	g.cutBuffers = newCutBuffers()
 
 	for _, filename := range filenames {
@@ -71,8 +72,8 @@ func NewEditor(filenames []string) *editor {
 		g.newBufferFromFile(filename)
 	}
 	if len(g.buffers) == 0 {
-		buf := newEmptyBuffer()
-		buf.name = g.bufferName("unnamed")
+		buf := buffer.NewEmptyBuffer()
+		buf.Name = g.bufferName("unnamed")
 		g.buffers = append(g.buffers, buf)
 	}
 	g.views = newViewTreeLeaf(nil, newView(g.viewContext(), g.buffers[0]))
@@ -126,9 +127,9 @@ func (bs *cutBuffers) get(b byte) []byte {
 	return (*bs)[b]
 }
 
-func (g *editor) findBufferByFullPath(path string) *buffer {
+func (g *editor) findBufferByFullPath(path string) *buffer.Buffer {
 	for _, buf := range g.buffers {
-		if buf.path == path {
+		if buf.Path == path {
 			return buf
 		}
 	}
@@ -136,9 +137,9 @@ func (g *editor) findBufferByFullPath(path string) *buffer {
 }
 
 // GetBuffer returns a buffer by name, or nil if there is no such buffer
-func (g *editor) getBuffer(name string) *buffer {
+func (g *editor) getBuffer(name string) *buffer.Buffer {
 	for _, buf := range g.buffers {
-		if buf.name == name {
+		if buf.Name == name {
 			return buf
 		}
 	}
@@ -160,7 +161,7 @@ func (e *editor) bufferName(name string) string {
 	panic("too many buffers opened with the same name")
 }
 
-func (g *editor) newBufferFromFile(filename string) (*buffer, error) {
+func (g *editor) newBufferFromFile(filename string) (*buffer.Buffer, error) {
 	fullpath, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't determine absolute path: %s", err)
@@ -174,20 +175,20 @@ func (g *editor) newBufferFromFile(filename string) (*buffer, error) {
 	if err == os.ErrNotExist {
 		// Assume a new file
 		g.setStatus("(New file)")
-		buf = newEmptyBuffer()
+		buf = buffer.NewEmptyBuffer()
 	} else if err != nil {
 		g.setStatus(err.Error())
 		return nil, err
 	}
 	defer f.Close()
-	buf, err = newBuffer(f)
+	buf, err = buffer.NewBuffer(f)
 	if err != nil {
 		g.setStatus(err.Error())
 		return nil, err
 	}
-	buf.path = fullpath
+	buf.Path = fullpath
 
-	buf.name = g.bufferName(filename)
+	buf.Name = g.bufferName(filename)
 	g.buffers = append(g.buffers, buf)
 	return buf, nil
 }
@@ -458,7 +459,7 @@ func (g *editor) viewContext() viewContext {
 
 func (g *editor) hasUnsavedBuffers() bool {
 	for _, buf := range g.buffers {
-		if !buf.syncedWithDisk() {
+		if !buf.SyncedWithDisk() {
 			return true
 		}
 	}

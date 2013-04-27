@@ -70,9 +70,9 @@ func execCommand(e *editor, command string) error {
 	case "w":
 		switch len(args) {
 		case 0:
-			e.active.leaf.buf.save()
+			e.active.leaf.buf.Save()
 		case 1:
-			e.active.leaf.buf.saveAs(args[0])
+			e.active.leaf.buf.SaveAs(args[0])
 		default:
 			return fmt.Errorf("too many arguments to :w")
 		}

@@ -49,7 +49,7 @@ func (m insertMode) exit() {
 	for i := 0; i < m.reps-1; i++ {
 		g := m.editor
 		v := g.active.leaf
-		a := v.buf.history.lastAction()
-		a.apply(v.buf)
+		a := v.buf.History.LastAction()
+		a.Apply(v.buf)
 	}
 }

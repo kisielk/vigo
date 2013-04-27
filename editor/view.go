@@ -3,6 +3,8 @@ package editor
 import (
 	"bytes"
 	"fmt"
+	"github.com/kisielk/vigo/buffer"
+	"github.com/kisielk/vigo/utils"
 	"github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
 	"os"
@@ -35,8 +37,8 @@ const (
 //----------------------------------------------------------------------------
 
 type viewLocation struct {
-	cursor     cursor
-	topLine    *line
+	cursor     buffer.Cursor
+	topLine    *buffer.Line
 	topLineNum int
 
 	// Various cursor offsets from the beginning of the line:
@@ -115,7 +117,7 @@ var defaultViewTag = viewTag{
 type viewContext struct {
 	setStatus  func(format string, args ...interface{})
 	killBuffer *[]byte
-	buffers    *[]*buffer
+	buffers    *[]*buffer.Buffer
 }
 
 //----------------------------------------------------------------------------
@@ -128,7 +130,7 @@ type viewContext struct {
 type view struct {
 	viewLocation
 	ctx             viewContext
-	buf             *buffer // currently displayed buffer
+	buf             *buffer.Buffer // currently displayed buffer
 	uiBuf           tulib.Buffer
 	dirty           dirtyFlag
 	highlightBytes  []byte
@@ -140,10 +142,10 @@ type view struct {
 
 	lastCommand viewCommand
 
-	bufferEvents chan BufferEvent
+	bufferEvents chan buffer.BufferEvent
 }
 
-func newView(ctx viewContext, buf *buffer) *view {
+func newView(ctx viewContext, buf *buffer.Buffer) *view {
 	v := new(view)
 	v.ctx = ctx
 	v.uiBuf = tulib.NewBuffer(1, 1)
@@ -160,7 +162,7 @@ func (v *view) activate() {
 func (v *view) deactivate() {
 }
 
-func (v *view) attach(b *buffer) {
+func (v *view) attach(b *buffer.Buffer) {
 	if v.buf == b {
 		return
 	}
@@ -170,28 +172,28 @@ func (v *view) attach(b *buffer) {
 	}
 	v.buf = b
 	v.viewLocation = viewLocation{
-		topLine:    b.firstLine,
+		topLine:    b.FirstLine,
 		topLineNum: 1,
-		cursor: cursor{
-			line:    b.firstLine,
-			lineNum: 1,
+		cursor: buffer.Cursor{
+			Line:    b.FirstLine,
+			LineNum: 1,
 		},
 	}
-	v.bufferEvents = make(chan BufferEvent)
+	v.bufferEvents = make(chan buffer.BufferEvent)
 	go func() {
 		for e := range v.bufferEvents {
 			switch e.Type {
-			case BufferEventInsert:
+			case buffer.BufferEventInsert:
 				v.onInsertAdjustTopLine(e.Action)
 				v.dirty = dirtyEverything
 				// FIXME for unfocused views, just call onInsert
 				// v.onInsert(e.Action)
-			case BufferEventDelete:
+			case buffer.BufferEventDelete:
 				v.onDeleteAdjustTopLine(e.Action)
 				v.dirty = dirtyEverything
 				// FIXME for unfocused views, just call onDelete
 				// v.onDelete(e.Action)
-			case BufferEventSave:
+			case buffer.BufferEventSave:
 				v.dirty |= dirtyStatus
 			}
 		}
@@ -241,11 +243,11 @@ func (v *view) width() int {
 	return v.uiBuf.Width
 }
 
-func (v *view) drawLine(line *line, lineNum, coff, lineVoffset int) {
+func (v *view) drawLine(line *buffer.Line, lineNum, coff, lineVoffset int) {
 	x := 0
 	tabstop := 0
 	bx := 0
-	data := line.data
+	data := line.Data
 
 	if len(v.highlightBytes) > 0 {
 		v.findHighlightRangesForLine(data)
@@ -301,7 +303,7 @@ func (v *view) drawLine(line *line, lineNum, coff, lineVoffset int) {
 			}
 			if rx >= 0 {
 				v.uiBuf.Cells[coff+rx] = termbox.Cell{
-					Ch: invisibleRuneTable[r],
+					Ch: utils.InvisibleRuneTable[r],
 					Fg: termbox.ColorRed,
 					Bg: termbox.ColorDefault,
 				}
@@ -351,7 +353,7 @@ func (v *view) drawContents() {
 			break
 		}
 
-		if line == v.cursor.line {
+		if line == v.cursor.Line {
 			// special case, cursor line
 			v.drawLine(line, v.topLineNum+y, coff, v.lineVoffset)
 		} else {
@@ -359,7 +361,7 @@ func (v *view) drawContents() {
 		}
 
 		coff += v.uiBuf.Width
-		line = line.next
+		line = line.Next
 	}
 }
 
@@ -374,7 +376,7 @@ func (v *view) drawStatus() {
 	)
 
 	// on disk sync status
-	if !v.buf.syncedWithDisk() {
+	if !v.buf.SyncedWithDisk() {
 		cell := termbox.Cell{
 			Fg: termbox.AttrReverse,
 			Bg: termbox.AttrReverse,
@@ -385,12 +387,12 @@ func (v *view) drawStatus() {
 	}
 
 	// filename
-	fmt.Fprintf(&v.statusBuf, "  %s  ", v.buf.name)
+	fmt.Fprintf(&v.statusBuf, "  %s  ", v.buf.Name)
 	v.uiBuf.DrawLabel(tulib.Rect{X: 5, Y: v.height(), Width: v.uiBuf.Width, Height: 1}, &lp, v.statusBuf.Bytes())
 	namel := v.statusBuf.Len()
 	lp.Fg = termbox.AttrReverse
 	v.statusBuf.Reset()
-	fmt.Fprintf(&v.statusBuf, "(%d, %d)  ", v.cursor.lineNum, v.cursorVoffset)
+	fmt.Fprintf(&v.statusBuf, "(%d, %d)  ", v.cursor.LineNum, v.cursorVoffset)
 	v.uiBuf.DrawLabel(tulib.Rect{X: 5 + namel, Y: v.height(), Width: v.uiBuf.Width, Height: 1}, &lp, v.statusBuf.Bytes())
 	v.statusBuf.Reset()
 }
@@ -410,8 +412,8 @@ func (v *view) draw() {
 
 // Center view on the cursor.
 func (v *view) centerViewOnCursor() {
-	v.topLine = v.cursor.line
-	v.topLineNum = v.cursor.lineNum
+	v.topLine = v.cursor.Line
+	v.topLineNum = v.cursor.LineNum
 	v.moveTopLineNtimes(-v.height() / 2)
 	v.dirty = dirtyEverything
 }
@@ -429,13 +431,13 @@ func (v *view) moveTopLineNtimes(n int) {
 	}
 
 	top := v.topLine
-	for top.prev != nil && n < 0 {
-		top = top.prev
+	for top.Prev != nil && n < 0 {
+		top = top.Prev
 		v.topLineNum--
 		n++
 	}
-	for top.next != nil && n > 0 {
-		top = top.next
+	for top.Next != nil && n > 0 {
+		top = top.Next
 		v.topLineNum++
 		n--
 	}
@@ -448,40 +450,40 @@ func (v *view) moveCursorLineNtimes(n int) {
 		return
 	}
 
-	cursor := v.cursor.line
-	for cursor.prev != nil && n < 0 {
-		cursor = cursor.prev
-		v.cursor.lineNum--
+	cursor := v.cursor.Line
+	for cursor.Prev != nil && n < 0 {
+		cursor = cursor.Prev
+		v.cursor.LineNum--
 		n++
 	}
-	for cursor.next != nil && n > 0 {
-		cursor = cursor.next
-		v.cursor.lineNum++
+	for cursor.Next != nil && n > 0 {
+		cursor = cursor.Next
+		v.cursor.LineNum++
 		n--
 	}
-	v.cursor.line = cursor
+	v.cursor.Line = cursor
 }
 
 // When 'top_line' was changed, call this function to possibly adjust the
 // 'cursor_line'.
 func (v *view) adjustCursorLine() {
 	vt := v.verticalThreshold()
-	cursor := v.cursor.line
-	co := v.cursor.lineNum - v.topLineNum
+	cursor := v.cursor.Line
+	co := v.cursor.LineNum - v.topLineNum
 	h := v.height()
 
-	if cursor.next != nil && co < vt {
+	if cursor.Next != nil && co < vt {
 		v.moveCursorLineNtimes(vt - co)
 	}
 
-	if cursor.prev != nil && co >= h-vt {
+	if cursor.Prev != nil && co >= h-vt {
 		v.moveCursorLineNtimes((h - vt) - co - 1)
 	}
 
-	if cursor != v.cursor.line {
-		cursor = v.cursor.line
-		bo, co, vo := cursor.findClosestOffsets(v.lastCursorVoffset)
-		v.cursor.boffset = bo
+	if cursor != v.cursor.Line {
+		cursor = v.cursor.Line
+		bo, co, vo := cursor.FindClosestOffsets(v.lastCursorVoffset)
+		v.cursor.Boffset = bo
 		v.cursorCoffset = co
 		v.cursorVoffset = vo
 		v.lineVoffset = 0
@@ -495,15 +497,15 @@ func (v *view) adjustCursorLine() {
 func (v *view) adjustTopLine() {
 	vt := v.verticalThreshold()
 	top := v.topLine
-	co := v.cursor.lineNum - v.topLineNum
+	co := v.cursor.LineNum - v.topLineNum
 	h := v.height()
 
-	if top.next != nil && co >= h-vt {
+	if top.Next != nil && co >= h-vt {
 		v.moveTopLineNtimes(co - (h - vt) + 1)
 		v.dirty = dirtyEverything
 	}
 
-	if top.prev != nil && co < vt {
+	if top.Prev != nil && co < vt {
 		v.moveTopLineNtimes(co - vt)
 		v.dirty = dirtyEverything
 	}
@@ -539,14 +541,15 @@ func (v *view) adjustLineVoffset() {
 }
 
 func (v *view) cursorPosition() (int, int) {
-	y := v.cursor.lineNum - v.topLineNum
+	y := v.cursor.LineNum - v.topLineNum
 	x := v.cursorVoffset - v.lineVoffset
 	return x, y
 }
 
-func (v *view) cursorPositionFor(cursor cursor) (int, int) {
-	y := cursor.lineNum - v.topLineNum
-	x := cursor.voffset() - v.lineVoffset
+func (v *view) cursorPositionFor(cursor buffer.Cursor) (int, int) {
+	y := cursor.LineNum - v.topLineNum
+	vo, _ := cursor.VoffsetCoffset()
+	x := vo - v.lineVoffset
 	return x, y
 }
 
@@ -554,32 +557,32 @@ func (v *view) cursorPositionFor(cursor cursor) (int, int) {
 // from the attached buffer. If 'boffset' < 0, use 'last_cursor_voffset'. Keep
 // in mind that there is no need to maintain connections between lines (e.g. for
 // moving from a deleted line to another line).
-func (v *view) moveCursorTo(c cursor) {
+func (v *view) moveCursorTo(c buffer.Cursor) {
 	v.dirty |= dirtyStatus
-	if c.boffset < 0 {
-		bo, co, vo := c.line.findClosestOffsets(v.lastCursorVoffset)
-		v.cursor.boffset = bo
+	if c.Boffset < 0 {
+		bo, co, vo := c.Line.FindClosestOffsets(v.lastCursorVoffset)
+		v.cursor.Boffset = bo
 		v.cursorCoffset = co
 		v.cursorVoffset = vo
 	} else {
-		vo, co := c.voffsetCoffset()
-		v.cursor.boffset = c.boffset
+		vo, co := c.VoffsetCoffset()
+		v.cursor.Boffset = c.Boffset
 		v.cursorCoffset = co
 		v.cursorVoffset = vo
 	}
 
-	if c.boffset >= 0 {
+	if c.Boffset >= 0 {
 		v.lastCursorVoffset = v.cursorVoffset
 	}
 
-	if c.line != v.cursor.line {
+	if c.Line != v.cursor.Line {
 		if v.lineVoffset != 0 {
 			v.dirty = dirtyEverything
 		}
 		v.lineVoffset = 0
 	}
-	v.cursor.line = c.line
-	v.cursor.lineNum = c.lineNum
+	v.cursor.Line = c.Line
+	v.cursor.LineNum = c.LineNum
 	v.adjustLineVoffset()
 	v.adjustTopLine()
 }
@@ -587,32 +590,36 @@ func (v *view) moveCursorTo(c cursor) {
 // Move cursor one character forward.
 func (v *view) moveCursorForward() {
 	c := v.cursor
-	if c.lastLine() && c.eol() {
+	if c.LastLine() && c.EOL() {
 		v.ctx.setStatus("End of buffer")
 		return
 	}
 
-	c.nextRune(configWrapRight)
+	c.NextRune(configWrapRight)
 	v.moveCursorTo(c)
 }
 
 // Move cursor one character backward.
 func (v *view) moveCursorBackward() {
 	c := v.cursor
-	if c.firstLine() && c.bol() {
+	if c.FirstLine() && c.BOL() {
 		v.ctx.setStatus("Beginning of buffer")
 		return
 	}
 
-	c.prevRune(configWrapLeft)
+	c.PrevRune(configWrapLeft)
 	v.moveCursorTo(c)
 }
 
 // Move cursor to the next line.
 func (v *view) moveCursorNextLine() {
 	c := v.cursor
-	if !c.lastLine() {
-		c = cursor{c.line.next, c.lineNum + 1, -1}
+	if !c.LastLine() {
+		c = buffer.Cursor{
+			Line:    c.Line.Next,
+			LineNum: c.LineNum + 1,
+			Boffset: -1,
+		}
 		v.moveCursorTo(c)
 	} else {
 		v.ctx.setStatus("End of buffer")
@@ -622,8 +629,12 @@ func (v *view) moveCursorNextLine() {
 // Move cursor to the previous line.
 func (v *view) moveCursorPrevLine() {
 	c := v.cursor
-	if !c.firstLine() {
-		c = cursor{c.line.prev, c.lineNum - 1, -1}
+	if !c.FirstLine() {
+		c = buffer.Cursor{
+			Line:    c.Line.Prev,
+			LineNum: c.LineNum - 1,
+			Boffset: -1,
+		}
 		v.moveCursorTo(c)
 	} else {
 		v.ctx.setStatus("Beginning of buffer")
@@ -633,33 +644,41 @@ func (v *view) moveCursorPrevLine() {
 // Move cursor to the beginning of the line.
 func (v *view) moveCursorBeginningOfLine() {
 	c := v.cursor
-	c.moveBeginningOfLine()
+	c.MoveBOL()
 	v.moveCursorTo(c)
 }
 
 // Move cursor to the end of the line.
 func (v *view) moveCursorEndOfLine() {
 	c := v.cursor
-	c.moveEndOfLine()
+	c.MoveEOL()
 	v.moveCursorTo(c)
 }
 
 // Move cursor to the beginning of the file (buffer).
 func (v *view) moveCursorBeginningOfFile() {
-	c := cursor{v.buf.firstLine, 1, 0}
+	c := buffer.Cursor{
+		Line:    v.buf.FirstLine,
+		LineNum: 1,
+		Boffset: 0,
+	}
 	v.moveCursorTo(c)
 }
 
 // Move cursor to the end of the file (buffer).
 func (v *view) moveCursorEndOfFile() {
-	c := cursor{v.buf.lastLine, v.buf.numLines, len(v.buf.lastLine.data)}
+	c := buffer.Cursor{
+		Line:    v.buf.LastLine,
+		LineNum: v.buf.NumLines,
+		Boffset: len(v.buf.LastLine.Data),
+	}
 	v.moveCursorTo(c)
 }
 
 // Move cursor to the end of the next (or current) word.
 func (v *view) moveCursorWordFoward() {
 	c := v.cursor
-	ok := c.nextWord()
+	ok := c.NextWord()
 	v.moveCursorTo(c)
 	if !ok {
 		v.ctx.setStatus("End of buffer")
@@ -668,7 +687,7 @@ func (v *view) moveCursorWordFoward() {
 
 func (v *view) moveCursorWordBackward() {
 	c := v.cursor
-	ok := c.prevWord()
+	ok := c.PrevWord()
 	v.moveCursorTo(c)
 	if !ok {
 		v.ctx.setStatus("Beginning of buffer")
@@ -692,12 +711,12 @@ func (v *view) canMoveTopLineNtimes(n int) bool {
 	}
 
 	top := v.topLine
-	for top.prev != nil && n < 0 {
-		top = top.prev
+	for top.Prev != nil && n < 0 {
+		top = top.Prev
 		n++
 	}
-	for top.next != nil && n > 0 {
-		top = top.next
+	for top.Next != nil && n > 0 {
+		top = top.Next
 		n--
 	}
 
@@ -716,17 +735,17 @@ func (v *view) maybeMoveViewNlines(n int) {
 
 func (v *view) maybeNextActionGroup() {
 	b := v.buf
-	if b.history.next == nil {
+	if b.History.Next == nil {
 		// no need to move
 		return
 	}
 
-	prev := b.history
-	b.history = b.history.next
-	b.history.prev = prev
-	b.history.next = nil
-	b.history.actions = nil
-	b.history.before = v.cursor
+	prev := b.History
+	b.History = b.History.Next
+	b.History.Prev = prev
+	b.History.Next = nil
+	b.History.Actions = nil
+	b.History.Before = v.cursor
 }
 
 func (v *view) finalizeActionGroup() {
@@ -734,15 +753,15 @@ func (v *view) finalizeActionGroup() {
 	// finalize only if we're at the tip of the undo history, this function
 	// will be called mainly after each cursor movement and actions alike
 	// (that are supposed to finalize action group)
-	if b.history.next == nil {
-		b.history.next = new(actionGroup)
-		b.history.after = v.cursor
+	if b.History.Next == nil {
+		b.History.Next = new(buffer.ActionGroup)
+		b.History.After = v.cursor
 	}
 }
 
 func (v *view) undo() {
 	b := v.buf
-	if b.history.prev == nil {
+	if b.History.Prev == nil {
 		// we're at the sentinel, no more things to undo
 		v.ctx.setStatus("No further undo information")
 		return
@@ -753,24 +772,24 @@ func (v *view) undo() {
 
 	// undo invariant tells us 'len(b.history.actions) != 0' in case if this is
 	// not a sentinel, revert the actions in the current action group
-	for i := len(b.history.actions) - 1; i >= 0; i-- {
-		a := &b.history.actions[i]
-		a.revert(v.buf)
+	for i := len(b.History.Actions) - 1; i >= 0; i-- {
+		a := &b.History.Actions[i]
+		a.Revert(v.buf)
 	}
-	v.moveCursorTo(b.history.before)
+	v.moveCursorTo(b.History.Before)
 	v.lastCursorVoffset = v.cursorVoffset
-	b.history = b.history.prev
+	b.History = b.History.Prev
 	v.ctx.setStatus("Undo!")
 }
 
 func (v *view) redo() {
 	b := v.buf
-	if b.history.next == nil {
+	if b.History.Next == nil {
 		// open group, obviously, can't move forward
 		v.ctx.setStatus("No further redo information")
 		return
 	}
-	if len(b.history.next.actions) == 0 {
+	if len(b.History.Next.Actions) == 0 {
 		// last finalized group, moving to the next group breaks the
 		// invariant and doesn't make sense (nothing to redo)
 		v.ctx.setStatus("No further redo information")
@@ -778,46 +797,46 @@ func (v *view) redo() {
 	}
 
 	// move one entry forward, and redo all its actions
-	b.history = b.history.next
-	for i := range b.history.actions {
-		a := &b.history.actions[i]
-		a.apply(v.buf)
+	b.History = b.History.Next
+	for i := range b.History.Actions {
+		a := &b.History.Actions[i]
+		a.Apply(v.buf)
 	}
-	v.moveCursorTo(b.history.after)
+	v.moveCursorTo(b.History.After)
 	v.lastCursorVoffset = v.cursorVoffset
 	v.ctx.setStatus("Redo!")
 }
 
-func (v *view) actionInsert(c cursor, data []byte) {
+func (v *view) actionInsert(c buffer.Cursor, data []byte) {
 	v.maybeNextActionGroup()
-	a := action{
-		what:   actionInsert,
-		data:   data,
-		cursor: c,
-		lines:  make([]*line, bytes.Count(data, []byte{'\n'})),
+	a := buffer.Action{
+		What:   buffer.ActionInsert,
+		Data:   data,
+		Cursor: c,
+		Lines:  make([]*buffer.Line, bytes.Count(data, []byte{'\n'})),
 	}
-	for i := range a.lines {
-		a.lines[i] = new(line)
+	for i := range a.Lines {
+		a.Lines[i] = new(buffer.Line)
 	}
-	a.apply(v.buf)
-	v.buf.history.append(&a)
+	a.Apply(v.buf)
+	v.buf.History.Append(&a)
 }
 
-func (v *view) actionDelete(c cursor, nbytes int) {
+func (v *view) actionDelete(c buffer.Cursor, nbytes int) {
 	v.maybeNextActionGroup()
-	d := c.extractBytes(nbytes)
-	a := action{
-		what:   actionDelete,
-		data:   d,
-		cursor: c,
-		lines:  make([]*line, bytes.Count(d, []byte{'\n'})),
+	d := c.ExtractBytes(nbytes)
+	a := buffer.Action{
+		What:   buffer.ActionDelete,
+		Data:   d,
+		Cursor: c,
+		Lines:  make([]*buffer.Line, bytes.Count(d, []byte{'\n'})),
 	}
-	for i := range a.lines {
-		a.lines[i] = c.line.next
-		c.line = c.line.next
+	for i := range a.Lines {
+		a.Lines[i] = c.Line.Next
+		c.Line = c.Line.Next
 	}
-	a.apply(v.buf)
-	v.buf.history.append(&a)
+	a.Apply(v.buf)
+	v.buf.History.Append(&a)
 }
 
 // Insert a rune 'r' at the current cursor position, advance cursor one character forward.
@@ -825,24 +844,24 @@ func (v *view) insertRune(r rune) {
 	c := v.cursor
 	if r == '\n' || r == '\r' {
 		v.actionInsert(c, []byte{'\n'})
-		prev := c.line
-		c.line = c.line.next
-		c.lineNum++
-		c.boffset = 0
+		prev := c.Line
+		c.Line = c.Line.Next
+		c.LineNum++
+		c.Boffset = 0
 
 		if r == '\n' {
-			i := indexFirstNonSpace(prev.data)
+			i := utils.IndexFirstNonSpace(prev.Data)
 			if i > 0 {
-				autoindent := cloneByteSlice(prev.data[:i])
+				autoindent := utils.CloneByteSlice(prev.Data[:i])
 				v.actionInsert(c, autoindent)
-				c.boffset += len(autoindent)
+				c.Boffset += len(autoindent)
 			}
 		}
 	} else {
 		var data [utf8.UTFMax]byte
 		nBytes := utf8.EncodeRune(data[:], r)
 		v.actionInsert(c, data[:nBytes])
-		c.boffset += nBytes
+		c.Boffset += nBytes
 	}
 	v.moveCursorTo(c)
 	v.dirty = dirtyEverything
@@ -852,23 +871,23 @@ func (v *view) insertRune(r rune) {
 // of the previous line. Otherwise, erase one character backward.
 func (v *view) deleteRuneBackward() {
 	c := v.cursor
-	if c.bol() {
-		if c.firstLine() {
+	if c.BOL() {
+		if c.FirstLine() {
 			// beginning of the file
 			v.ctx.setStatus("Beginning of buffer")
 			return
 		}
-		c.line = c.line.prev
-		c.lineNum--
-		c.boffset = len(c.line.data)
+		c.Line = c.Line.Prev
+		c.LineNum--
+		c.Boffset = len(c.Line.Data)
 		v.actionDelete(c, 1)
 		v.moveCursorTo(c)
 		v.dirty = dirtyEverything
 		return
 	}
 
-	_, rlen := c.runeBefore()
-	c.boffset -= rlen
+	_, rlen := c.RuneBefore()
+	c.Boffset -= rlen
 	v.actionDelete(c, rlen)
 	v.moveCursorTo(c)
 	v.dirty = dirtyEverything
@@ -879,8 +898,8 @@ func (v *view) deleteRuneBackward() {
 // cursor.
 func (v *view) deleteRune() {
 	c := v.cursor
-	if c.eol() {
-		if c.lastLine() {
+	if c.EOL() {
+		if c.LastLine() {
 			// end of the file
 			v.ctx.setStatus("End of buffer")
 			return
@@ -890,7 +909,7 @@ func (v *view) deleteRune() {
 		return
 	}
 
-	_, rlen := c.runeUnder()
+	_, rlen := c.RuneUnder()
 	v.actionDelete(c, rlen)
 	v.dirty = dirtyEverything
 }
@@ -899,9 +918,9 @@ func (v *view) deleteRune() {
 // end. Otherwise behave like 'delete'.
 func (v *view) killLine() {
 	c := v.cursor
-	if !c.eol() {
+	if !c.EOL() {
 		// kill data from the cursor to the EOL
-		len := len(c.line.data) - c.boffset
+		len := len(c.Line.Data) - c.Boffset
 		v.appendToKillBuffer(c, len)
 		v.actionDelete(c, len)
 		v.dirty = dirtyEverything
@@ -914,8 +933,8 @@ func (v *view) killLine() {
 func (v *view) killWord() {
 	c1 := v.cursor
 	c2 := c1
-	c2.moveOneWordForward()
-	d := c1.distance(c2)
+	c2.MoveOneWordForward()
+	d := c1.Distance(c2)
 	if d > 0 {
 		v.appendToKillBuffer(c1, d)
 		v.actionDelete(c1, d)
@@ -925,8 +944,8 @@ func (v *view) killWord() {
 func (v *view) killWordBackward() {
 	c2 := v.cursor
 	c1 := c2
-	c1.moveOneWordBackward()
-	d := c1.distance(c2)
+	c1.MoveOneWordBackward()
+	d := c1.Distance(c2)
 	if d > 0 {
 		v.prependToKillBuffer(c1, d)
 		v.actionDelete(c1, d)
@@ -934,85 +953,85 @@ func (v *view) killWordBackward() {
 	}
 }
 
-func (v *view) onInsertAdjustTopLine(a *action) {
-	if a.cursor.lineNum < v.topLineNum && len(a.lines) > 0 {
+func (v *view) onInsertAdjustTopLine(a *buffer.Action) {
+	if a.Cursor.LineNum < v.topLineNum && len(a.Lines) > 0 {
 		// inserted one or more lines above the view
-		v.topLineNum += len(a.lines)
+		v.topLineNum += len(a.Lines)
 		v.dirty |= dirtyStatus
 	}
 }
 
-func (v *view) onDeleteAdjustTopLine(a *action) {
-	if a.cursor.lineNum < v.topLineNum {
+func (v *view) onDeleteAdjustTopLine(a *buffer.Action) {
+	if a.Cursor.LineNum < v.topLineNum {
 		// deletion above the top line
-		if len(a.lines) == 0 {
+		if len(a.Lines) == 0 {
 			return
 		}
 
 		topnum := v.topLineNum
-		first, last := a.deletedLines()
+		first, last := a.DeletedLines()
 		if first <= topnum && topnum <= last {
 			// deleted the top line, adjust the pointers
-			if a.cursor.line.next != nil {
-				v.topLine = a.cursor.line.next
-				v.topLineNum = a.cursor.lineNum + 1
+			if a.Cursor.Line.Next != nil {
+				v.topLine = a.Cursor.Line.Next
+				v.topLineNum = a.Cursor.LineNum + 1
 			} else {
-				v.topLine = a.cursor.line
-				v.topLineNum = a.cursor.lineNum
+				v.topLine = a.Cursor.Line
+				v.topLineNum = a.Cursor.LineNum
 			}
 			v.dirty = dirtyEverything
 		} else {
 			// no need to worry
-			v.topLineNum -= len(a.lines)
+			v.topLineNum -= len(a.Lines)
 			v.dirty |= dirtyStatus
 		}
 	}
 }
 
-func (v *view) onInsert(a *action) {
+func (v *view) onInsert(a *buffer.Action) {
 	v.onInsertAdjustTopLine(a)
-	if v.topLineNum+v.height() <= a.cursor.lineNum {
+	if v.topLineNum+v.height() <= a.Cursor.LineNum {
 		// inserted something below the view, don't care
 		return
 	}
-	if a.cursor.lineNum < v.topLineNum {
+	if a.Cursor.LineNum < v.topLineNum {
 		// inserted something above the top line
-		if len(a.lines) > 0 {
+		if len(a.Lines) > 0 {
 			// inserted one or more lines, adjust line numbers
-			v.cursor.lineNum += len(a.lines)
+			v.cursor.LineNum += len(a.Lines)
 			v.dirty |= dirtyStatus
 		}
 		return
 	}
 	c := v.cursor
-	c.onInsertAdjust(a)
+	c.OnInsertAdjust(a)
 	v.moveCursorTo(c)
 	v.lastCursorVoffset = v.cursorVoffset
 	v.dirty = dirtyEverything
 }
 
-func (v *view) onDelete(a *action) {
+func (v *view) onDelete(a *buffer.Action) {
 	v.onDeleteAdjustTopLine(a)
-	if v.topLineNum+v.height() <= a.cursor.lineNum {
+	if v.topLineNum+v.height() <= a.Cursor.LineNum {
 		// deleted something below the view, don't care
 		return
 	}
-	if a.cursor.lineNum < v.topLineNum {
+	if a.Cursor.LineNum < v.topLineNum {
 		// deletion above the top line
-		if len(a.lines) == 0 {
+		if len(a.Lines) == 0 {
 			return
 		}
 
-		_, last := a.deletedLines()
+		_, last := a.DeletedLines()
 		if last < v.topLineNum {
 			// no need to worry
-			v.cursor.lineNum -= len(a.lines)
+			v.cursor.LineNum -= len(a.Lines)
 			v.dirty |= dirtyStatus
 			return
 		}
 	}
 	c := v.cursor
-	c.onDeleteAdjust(a)
+	c.OnDeleteAdjust(a)
 	v.moveCursorTo(c)
 	v.lastCursorVoffset = v.cursorVoffset
 	v.dirty = dirtyEverything
@@ -1169,76 +1188,76 @@ func (v *view) makeCell(line, offset int, ch rune) termbox.Cell {
 }
 
 func (v *view) cleanupTrailingWhitespaces() {
-	cursor := cursor{
-		line:    v.buf.firstLine,
-		lineNum: 1,
-		boffset: 0,
+	cursor := buffer.Cursor{
+		Line:    v.buf.FirstLine,
+		LineNum: 1,
+		Boffset: 0,
 	}
 
-	for cursor.line != nil {
-		len := len(cursor.line.data)
-		i := indexLastNonSpace(cursor.line.data)
+	for cursor.Line != nil {
+		len := len(cursor.Line.Data)
+		i := utils.IndexLastNonSpace(cursor.Line.Data)
 		if i == -1 && len > 0 {
 			// the whole string is whitespace
 			v.actionDelete(cursor, len)
 		}
 		if i != -1 && i != len-1 {
 			// some whitespace at the end
-			cursor.boffset = i + 1
-			v.actionDelete(cursor, len-cursor.boffset)
+			cursor.Boffset = i + 1
+			v.actionDelete(cursor, len-cursor.Boffset)
 		}
-		cursor.line = cursor.line.next
-		cursor.lineNum++
-		cursor.boffset = 0
+		cursor.Line = cursor.Line.Next
+		cursor.LineNum++
+		cursor.Boffset = 0
 	}
 
 	// adjust cursor after changes possibly
 	cursor = v.cursor
-	if cursor.boffset > len(cursor.line.data) {
-		cursor.boffset = len(cursor.line.data)
+	if cursor.Boffset > len(cursor.Line.Data) {
+		cursor.Boffset = len(cursor.Line.Data)
 		v.moveCursorTo(cursor)
 	}
 }
 
 func (v *view) cleanupTrailingNewlines() {
-	cursor := cursor{
-		line:    v.buf.lastLine,
-		lineNum: v.buf.numLines,
-		boffset: 0,
+	cursor := buffer.Cursor{
+		Line:    v.buf.LastLine,
+		LineNum: v.buf.NumLines,
+		Boffset: 0,
 	}
 
-	for len(cursor.line.data) == 0 {
-		prev := cursor.line.prev
+	for len(cursor.Line.Data) == 0 {
+		prev := cursor.Line.Prev
 		if prev == nil {
 			// beginning of the file, stop
 			break
 		}
 
-		if len(prev.data) > 0 {
+		if len(prev.Data) > 0 {
 			// previous line is not empty, leave one empty line at
 			// the end (trailing EOL)
 			break
 		}
 
 		// adjust view cursor just in case
-		if v.cursor.lineNum == cursor.lineNum {
+		if v.cursor.LineNum == cursor.LineNum {
 			v.moveCursorPrevLine()
 		}
 
-		cursor.line = prev
-		cursor.lineNum--
-		cursor.boffset = 0
+		cursor.Line = prev
+		cursor.LineNum--
+		cursor.Boffset = 0
 		v.actionDelete(cursor, 1)
 	}
 }
 
 func (v *view) ensureTrailingEOL() {
-	cursor := cursor{
-		line:    v.buf.lastLine,
-		lineNum: v.buf.numLines,
-		boffset: len(v.buf.lastLine.data),
+	cursor := buffer.Cursor{
+		Line:    v.buf.LastLine,
+		LineNum: v.buf.NumLines,
+		Boffset: len(v.buf.LastLine.Data),
 	}
-	if len(v.buf.lastLine.data) > 0 {
+	if len(v.buf.LastLine.Data) > 0 {
 		v.actionInsert(cursor, []byte{'\n'})
 	}
 }
@@ -1254,7 +1273,7 @@ func (v *view) presave_cleanup(raw bool) {
 	}
 }
 
-func (v *view) appendToKillBuffer(cursor cursor, nbytes int) {
+func (v *view) appendToKillBuffer(cursor buffer.Cursor, nbytes int) {
 	kb := *v.ctx.killBuffer
 
 	switch v.lastCommand.Cmd {
@@ -1263,11 +1282,11 @@ func (v *view) appendToKillBuffer(cursor cursor, nbytes int) {
 		kb = kb[:0]
 	}
 
-	kb = append(kb, cursor.extractBytes(nbytes)...)
+	kb = append(kb, cursor.ExtractBytes(nbytes)...)
 	*v.ctx.killBuffer = kb
 }
 
-func (v *view) prependToKillBuffer(cursor cursor, nbytes int) {
+func (v *view) prependToKillBuffer(cursor buffer.Cursor, nbytes int) {
 	kb := *v.ctx.killBuffer
 
 	switch v.lastCommand.Cmd {
@@ -1276,7 +1295,7 @@ func (v *view) prependToKillBuffer(cursor cursor, nbytes int) {
 		kb = kb[:0]
 	}
 
-	kb = append(cursor.extractBytes(nbytes), kb...)
+	kb = append(cursor.ExtractBytes(nbytes), kb...)
 	*v.ctx.killBuffer = kb
 }
 
@@ -1287,54 +1306,54 @@ func (v *view) yank() {
 	if len(buf) == 0 {
 		return
 	}
-	cbuf := cloneByteSlice(buf)
+	cbuf := utils.CloneByteSlice(buf)
 	v.actionInsert(cursor, cbuf)
 	for len(buf) > 0 {
 		_, rlen := utf8.DecodeRune(buf)
 		buf = buf[rlen:]
-		cursor.nextRune(true)
+		cursor.NextRune(true)
 	}
 	v.moveCursorTo(cursor)
 }
 
-func (v *view) indentLine(line cursor) {
-	line.boffset = 0
+func (v *view) indentLine(line buffer.Cursor) {
+	line.Boffset = 0
 	v.actionInsert(line, []byte{'\t'})
-	if v.cursor.line == line.line {
+	if v.cursor.Line == line.Line {
 		cursor := v.cursor
-		cursor.boffset += 1
+		cursor.Boffset += 1
 		v.moveCursorTo(cursor)
 	}
 }
 
-func (v *view) deindentLine(line cursor) {
-	line.boffset = 0
-	if r, _ := line.runeUnder(); r == '\t' {
+func (v *view) deindentLine(line buffer.Cursor) {
+	line.Boffset = 0
+	if r, _ := line.RuneUnder(); r == '\t' {
 		v.actionDelete(line, 1)
 	}
-	if v.cursor.line == line.line && v.cursor.boffset > 0 {
+	if v.cursor.Line == line.Line && v.cursor.Boffset > 0 {
 		cursor := v.cursor
-		cursor.boffset -= 1
+		cursor.Boffset -= 1
 		v.moveCursorTo(cursor)
 	}
 }
 
 func (v *view) wordTo(filter func([]byte) []byte) {
 	c1, c2 := v.cursor, v.cursor
-	c2.moveOneWordForward()
+	c2.MoveOneWordForward()
 	v.filterText(c1, c2, filter)
-	c1.moveOneWordForward()
+	c1.MoveOneWordForward()
 	v.moveCursorTo(c1)
 }
 
 // Filter _must_ return a new slice and shouldn't touch contents of the
 // argument, perfect filter examples are: bytes.Title, bytes.ToUpper,
 // bytes.ToLower
-func (v *view) filterText(from, to cursor, filter func([]byte) []byte) {
-	c1, c2 := swapCursorMaybe(from, to)
-	d := c1.distance(c2)
+func (v *view) filterText(from, to buffer.Cursor, filter func([]byte) []byte) {
+	c1, c2 := buffer.SwapCursorMaybe(from, to)
+	d := c1.Distance(c2)
 	v.actionDelete(c1, d)
-	data := filter(v.buf.history.lastAction().data)
+	data := filter(v.buf.History.LastAction().Data)
 	v.actionInsert(c1, data)
 }
 
