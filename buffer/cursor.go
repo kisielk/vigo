@@ -375,7 +375,9 @@ func (c Cursor) searchBackward(word []byte) (Cursor, bool) {
 	return c, false
 }
 
-func SwapCursorMaybe(c1, c2 Cursor) (r1, r2 Cursor) {
+// SortCursors orders a pair of cursors, from closest to
+// furthest from the beginning of the buffer.
+func SortCursors(c1, c2 Cursor) (r1, r2 Cursor) {
 	if c1.LineNum == c2.LineNum {
 		if c1.Boffset > c2.Boffset {
 			return c2, c1

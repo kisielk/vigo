@@ -1353,7 +1353,7 @@ func (v *view) wordTo(filter func([]byte) []byte) {
 // argument, perfect filter examples are: bytes.Title, bytes.ToUpper,
 // bytes.ToLower
 func (v *view) filterText(from, to buffer.Cursor, filter func([]byte) []byte) {
-	c1, c2 := buffer.SwapCursorMaybe(from, to)
+	c1, c2 := buffer.SortCursors(from, to)
 	d := c1.Distance(c2)
 	v.actionDelete(c1, d)
 	data := filter(v.buf.History.LastAction().Data)

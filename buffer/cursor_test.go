@@ -213,3 +213,29 @@ func TestPrevWordSpaces(t *testing.T) {
 		t.Error("Bad cursor position", c.Boffset)
 	}
 }
+
+func TestSortCursors(t *testing.T) {
+
+	c1 := Cursor{nil, 1, 10}
+	c2 := Cursor{nil, 1, 20}
+	c3 := Cursor{nil, 2, 10}
+
+	var pairs = []struct {
+		in1  Cursor
+		in2  Cursor
+		out1 Cursor
+		out2 Cursor
+	}{
+		{c1, c2, c1, c2},
+		{c2, c1, c1, c2},
+		{c1, c3, c1, c3},
+		{c3, c1, c1, c3},
+	}
+
+	for _, p := range pairs {
+		out1, out2 := SortCursors(p.in1, p.in2)
+		if out1 != p.out1 || out2 != p.out2 {
+			t.Error("Wrong cursor order")
+		}
+	}
+}
