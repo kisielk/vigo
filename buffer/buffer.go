@@ -148,15 +148,19 @@ func NewBuffer(r io.Reader) (*Buffer, error) {
 	return b, err
 }
 
+// InsertLine inserts a line after prev in the buffer.
+// If prev is nil then the line will be the new first line of the buffer.
 func (b *Buffer) InsertLine(line *Line, prev *Line) {
 	// NOTE: 1) does not update b.numBytes
-	//       2) cannot prepend to the first line
 	bi := prev
-	ai := prev.Next
-
-	// 'bi' is always a non-nil line
-	bi.Next = line
-	line.Prev = bi
+	ai := b.FirstLine
+	if bi != nil {
+		ai = prev.Next
+		bi.Next = line
+		line.Prev = bi
+	} else {
+		b.FirstLine = line
+	}
 
 	// 'ai' could be nil (means we're inserting a new last line)
 	if ai == nil {
