@@ -936,7 +936,7 @@ func (v *view) killLine() {
 func (v *view) killWord() {
 	c1 := v.cursor
 	c2 := c1
-	c2.MoveOneWordForward()
+	c2.NextWord()
 	d := c1.Distance(c2)
 	if d > 0 {
 		v.appendToKillBuffer(c1, d)
@@ -947,7 +947,7 @@ func (v *view) killWord() {
 func (v *view) killWordBackward() {
 	c2 := v.cursor
 	c1 := c2
-	c1.MoveOneWordBackward()
+	c1.PrevWord()
 	d := c1.Distance(c2)
 	if d > 0 {
 		v.prependToKillBuffer(c1, d)
@@ -1343,9 +1343,9 @@ func (v *view) deindentLine(line buffer.Cursor) {
 
 func (v *view) wordTo(filter func([]byte) []byte) {
 	c1, c2 := v.cursor, v.cursor
-	c2.MoveOneWordForward()
+	c2.NextWord()
 	v.filterText(c1, c2, filter)
-	c1.MoveOneWordForward()
+	c1.NextWord()
 	v.moveCursorTo(c1)
 }
 

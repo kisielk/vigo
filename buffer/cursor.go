@@ -213,39 +213,6 @@ func (c *Cursor) NextWord() bool {
 	return c.NextRuneFunc(isNotSpace)
 }
 
-// returns true if the move was successful, false if EOF reached.
-func (c *Cursor) MoveOneWordForward() bool {
-	// move cursor forward until the first word rune is met
-	for {
-		if c.EOL() {
-			if c.LastLine() {
-				return false
-			} else {
-				c.Line = c.Line.Next
-				c.LineNum++
-				c.Boffset = 0
-				continue
-			}
-		}
-		r, rlen := c.RuneUnder()
-		for !utils.IsWord(r) && !c.EOL() {
-			c.Boffset += rlen
-			r, rlen = c.RuneUnder()
-		}
-		if c.EOL() {
-			continue
-		}
-		break
-	}
-	// now the cursor is under the word rune, skip all of them
-	r, rlen := c.RuneUnder()
-	for utils.IsWord(r) && !c.EOL() {
-		c.Boffset += rlen
-		r, rlen = c.RuneUnder()
-	}
-	return true
-}
-
 // Move cursor backward until current rune satisfies condition f.
 // Returns true if the move was successful, false if EOF reached.
 func (c *Cursor) PrevRuneFunc(f func(rune) bool) bool {
@@ -303,43 +270,6 @@ func (c *Cursor) PrevWord() bool {
 		}
 	}
 	return !c.BOL()
-}
-
-// returns true if the move was successful, false if BOF reached.
-func (c *Cursor) MoveOneWordBackward() bool {
-	// move cursor backward while previous rune is not a word rune
-	for {
-		if c.BOL() {
-			if c.FirstLine() {
-				return false
-			} else {
-				c.Line = c.Line.Prev
-				c.LineNum--
-				c.Boffset = len(c.Line.Data)
-				continue
-			}
-		}
-
-		r, rlen := c.RuneBefore()
-		for !utils.IsWord(r) && !c.BOL() {
-			c.Boffset -= rlen
-			r, rlen = c.RuneBefore()
-		}
-		if c.BOL() {
-			continue
-		}
-		break
-	}
-
-	// now the rune behind the cursor is a word rune, while it's true, move
-	// backwards
-	r, rlen := c.RuneBefore()
-	for utils.IsWord(r) && !c.BOL() {
-		c.Boffset -= rlen
-		r, rlen = c.RuneBefore()
-	}
-
-	return true
 }
 
 func (c *Cursor) OnInsertAdjust(a *Action) {
