@@ -26,6 +26,36 @@ type Action struct {
 	Lines  []*Line
 }
 
+// NewInsertAction creates a new action inserting data bytes at c.
+func NewInsertAction(c Cursor, data []byte) *Action {
+	a := Action{
+		What:   ActionInsert,
+		Data:   data,
+		Cursor: c,
+		Lines:  make([]*Line, bytes.Count(data, []byte{'\n'})),
+	}
+	for i := range a.Lines {
+		a.Lines[i] = new(Line)
+	}
+	return &a
+}
+
+// NewDeleteAction creates a new action deleting numBytes bytes at c.
+func NewDeleteAction(c Cursor, numBytes int) *Action {
+	d := c.ExtractBytes(numBytes)
+	a := Action{
+		What:   ActionDelete,
+		Data:   d,
+		Cursor: c,
+		Lines:  make([]*Line, bytes.Count(d, []byte{'\n'})),
+	}
+	for i := range a.Lines {
+		a.Lines[i] = c.Line.Next
+		c.Line = c.Line.Next
+	}
+	return &a
+}
+
 func (a *Action) Apply(buf *Buffer) {
 	a.do(buf, a.What)
 }

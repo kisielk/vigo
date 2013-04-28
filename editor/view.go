@@ -812,34 +812,20 @@ func (v *view) redo() {
 
 func (v *view) actionInsert(c buffer.Cursor, data []byte) {
 	v.maybeNextActionGroup()
-	a := buffer.Action{
-		What:   buffer.ActionInsert,
-		Data:   data,
-		Cursor: c,
-		Lines:  make([]*buffer.Line, bytes.Count(data, []byte{'\n'})),
-	}
-	for i := range a.Lines {
-		a.Lines[i] = new(buffer.Line)
-	}
+
+	a := buffer.NewInsertAction(c, data)
 	a.Apply(v.buf)
-	v.buf.History.Append(&a)
+
+	v.buf.History.Append(a)
 }
 
 func (v *view) actionDelete(c buffer.Cursor, nbytes int) {
 	v.maybeNextActionGroup()
-	d := c.ExtractBytes(nbytes)
-	a := buffer.Action{
-		What:   buffer.ActionDelete,
-		Data:   d,
-		Cursor: c,
-		Lines:  make([]*buffer.Line, bytes.Count(d, []byte{'\n'})),
-	}
-	for i := range a.Lines {
-		a.Lines[i] = c.Line.Next
-		c.Line = c.Line.Next
-	}
+
+	a := buffer.NewDeleteAction(c, nbytes)
 	a.Apply(v.buf)
-	v.buf.History.Append(&a)
+
+	v.buf.History.Append(a)
 }
 
 // Insert a rune 'r' at the current cursor position, advance cursor one character forward.
