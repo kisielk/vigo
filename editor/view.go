@@ -736,6 +736,9 @@ func (v *view) maybeMoveViewNlines(n int) {
 	}
 }
 
+// maybeNextActionGroup moves history forward one action group and
+// discards any further redo action groups. This is done when
+// the buffer is modified after several undo's.
 func (v *view) maybeNextActionGroup() {
 	b := v.buf
 	if b.History.Next == nil {
@@ -748,7 +751,6 @@ func (v *view) maybeNextActionGroup() {
 	b.History.Prev = prev
 	b.History.Next = nil
 	b.History.Actions = nil
-	b.History.Before = v.cursor
 }
 
 func (v *view) finalizeActionGroup() {
@@ -758,7 +760,6 @@ func (v *view) finalizeActionGroup() {
 	// (that are supposed to finalize action group)
 	if b.History.Next == nil {
 		b.History.Next = new(buffer.ActionGroup)
-		b.History.After = v.cursor
 	}
 }
 
@@ -779,7 +780,7 @@ func (v *view) undo() {
 		a := &b.History.Actions[i]
 		a.Revert(v.buf)
 	}
-	v.moveCursorTo(b.History.Before)
+	v.moveCursorTo(b.History.CursorBefore())
 	v.lastCursorVoffset = v.cursorVoffset
 	b.History = b.History.Prev
 	v.ctx.setStatus("Undo!")
@@ -805,7 +806,7 @@ func (v *view) redo() {
 		a := &b.History.Actions[i]
 		a.Apply(v.buf)
 	}
-	v.moveCursorTo(b.History.After)
+	v.moveCursorTo(b.History.CursorAfter())
 	v.lastCursorVoffset = v.cursorVoffset
 	v.ctx.setStatus("Redo!")
 }

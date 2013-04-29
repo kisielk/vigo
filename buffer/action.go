@@ -201,8 +201,6 @@ type ActionGroup struct {
 	Actions []Action
 	Next    *ActionGroup
 	Prev    *ActionGroup
-	Before  Cursor
-	After   Cursor
 }
 
 func (ag *ActionGroup) Append(a *Action) {
@@ -223,4 +221,22 @@ func (ag *ActionGroup) LastAction() *Action {
 		return nil
 	}
 	return &ag.Actions[len(ag.Actions)-1]
+}
+
+// CursorBefore returns cursor position before actions in the group are applied.
+func (ag *ActionGroup) CursorBefore() Cursor {
+	// FIXME for now, return the cursor of the first action.
+	// This is not accurate for cases like merged deletions, where
+	// we need to return cursor + deletion length.
+	if len(ag.Actions) == 0 {
+		// TODO return some sentinel cursor value instead?
+		panic("action group is empty")
+	}
+	return ag.Actions[0].Cursor
+}
+
+// CursorBefore returns cursor position after actions in the group are applied.
+func (ag *ActionGroup) CursorAfter() Cursor {
+	// FIXME this is inaccurate for same reasons as CursorBefore()
+	return ag.Actions[len(ag.Actions)-1].Cursor
 }
