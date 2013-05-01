@@ -49,6 +49,8 @@ type BufferEventType int
 const (
 	BufferEventInsert BufferEventType = iota
 	BufferEventDelete
+	BufferEventBOF
+	BufferEventEOF
 	BufferEventSave
 )
 
@@ -146,6 +148,70 @@ func NewBuffer(r io.Reader) (*Buffer, error) {
 	// history
 	b.initHistory()
 	return b, err
+}
+
+// InsertRune inserts 'r' at the cursor position 'c'
+func (b *Buffer) InsertRune(c Cursor, r rune) {
+	if r == '\n' || r == '\r' {
+		b.Insert(c, []byte{'\n'})
+		prev := c.Line
+		c.Line = c.Line.Next
+		c.LineNum++
+		c.Boffset = 0
+
+		if r == '\n' {
+			i := utils.IndexFirstNonSpace(prev.Data)
+			if i > 0 {
+				autoindent := utils.CloneByteSlice(prev.Data[:i])
+				b.Insert(c, autoindent)
+				c.Boffset += len(autoindent)
+			}
+		}
+	} else {
+		var data [utf8.UTFMax]byte
+		nBytes := utf8.EncodeRune(data[:], r)
+		b.Insert(c, data[:nBytes])
+		c.Boffset += nBytes
+	}
+}
+
+// If at the EOL, move contents of the next line to the end of the current line,
+// erasing the next line after that. Otherwise, delete one character under the
+// cursor.
+func (b *Buffer) DeleteRune(c Cursor) {
+	if c.EOL() {
+		if c.LastLine() {
+			// end of the file
+			b.Emit(BufferEvent{Type: BufferEventEOF})
+			return
+		}
+		b.Delete(c, 1)
+		return
+	}
+
+	_, rlen := c.RuneUnder()
+	b.Delete(c, rlen)
+}
+
+// If at the beginning of the line, move contents of the current line to the end
+// of the previous line. Otherwise, erase one character backward.
+func (b *Buffer) DeleteRuneBackward(c Cursor) {
+	if c.BOL() {
+		if c.FirstLine() {
+			// beginning of the file
+			b.Emit(BufferEvent{Type: BufferEventBOF})
+			return
+		}
+		c.Line = c.Line.Prev
+		c.LineNum--
+		c.Boffset = c.Line.Len()
+		b.Delete(c, 1)
+		return
+	}
+
+	_, rlen := c.RuneBefore()
+	c.Boffset -= rlen
+	b.Delete(c, rlen)
 }
 
 // InsertLine inserts a line after prev in the buffer.

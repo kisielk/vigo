@@ -201,6 +201,12 @@ func (v *view) attach(b *buffer.Buffer) {
 				v.dirty = dirtyEverything
 				// FIXME for unfocused views, just call onDelete
 				// v.onDelete(e.Action)
+			case buffer.BufferEventBOF:
+				v.ctx.setStatus("Beginning of buffer")
+				v.dirty |= dirtyStatus
+			case buffer.BufferEventEOF:
+				v.ctx.setStatus("End of buffer")
+				v.dirty |= dirtyStatus
 			case buffer.BufferEventSave:
 				v.dirty |= dirtyStatus
 			}
@@ -790,74 +796,6 @@ func (v *view) redo() {
 	v.ctx.setStatus("Redo!")
 }
 
-// Insert a rune 'r' at the current cursor position, advance cursor one character forward.
-func (v *view) insertRune(r rune) {
-	c := v.cursor
-	if r == '\n' || r == '\r' {
-		v.buf.Insert(c, []byte{'\n'})
-		prev := c.Line
-		c.Line = c.Line.Next
-		c.LineNum++
-		c.Boffset = 0
-
-		if r == '\n' {
-			i := utils.IndexFirstNonSpace(prev.Data)
-			if i > 0 {
-				autoindent := utils.CloneByteSlice(prev.Data[:i])
-				v.buf.Insert(c, autoindent)
-				c.Boffset += len(autoindent)
-			}
-		}
-	} else {
-		var data [utf8.UTFMax]byte
-		nBytes := utf8.EncodeRune(data[:], r)
-		v.buf.Insert(c, data[:nBytes])
-		c.Boffset += nBytes
-	}
-}
-
-// If at the beginning of the line, move contents of the current line to the end
-// of the previous line. Otherwise, erase one character backward.
-func (v *view) deleteRuneBackward() {
-	c := v.cursor
-	if c.BOL() {
-		if c.FirstLine() {
-			// beginning of the file
-			v.ctx.setStatus("Beginning of buffer")
-			return
-		}
-		c.Line = c.Line.Prev
-		c.LineNum--
-		c.Boffset = c.Line.Len()
-		v.buf.Delete(c, 1)
-		v.moveCursorTo(c)
-		return
-	}
-
-	_, rlen := c.RuneBefore()
-	c.Boffset -= rlen
-	v.buf.Delete(c, rlen)
-}
-
-// If at the EOL, move contents of the next line to the end of the current line,
-// erasing the next line after that. Otherwise, delete one character under the
-// cursor.
-func (v *view) deleteRune() {
-	c := v.cursor
-	if c.EOL() {
-		if c.LastLine() {
-			// end of the file
-			v.ctx.setStatus("End of buffer")
-			return
-		}
-		v.buf.Delete(c, 1)
-		return
-	}
-
-	_, rlen := c.RuneUnder()
-	v.buf.Delete(c, rlen)
-}
-
 // If not at the EOL, remove contents of the current line from the cursor to the
 // end. Otherwise behave like 'delete'.
 func (v *view) killLine() {
@@ -870,7 +808,7 @@ func (v *view) killLine() {
 		return
 	}
 	v.appendToKillBuffer(c, 1)
-	v.deleteRune()
+	v.buf.DeleteRune(c)
 }
 
 func (v *view) killWord() {
@@ -1032,13 +970,13 @@ func (v *view) onVcommand(c viewCommand) {
 		case vCommandMoveViewHalfBackward:
 			v.moveViewNlines(-v.height() / 2)
 		case vCommandInsertRune:
-			v.insertRune(c.Rune)
+			v.buf.InsertRune(v.cursor, c.Rune)
 		case vCommandYank:
 			v.yank()
 		case vCommandDeleteRuneBackward:
-			v.deleteRuneBackward()
+			v.buf.DeleteRuneBackward(v.cursor)
 		case vCommandDeleteRune:
-			v.deleteRune()
+			v.buf.DeleteRune(v.cursor)
 		case vCommandKillLine:
 			v.killLine()
 		case vCommandKillWord:
