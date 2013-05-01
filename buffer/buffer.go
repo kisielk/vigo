@@ -192,6 +192,49 @@ func (b *Buffer) DeleteLine(line *Line) {
 	b.NumLines--
 }
 
+// maybeNextActionGroup moves history forward one action group and
+// discards any further redo action groups. This is done when
+// the buffer is modified after several undo's.
+func (b *Buffer) maybeNextActionGroup() {
+	if b.History.Next == nil {
+		// no need to move
+		return
+	}
+
+	prev := b.History
+	b.History = b.History.Next
+	b.History.Prev = prev
+	b.History.Next = nil
+	b.History.Actions = nil
+}
+
+func (b *Buffer) FinalizeActionGroup() {
+	// finalize only if we're at the tip of the undo history, this function
+	// will be called mainly after each cursor movement and actions alike
+	// (that are supposed to finalize action group)
+	if b.History.Next == nil {
+		b.History.Next = new(ActionGroup)
+	}
+}
+
+func (b *Buffer) Insert(c Cursor, data []byte) {
+	b.maybeNextActionGroup()
+
+	a := NewInsertAction(c, data)
+	a.Apply(b)
+
+	b.History.Append(a)
+}
+
+func (b *Buffer) Delete(c Cursor, numBytes int) {
+	b.maybeNextActionGroup()
+
+	a := NewDeleteAction(c, numBytes)
+	a.Apply(b)
+
+	b.History.Append(a)
+}
+
 func (b *Buffer) initHistory() {
 	// the trick here is that I set 'sentinel' as 'history', it is required
 	// to maintain an invariant, where 'history' is a sentinel or is not

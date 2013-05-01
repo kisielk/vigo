@@ -736,33 +736,6 @@ func (v *view) maybeMoveViewNlines(n int) {
 	}
 }
 
-// maybeNextActionGroup moves history forward one action group and
-// discards any further redo action groups. This is done when
-// the buffer is modified after several undo's.
-func (v *view) maybeNextActionGroup() {
-	b := v.buf
-	if b.History.Next == nil {
-		// no need to move
-		return
-	}
-
-	prev := b.History
-	b.History = b.History.Next
-	b.History.Prev = prev
-	b.History.Next = nil
-	b.History.Actions = nil
-}
-
-func (v *view) finalizeActionGroup() {
-	b := v.buf
-	// finalize only if we're at the tip of the undo history, this function
-	// will be called mainly after each cursor movement and actions alike
-	// (that are supposed to finalize action group)
-	if b.History.Next == nil {
-		b.History.Next = new(buffer.ActionGroup)
-	}
-}
-
 func (v *view) undo() {
 	b := v.buf
 	if b.History.Prev == nil {
@@ -772,7 +745,7 @@ func (v *view) undo() {
 	}
 
 	// undo action causes finalization, always
-	v.finalizeActionGroup()
+	v.buf.FinalizeActionGroup()
 
 	// undo invariant tells us 'len(b.history.actions) != 0' in case if this is
 	// not a sentinel, revert the actions in the current action group
@@ -811,29 +784,11 @@ func (v *view) redo() {
 	v.ctx.setStatus("Redo!")
 }
 
-func (v *view) actionInsert(c buffer.Cursor, data []byte) {
-	v.maybeNextActionGroup()
-
-	a := buffer.NewInsertAction(c, data)
-	a.Apply(v.buf)
-
-	v.buf.History.Append(a)
-}
-
-func (v *view) actionDelete(c buffer.Cursor, nbytes int) {
-	v.maybeNextActionGroup()
-
-	a := buffer.NewDeleteAction(c, nbytes)
-	a.Apply(v.buf)
-
-	v.buf.History.Append(a)
-}
-
 // Insert a rune 'r' at the current cursor position, advance cursor one character forward.
 func (v *view) insertRune(r rune) {
 	c := v.cursor
 	if r == '\n' || r == '\r' {
-		v.actionInsert(c, []byte{'\n'})
+		v.buf.Insert(c, []byte{'\n'})
 		prev := c.Line
 		c.Line = c.Line.Next
 		c.LineNum++
@@ -843,14 +798,14 @@ func (v *view) insertRune(r rune) {
 			i := utils.IndexFirstNonSpace(prev.Data)
 			if i > 0 {
 				autoindent := utils.CloneByteSlice(prev.Data[:i])
-				v.actionInsert(c, autoindent)
+				v.buf.Insert(c, autoindent)
 				c.Boffset += len(autoindent)
 			}
 		}
 	} else {
 		var data [utf8.UTFMax]byte
 		nBytes := utf8.EncodeRune(data[:], r)
-		v.actionInsert(c, data[:nBytes])
+		v.buf.Insert(c, data[:nBytes])
 		c.Boffset += nBytes
 	}
 	v.moveCursorTo(c)
@@ -870,7 +825,7 @@ func (v *view) deleteRuneBackward() {
 		c.Line = c.Line.Prev
 		c.LineNum--
 		c.Boffset = c.Line.Len()
-		v.actionDelete(c, 1)
+		v.buf.Delete(c, 1)
 		v.moveCursorTo(c)
 		v.dirty = dirtyEverything
 		return
@@ -878,7 +833,7 @@ func (v *view) deleteRuneBackward() {
 
 	_, rlen := c.RuneBefore()
 	c.Boffset -= rlen
-	v.actionDelete(c, rlen)
+	v.buf.Delete(c, rlen)
 	v.moveCursorTo(c)
 	v.dirty = dirtyEverything
 }
@@ -894,13 +849,13 @@ func (v *view) deleteRune() {
 			v.ctx.setStatus("End of buffer")
 			return
 		}
-		v.actionDelete(c, 1)
+		v.buf.Delete(c, 1)
 		v.dirty = dirtyEverything
 		return
 	}
 
 	_, rlen := c.RuneUnder()
-	v.actionDelete(c, rlen)
+	v.buf.Delete(c, rlen)
 	v.dirty = dirtyEverything
 }
 
@@ -912,7 +867,7 @@ func (v *view) killLine() {
 		// kill data from the cursor to the EOL
 		len := c.Line.Len() - c.Boffset
 		v.appendToKillBuffer(c, len)
-		v.actionDelete(c, len)
+		v.buf.Delete(c, len)
 		v.dirty = dirtyEverything
 		return
 	}
@@ -927,7 +882,7 @@ func (v *view) killWord() {
 	d := c1.Distance(c2)
 	if d > 0 {
 		v.appendToKillBuffer(c1, d)
-		v.actionDelete(c1, d)
+		v.buf.Delete(c1, d)
 	}
 }
 
@@ -938,7 +893,7 @@ func (v *view) killWordBackward() {
 	d := c1.Distance(c2)
 	if d > 0 {
 		v.prependToKillBuffer(c1, d)
-		v.actionDelete(c1, d)
+		v.buf.Delete(c1, d)
 		v.moveCursorTo(c1)
 	}
 }
@@ -1030,7 +985,7 @@ func (v *view) onDelete(a *buffer.Action) {
 func (v *view) onVcommand(c viewCommand) {
 	lastClass := v.lastCommand.Cmd.class()
 	if c.Cmd.class() != lastClass || lastClass == vCommandClassMisc {
-		v.finalizeActionGroup()
+		v.buf.FinalizeActionGroup()
 	}
 
 	reps := c.Reps
@@ -1189,12 +1144,12 @@ func (v *view) cleanupTrailingWhitespaces() {
 		i := utils.IndexLastNonSpace(cursor.Line.Data)
 		if i == -1 && len > 0 {
 			// the whole string is whitespace
-			v.actionDelete(cursor, len)
+			v.buf.Delete(cursor, len)
 		}
 		if i != -1 && i != len-1 {
 			// some whitespace at the end
 			cursor.Boffset = i + 1
-			v.actionDelete(cursor, len-cursor.Boffset)
+			v.buf.Delete(cursor, len-cursor.Boffset)
 		}
 		cursor.Line = cursor.Line.Next
 		cursor.LineNum++
@@ -1237,7 +1192,7 @@ func (v *view) cleanupTrailingNewlines() {
 		cursor.Line = prev
 		cursor.LineNum--
 		cursor.Boffset = 0
-		v.actionDelete(cursor, 1)
+		v.buf.Delete(cursor, 1)
 	}
 }
 
@@ -1248,18 +1203,18 @@ func (v *view) ensureTrailingEOL() {
 		Boffset: v.buf.LastLine.Len(),
 	}
 	if v.buf.LastLine.Len() > 0 {
-		v.actionInsert(cursor, []byte{'\n'})
+		v.buf.Insert(cursor, []byte{'\n'})
 	}
 }
 
 func (v *view) presave_cleanup(raw bool) {
-	v.finalizeActionGroup()
+	v.buf.FinalizeActionGroup()
 	v.lastCommand = viewCommand{Cmd: vCommandNone}
 	if !raw {
 		v.cleanupTrailingWhitespaces()
 		v.cleanupTrailingNewlines()
 		v.ensureTrailingEOL()
-		v.finalizeActionGroup()
+		v.buf.FinalizeActionGroup()
 	}
 }
 
@@ -1297,7 +1252,7 @@ func (v *view) yank() {
 		return
 	}
 	cbuf := utils.CloneByteSlice(buf)
-	v.actionInsert(cursor, cbuf)
+	v.buf.Insert(cursor, cbuf)
 	for len(buf) > 0 {
 		_, rlen := utf8.DecodeRune(buf)
 		buf = buf[rlen:]
@@ -1308,7 +1263,7 @@ func (v *view) yank() {
 
 func (v *view) indentLine(line buffer.Cursor) {
 	line.Boffset = 0
-	v.actionInsert(line, []byte{'\t'})
+	v.buf.Insert(line, []byte{'\t'})
 	if v.cursor.Line == line.Line {
 		cursor := v.cursor
 		cursor.Boffset += 1
@@ -1319,7 +1274,7 @@ func (v *view) indentLine(line buffer.Cursor) {
 func (v *view) deindentLine(line buffer.Cursor) {
 	line.Boffset = 0
 	if r, _ := line.RuneUnder(); r == '\t' {
-		v.actionDelete(line, 1)
+		v.buf.Delete(line, 1)
 	}
 	if v.cursor.Line == line.Line && v.cursor.Boffset > 0 {
 		cursor := v.cursor
@@ -1342,9 +1297,9 @@ func (v *view) wordTo(filter func([]byte) []byte) {
 func (v *view) filterText(from, to buffer.Cursor, filter func([]byte) []byte) {
 	c1, c2 := buffer.SortCursors(from, to)
 	d := c1.Distance(c2)
-	v.actionDelete(c1, d)
+	v.buf.Delete(c1, d)
 	data := filter(v.buf.History.LastAction().Data)
-	v.actionInsert(c1, data)
+	v.buf.Insert(c1, data)
 }
 
 //----------------------------------------------------------------------------
