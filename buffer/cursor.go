@@ -283,8 +283,8 @@ func (c *Cursor) OnInsertAdjust(a *Action) {
 	}
 
 	// insertion on the cursor line
-	if a.Cursor.Boffset < c.Boffset {
-		// insertion before the cursor, move cursor along with insertion
+	if a.Cursor.Boffset <= c.Boffset {
+		// insertion before or at the cursor, move cursor along with insertion
 		if len(a.Lines) == 0 {
 			// no lines were inserted, simply adjust the offset
 			c.Boffset += len(a.Data)

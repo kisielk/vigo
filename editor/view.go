@@ -187,11 +187,17 @@ func (v *view) attach(b *buffer.Buffer) {
 			switch e.Type {
 			case buffer.BufferEventInsert:
 				v.onInsertAdjustTopLine(e.Action)
+				c := v.cursor
+				c.OnInsertAdjust(e.Action)
+				v.moveCursorTo(c)
 				v.dirty = dirtyEverything
 				// FIXME for unfocused views, just call onInsert
 				// v.onInsert(e.Action)
 			case buffer.BufferEventDelete:
 				v.onDeleteAdjustTopLine(e.Action)
+				c := v.cursor
+				c.OnDeleteAdjust(e.Action)
+				v.moveCursorTo(c)
 				v.dirty = dirtyEverything
 				// FIXME for unfocused views, just call onDelete
 				// v.onDelete(e.Action)
@@ -808,8 +814,6 @@ func (v *view) insertRune(r rune) {
 		v.buf.Insert(c, data[:nBytes])
 		c.Boffset += nBytes
 	}
-	v.moveCursorTo(c)
-	v.dirty = dirtyEverything
 }
 
 // If at the beginning of the line, move contents of the current line to the end
@@ -827,15 +831,12 @@ func (v *view) deleteRuneBackward() {
 		c.Boffset = c.Line.Len()
 		v.buf.Delete(c, 1)
 		v.moveCursorTo(c)
-		v.dirty = dirtyEverything
 		return
 	}
 
 	_, rlen := c.RuneBefore()
 	c.Boffset -= rlen
 	v.buf.Delete(c, rlen)
-	v.moveCursorTo(c)
-	v.dirty = dirtyEverything
 }
 
 // If at the EOL, move contents of the next line to the end of the current line,
@@ -850,13 +851,11 @@ func (v *view) deleteRune() {
 			return
 		}
 		v.buf.Delete(c, 1)
-		v.dirty = dirtyEverything
 		return
 	}
 
 	_, rlen := c.RuneUnder()
 	v.buf.Delete(c, rlen)
-	v.dirty = dirtyEverything
 }
 
 // If not at the EOL, remove contents of the current line from the cursor to the
@@ -868,7 +867,6 @@ func (v *view) killLine() {
 		len := c.Line.Len() - c.Boffset
 		v.appendToKillBuffer(c, len)
 		v.buf.Delete(c, len)
-		v.dirty = dirtyEverything
 		return
 	}
 	v.appendToKillBuffer(c, 1)
