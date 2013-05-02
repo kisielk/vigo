@@ -181,7 +181,9 @@ func (v *view) attach(b *buffer.Buffer) {
 			LineNum: 1,
 		},
 	}
-	v.bufferEvents = make(chan buffer.BufferEvent)
+	// Add a small message buffer, otherwise buffer methods
+	// sending several consequitive events will lock up.
+	v.bufferEvents = make(chan buffer.BufferEvent, 10)
 	go func() {
 		for e := range v.bufferEvents {
 			switch e.Type {
@@ -206,6 +208,18 @@ func (v *view) attach(b *buffer.Buffer) {
 				v.dirty |= dirtyStatus
 			case buffer.BufferEventEOF:
 				v.ctx.setStatus("End of buffer")
+				v.dirty |= dirtyStatus
+			case buffer.BufferEventHistoryBack:
+				v.ctx.setStatus("Undo!")
+				v.dirty |= dirtyStatus
+			case buffer.BufferEventHistoryForward:
+				v.ctx.setStatus("Redo!")
+				v.dirty |= dirtyStatus
+			case buffer.BufferEventHistoryStart:
+				v.ctx.setStatus("No further undo information")
+				v.dirty |= dirtyStatus
+			case buffer.BufferEventHistoryEnd:
+				v.ctx.setStatus("No further redo information")
 				v.dirty |= dirtyStatus
 			case buffer.BufferEventSave:
 				v.dirty |= dirtyStatus
@@ -748,54 +762,6 @@ func (v *view) maybeMoveViewNlines(n int) {
 	}
 }
 
-func (v *view) undo() {
-	b := v.buf
-	if b.History.Prev == nil {
-		// we're at the sentinel, no more things to undo
-		v.ctx.setStatus("No further undo information")
-		return
-	}
-
-	// undo action causes finalization, always
-	v.buf.FinalizeActionGroup()
-
-	// undo invariant tells us 'len(b.history.actions) != 0' in case if this is
-	// not a sentinel, revert the actions in the current action group
-	for i := len(b.History.Actions) - 1; i >= 0; i-- {
-		a := &b.History.Actions[i]
-		a.Revert(v.buf)
-	}
-	v.moveCursorTo(b.History.CursorBefore())
-	v.lastCursorVoffset = v.cursorVoffset
-	b.History = b.History.Prev
-	v.ctx.setStatus("Undo!")
-}
-
-func (v *view) redo() {
-	b := v.buf
-	if b.History.Next == nil {
-		// open group, obviously, can't move forward
-		v.ctx.setStatus("No further redo information")
-		return
-	}
-	if len(b.History.Next.Actions) == 0 {
-		// last finalized group, moving to the next group breaks the
-		// invariant and doesn't make sense (nothing to redo)
-		v.ctx.setStatus("No further redo information")
-		return
-	}
-
-	// move one entry forward, and redo all its actions
-	b.History = b.History.Next
-	for i := range b.History.Actions {
-		a := &b.History.Actions[i]
-		a.Apply(v.buf)
-	}
-	v.moveCursorTo(b.History.CursorAfter())
-	v.lastCursorVoffset = v.cursorVoffset
-	v.ctx.setStatus("Redo!")
-}
-
 // If not at the EOL, remove contents of the current line from the cursor to the
 // end. Otherwise behave like 'delete'.
 func (v *view) killLine() {
@@ -984,9 +950,9 @@ func (v *view) onVcommand(c viewCommand) {
 		case vCommandKillWordBackward:
 			v.killWordBackward()
 		case vCommandUndo:
-			v.undo()
+			v.buf.Undo()
 		case vCommandRedo:
-			v.redo()
+			v.buf.Redo()
 		case vCommandWordToUpper:
 			v.wordTo(bytes.ToUpper)
 		case vCommandWordToTitle:

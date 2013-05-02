@@ -94,7 +94,7 @@ func (a *Action) insert(buf *Buffer) {
 	if data_chunk != nil {
 		line.Data = append(line.Data, data_chunk...)
 	}
-	buf.Emit(BufferEvent{BufferEventInsert, a})
+	buf.Emit(BufferEvent{Type: BufferEventInsert, Action: a})
 }
 
 func (a *Action) delete(buf *Buffer) {
@@ -116,7 +116,7 @@ func (a *Action) delete(buf *Buffer) {
 			line.Data = line.Data[:len(line.Data)-len(data)]
 		}
 	})
-	buf.Emit(BufferEvent{BufferEventDelete, a})
+	buf.Emit(BufferEvent{Type: BufferEventDelete, Action: a})
 }
 
 func (a *Action) do(buf *Buffer, what ActionType) {

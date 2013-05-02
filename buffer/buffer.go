@@ -51,6 +51,10 @@ const (
 	BufferEventDelete
 	BufferEventBOF
 	BufferEventEOF
+	BufferEventHistoryBack
+	BufferEventHistoryStart
+	BufferEventHistoryForward
+	BufferEventHistoryEnd
 	BufferEventSave
 )
 
@@ -299,6 +303,45 @@ func (b *Buffer) Delete(c Cursor, numBytes int) {
 	a.Apply(b)
 
 	b.History.Append(a)
+}
+
+func (b *Buffer) Undo() {
+	if b.History.Prev == nil {
+		// we're at the sentinel, no more things to undo
+		b.Emit(BufferEvent{Type: BufferEventHistoryStart})
+		return
+	}
+	// undo action causes finalization, always
+	b.FinalizeActionGroup()
+	// undo invariant tells us 'len(b.history.actions) != 0' in case if this is
+	// not a sentinel, revert the actions in the current action group
+	for i := len(b.History.Actions) - 1; i >= 0; i-- {
+		a := &b.History.Actions[i]
+		a.Revert(b)
+	}
+	b.History = b.History.Prev
+	b.Emit(BufferEvent{Type: BufferEventHistoryBack})
+}
+
+func (b *Buffer) Redo() {
+	if b.History.Next == nil {
+		// open group, obviously, can't move forward
+		b.Emit(BufferEvent{Type: BufferEventHistoryEnd})
+		return
+	}
+	if len(b.History.Next.Actions) == 0 {
+		// last finalized group, moving to the next group breaks the
+		// invariant and doesn't make sense (nothing to redo)
+		b.Emit(BufferEvent{Type: BufferEventHistoryEnd})
+		return
+	}
+	// move one entry forward, and redo all its actions
+	b.History = b.History.Next
+	for i := range b.History.Actions {
+		a := &b.History.Actions[i]
+		a.Apply(b)
+	}
+	b.Emit(BufferEvent{Type: BufferEventHistoryForward})
 }
 
 func (b *Buffer) initHistory() {
