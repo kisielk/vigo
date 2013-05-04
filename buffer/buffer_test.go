@@ -1,6 +1,7 @@
 package buffer
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 )
@@ -39,6 +40,19 @@ func checkLines(t *testing.T, b *Buffer, lines ...*Line) {
 		}
 
 		bufferLine = bufferLine.Next
+	}
+}
+
+func checkLineBytes(t *testing.T, b *Buffer, expected [][]byte) {
+	if b.NumLines != len(expected) {
+		t.Errorf("Unexpected line count: %d != %d", b.NumLines, len(expected))
+	}
+	l := b.FirstLine
+	for i, e := range expected {
+		if bytes.Compare(l.Data, e) != 0 {
+			t.Errorf("Line %d does't match: '%s' != '%s'", i, l.Data, e)
+		}
+		l = l.Next
 	}
 }
 
@@ -128,4 +142,47 @@ func TestDeleteMiddleLine(t *testing.T) {
 	if l1.Next != l3 || l3.Prev != l1 {
 		t.Error("Wrong line connection")
 	}
+}
+
+func TestCleanupTrailingSpaces(t *testing.T) {
+	b, err := NewBuffer(strings.NewReader(" blah \nfoo\nbar   \n  baz\n"))
+	if err != nil {
+		t.Error("Error creating buffer")
+	}
+	b.CleanupTrailingSpaces()
+	checkLineBytes(t, b, [][]byte{
+		[]byte(" blah"),
+		[]byte("foo"),
+		[]byte("bar"),
+		[]byte("  baz"),
+		[]byte(""),
+	})
+}
+
+func TestCleanupTrailingNewlines(t *testing.T) {
+	b, err := NewBuffer(strings.NewReader("\nfoo\n\nbar\n\n"))
+	if err != nil {
+		t.Error("Error creating buffer")
+	}
+	b.CleanupTrailingNewlines()
+	checkLineBytes(t, b, [][]byte{
+		[]byte(""),
+		[]byte("foo"),
+		[]byte(""),
+		[]byte("bar"),
+		// One newline left at the end.
+		[]byte(""),
+	})
+}
+
+func TestEnsureTrailingEOL(t *testing.T) {
+	b, err := NewBuffer(strings.NewReader("foo"))
+	if err != nil {
+		t.Error("Error creating buffer")
+	}
+	b.EnsureTrailingEOL()
+	checkLineBytes(t, b, [][]byte{
+		[]byte("foo"),
+		[]byte(""),
+	})
 }

@@ -344,6 +344,60 @@ func (b *Buffer) Redo() {
 	b.Emit(BufferEvent{Type: BufferEventHistoryForward})
 }
 
+// CleanupTrailingSpaces removes trailing whitespace
+// characters from every line in the buffer.
+func (b *Buffer) CleanupTrailingSpaces() {
+	cursor := Cursor{
+		Line:    b.FirstLine,
+		LineNum: 1,
+		Boffset: 0,
+	}
+	for cursor.Line != nil {
+		llen := cursor.Line.Len()
+		i := utils.IndexLastNonSpace(cursor.Line.Data)
+		if i == -1 && llen > 0 {
+			// the whole string is whitespace
+			b.Delete(cursor, llen)
+		}
+		if i != -1 && i != llen-1 {
+			// some whitespace at the end
+			cursor.Boffset = i + 1
+			b.Delete(cursor, llen-cursor.Boffset)
+		}
+		cursor.Line = cursor.Line.Next
+		cursor.LineNum++
+		cursor.Boffset = 0
+	}
+}
+
+// CleanupTrailingNewlines removes all but one trailing newlines.
+func (b *Buffer) CleanupTrailingNewlines() {
+	line := b.LastLine
+	for line.Len() == 0 {
+		prev := line.Prev
+		if prev == nil || prev.Len() > 0 {
+			// Either beginning of the file or previous line is
+			// not empty; leave one empty line at the end
+			break
+		}
+		b.DeleteLine(line)
+		line = prev
+	}
+}
+
+// EnsureTrailingEOL adds a newline at the end of the buffer, unless one exists already.
+func (b *Buffer) EnsureTrailingEOL() {
+	if b.LastLine.Len() == 0 {
+		return
+	}
+	c := Cursor{
+		Line:    b.LastLine,
+		LineNum: b.NumLines,
+		Boffset: b.LastLine.Len(),
+	}
+	b.Insert(c, []byte{'\n'})
+}
+
 func (b *Buffer) initHistory() {
 	// the trick here is that I set 'sentinel' as 'history', it is required
 	// to maintain an invariant, where 'history' is a sentinel or is not
@@ -390,6 +444,12 @@ func (b *Buffer) Save() error {
 }
 
 func (b *Buffer) SaveAs(filename string) error {
+
+	// TODO configure cleanup
+	b.CleanupTrailingSpaces()
+	b.CleanupTrailingNewlines()
+	b.EnsureTrailingEOL()
+
 	r := b.reader()
 	f, err := os.Create(filename)
 	if err != nil {
@@ -404,6 +464,7 @@ func (b *Buffer) SaveAs(filename string) error {
 
 	b.onDisk = b.History
 	b.Emit(BufferEvent{Type: BufferEventSave})
+
 	return nil
 }
 
