@@ -72,7 +72,7 @@ func (a *Action) insert(buf *Buffer) {
 	utils.IterLines(a.Data, func(data []byte) {
 		if data[0] == '\n' {
 			buf.numBytes++
-			if offset < len(line.Data) {
+			if offset < line.Len() {
 				// a case where we insert at the middle of the
 				// line, need to save that chunk for later
 				// insertion at the end of the operation
@@ -113,7 +113,7 @@ func (a *Action) delete(buf *Buffer) {
 			buf.numBytes -= len(data)
 			// delete a chunk of data
 			copy(line.Data[offset:], line.Data[offset+len(data):])
-			line.Data = line.Data[:len(line.Data)-len(data)]
+			line.Data = line.Data[:line.Len()-len(data)]
 		}
 	})
 	buf.Emit(BufferEvent{Type: BufferEventDelete, Action: a})

@@ -78,15 +78,15 @@ func (c *Cursor) ExtractBytes(n int) []byte {
 	line := c.Line
 	for n > 0 {
 		switch {
-		case offset < len(line.Data):
-			nb := len(line.Data) - offset
+		case offset < line.Len():
+			nb := line.Len() - offset
 			if n < nb {
 				nb = n
 			}
 			buf.Write(line.Data[offset : offset+nb])
 			n -= nb
 			offset += nb
-		case offset == len(line.Data):
+		case offset == line.Len():
 			buf.WriteByte('\n')
 			offset = 0
 			line = line.Next
