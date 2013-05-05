@@ -168,10 +168,10 @@ func (v *view) attach(b *buffer.Buffer) {
 	if v.buf == b {
 		return
 	}
-
 	if v.buf != nil {
 		v.detach()
 	}
+
 	v.buf = b
 	v.viewLocation = viewLocation{
 		topLine:    b.FirstLine,
@@ -181,54 +181,58 @@ func (v *view) attach(b *buffer.Buffer) {
 			LineNum: 1,
 		},
 	}
+
 	// Add a small message buffer, otherwise buffer methods
 	// sending several consequitive events will lock up.
 	v.bufferEvents = make(chan buffer.BufferEvent, 10)
-	go func() {
-		for e := range v.bufferEvents {
-			switch e.Type {
-			case buffer.BufferEventInsert:
-				v.onInsertAdjustTopLine(e.Action)
-				c := v.cursor
-				c.OnInsertAdjust(e.Action)
-				v.moveCursorTo(c)
-				v.dirty = dirtyEverything
-				// FIXME for unfocused views, just call onInsert
-				// v.onInsert(e.Action)
-			case buffer.BufferEventDelete:
-				v.onDeleteAdjustTopLine(e.Action)
-				c := v.cursor
-				c.OnDeleteAdjust(e.Action)
-				v.moveCursorTo(c)
-				v.dirty = dirtyEverything
-				// FIXME for unfocused views, just call onDelete
-				// v.onDelete(e.Action)
-			case buffer.BufferEventBOF:
-				v.ctx.setStatus("Beginning of buffer")
-				v.dirty |= dirtyStatus
-			case buffer.BufferEventEOF:
-				v.ctx.setStatus("End of buffer")
-				v.dirty |= dirtyStatus
-			case buffer.BufferEventHistoryBack:
-				v.ctx.setStatus("Undo!")
-				v.dirty |= dirtyStatus
-			case buffer.BufferEventHistoryForward:
-				v.ctx.setStatus("Redo!")
-				v.dirty |= dirtyStatus
-			case buffer.BufferEventHistoryStart:
-				v.ctx.setStatus("No further undo information")
-				v.dirty |= dirtyStatus
-			case buffer.BufferEventHistoryEnd:
-				v.ctx.setStatus("No further redo information")
-				v.dirty |= dirtyStatus
-			case buffer.BufferEventSave:
-				v.dirty |= dirtyStatus
-			}
-			v.redraw <- struct{}{}
-		}
-	}()
 	v.buf.AddListener(v.bufferEvents)
+	go v.bufferEventLoop()
+
 	v.dirty = dirtyEverything
+}
+
+func (v *view) bufferEventLoop() {
+	for e := range v.bufferEvents {
+		switch e.Type {
+		case buffer.BufferEventInsert:
+			v.onInsertAdjustTopLine(e.Action)
+			c := v.cursor
+			c.OnInsertAdjust(e.Action)
+			v.moveCursorTo(c)
+			v.dirty = dirtyEverything
+			// FIXME for unfocused views, just call onInsert
+			// v.onInsert(e.Action)
+		case buffer.BufferEventDelete:
+			v.onDeleteAdjustTopLine(e.Action)
+			c := v.cursor
+			c.OnDeleteAdjust(e.Action)
+			v.moveCursorTo(c)
+			v.dirty = dirtyEverything
+			// FIXME for unfocused views, just call onDelete
+			// v.onDelete(e.Action)
+		case buffer.BufferEventBOF:
+			v.ctx.setStatus("Beginning of buffer")
+			v.dirty |= dirtyStatus
+		case buffer.BufferEventEOF:
+			v.ctx.setStatus("End of buffer")
+			v.dirty |= dirtyStatus
+		case buffer.BufferEventHistoryBack:
+			v.ctx.setStatus("Undo!")
+			v.dirty |= dirtyStatus
+		case buffer.BufferEventHistoryForward:
+			v.ctx.setStatus("Redo!")
+			v.dirty |= dirtyStatus
+		case buffer.BufferEventHistoryStart:
+			v.ctx.setStatus("No further undo information")
+			v.dirty |= dirtyStatus
+		case buffer.BufferEventHistoryEnd:
+			v.ctx.setStatus("No further redo information")
+			v.dirty |= dirtyStatus
+		case buffer.BufferEventSave:
+			v.dirty |= dirtyStatus
+		}
+		v.redraw <- struct{}{}
+	}
 }
 
 func (v *view) detach() {
