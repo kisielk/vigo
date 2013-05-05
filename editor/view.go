@@ -252,7 +252,7 @@ func (v *view) resize(w, h int) {
 }
 
 func (v *view) height() int {
-	return v.uiBuf.Height
+	return v.uiBuf.Height - 1
 }
 
 func (v *view) verticalThreshold() int {
