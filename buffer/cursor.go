@@ -213,7 +213,7 @@ func (c *Cursor) NextWord() bool {
 	return c.NextRuneFunc(isNotSpace)
 }
 
-// EndWord moves cursor to the end of current word or seeks to te
+// EndWord moves cursor to the end of current word or seeks to the
 // beginning of next word, if character under cursor is a whitespace.
 func (c *Cursor) EndWord() bool {
 	if !c.NextRune(true) {
