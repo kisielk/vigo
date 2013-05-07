@@ -49,6 +49,8 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward, Reps: reps})
 	case 'w':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordForward, Reps: reps})
+	case 'e':
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordEnd, Reps: reps})
 	case 'b':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordBackward, Reps: reps})
 	case 'x':

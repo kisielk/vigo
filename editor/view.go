@@ -718,6 +718,16 @@ func (v *view) moveCursorWordFoward() {
 	}
 }
 
+// Move cursor to the end of the current word.
+func (v *view) moveCursorWordEnd() {
+	c := v.cursor
+	ok := c.EndWord()
+	v.moveCursorTo(c)
+	if !ok {
+		v.ctx.setStatus("End of buffer")
+	}
+}
+
 func (v *view) moveCursorWordBackward() {
 	c := v.cursor
 	ok := c.PrevWord()
@@ -909,6 +919,9 @@ func (v *view) onVcommand(c viewCommand) {
 
 		case vCommandMoveCursorWordForward:
 			v.moveCursorWordFoward()
+
+		case vCommandMoveCursorWordEnd:
+			v.moveCursorWordEnd()
 
 		case vCommandMoveCursorWordBackward:
 			v.moveCursorWordBackward()
@@ -1158,6 +1171,7 @@ const (
 	vCommandMoveCursorForward
 	vCommandMoveCursorBackward
 	vCommandMoveCursorWordForward
+	vCommandMoveCursorWordEnd
 	vCommandMoveCursorWordBackward
 	vCommandMoveCursorNextLine
 	vCommandMoveCursorPrevLine

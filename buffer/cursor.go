@@ -213,6 +213,45 @@ func (c *Cursor) NextWord() bool {
 	return c.NextRuneFunc(isNotSpace)
 }
 
+// EndWord moves cursor to the end of current word or seeks to te
+// beginning of next word, if character under cursor is a whitespace.
+func (c *Cursor) EndWord() bool {
+	if !c.NextRune(true) {
+		return false
+	}
+
+	// Skip spaces until beginning of next word
+	r, _ := c.RuneUnder()
+	if c.EOL() || unicode.IsSpace(r) {
+		c.NextWord()
+	}
+
+	// Skip to after the word.
+	r, _ = c.RuneUnder()
+	var f func(r rune) bool
+	if utils.IsWord(r) {
+		f = func(r rune) bool {
+			return !utils.IsWord(r) || unicode.IsSpace(r)
+		}
+	} else {
+		f = func(r rune) bool {
+			return utils.IsWord(r) || unicode.IsSpace(r)
+		}
+	}
+
+	// This can go back to end of buffer but can be ignored,
+	// since we're going to backtrack one character.
+	c.NextRuneFunc(f)
+	c.PrevRune(true)
+	// Keep going back until BOF if we end up at EOL. This
+	// can happen on empty lines.
+	for c.EOL() && !(c.BOL() && c.FirstLine()) {
+		c.PrevRune(true)
+	}
+
+	return true
+}
+
 // Move cursor backward until current rune satisfies condition f.
 // Returns true if the move was successful, false if EOF reached.
 func (c *Cursor) PrevRuneFunc(f func(rune) bool) bool {

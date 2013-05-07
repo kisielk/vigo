@@ -159,6 +159,43 @@ func TestNextWord(t *testing.T) {
 	}
 }
 
+func TestEndWord(t *testing.T) {
+	// TODO test EOF
+	lines := makeLines(
+		"// comment",
+		"func bar(i int) {",
+		"",
+		" return 0",
+		"}",
+	)
+	stops := []Cursor{
+		{lines[1], 1, 3},
+		{lines[1], 1, 7},
+		{lines[1], 1, 8},
+		{lines[1], 1, 9},
+		{lines[1], 1, 13},
+		{lines[1], 1, 14},
+		{lines[1], 1, 16},
+		{lines[3], 3, 6},
+		{lines[3], 3, 8},
+		{lines[4], 4, 0},
+	}
+
+	// Start at line 2 offset 2 (func)
+	c := &Cursor{Line: lines[1], Boffset: 2}
+
+	for i := 0; i < len(stops); i++ {
+		c.EndWord()
+		s := stops[i]
+		if c.Line != s.Line {
+			t.Error("Bad cursor line at index", i, c.Line, "!=", s.Line)
+		}
+		if c.Boffset != s.Boffset {
+			t.Error("Bad cursor position at index", i, c.Boffset, "!=", s.Boffset)
+		}
+	}
+}
+
 func TestPrevWord(t *testing.T) {
 	// TODO test BOF, test empty line
 	lines := makeLines(
