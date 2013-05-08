@@ -7,6 +7,8 @@ import (
 	"unicode/utf8"
 )
 
+type RangeFunc func(from Cursor, to Cursor)
+
 type Cursor struct {
 	Line    *Line
 	LineNum int

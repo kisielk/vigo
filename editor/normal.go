@@ -81,6 +81,11 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
 	}
 
+	switch ev.Ch {
+	case 'd':
+		g.setMode(newTextObjectMode(g, m, v.buf.DeleteRange, reps))
+	}
+
 	if ev.Ch == 0x0 {
 		switch ev.Key {
 		// TODO Cursor centering after Ctrl-U/D seems off.

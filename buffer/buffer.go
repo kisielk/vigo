@@ -305,6 +305,10 @@ func (b *Buffer) Delete(c Cursor, numBytes int) {
 	b.History.Append(a)
 }
 
+func (b *Buffer) DeleteRange(from Cursor, to Cursor) {
+	b.Delete(from, from.Distance(to))
+}
+
 func (b *Buffer) Undo() {
 	if b.History.Prev == nil {
 		// we're at the sentinel, no more things to undo
