@@ -7,39 +7,44 @@ import (
 	"unicode/utf8"
 )
 
+// A Cursor represents a position within a buffer.
 type Cursor struct {
 	Line    *Line
 	LineNum int
 	Boffset int
 }
 
+// RuneUnder returns the rune under the current cursor and its width in bytes.
 func (c *Cursor) RuneUnder() (rune, int) {
 	return utf8.DecodeRune(c.Line.Data[c.Boffset:])
 }
 
+// RuneUnder returns the rune before the current cursor and its width in bytes.
 func (c *Cursor) RuneBefore() (rune, int) {
 	return utf8.DecodeLastRune(c.Line.Data[:c.Boffset])
 }
 
+// FirstLine returns true if the cursor is at the first line of the buffer.
 func (c *Cursor) FirstLine() bool {
 	return c.Line.Prev == nil
 }
 
+// LastLine returns true if the cursor is at the last line of the buffer.
 func (c *Cursor) LastLine() bool {
 	return c.Line.Next == nil
 }
 
-// end of line
+// EOL returns true if the cursor is at the end of the current line.
 func (c *Cursor) EOL() bool {
 	return c.Boffset == len(c.Line.Data)
 }
 
-// beginning of line
+// BOL returns true if the cursor is at the beginning of the current line.
 func (c *Cursor) BOL() bool {
 	return c.Boffset == 0
 }
 
-// returns the distance between two locations in bytes
+// Distance returns the distance between the cursor and another in bytes.
 func (a Cursor) Distance(b Cursor) int {
 	s := 1
 	if b.LineNum < a.LineNum {
@@ -60,7 +65,7 @@ func (a Cursor) Distance(b Cursor) int {
 	return n * s
 }
 
-// Find a visual and a character offset for a given cursor
+// VoffsetCoffset returns a visual and a character offset for a given cursor.
 func (c *Cursor) VoffsetCoffset() (vo, co int) {
 	data := c.Line.Data[:c.Boffset]
 	for len(data) > 0 {
@@ -134,10 +139,12 @@ func (c *Cursor) PrevRune(wrap bool) bool {
 	return false
 }
 
+// MoveBOL moves the cursor to the beginning of the current line.
 func (c *Cursor) MoveBOL() {
 	c.Boffset = 0
 }
 
+// MoveEOL moves the cursor to the end of the current line.
 func (c *Cursor) MoveEOL() {
 	c.Boffset = len(c.Line.Data)
 }
