@@ -17,7 +17,8 @@ func newNormalMode(editor *editor) *normalMode {
 }
 
 func (m *normalMode) onKey(ev *termbox.Event) {
-	// Most of the key bindings are derived from those at http://elvis.the-little-red-haired-girl.org/elvisman/elvisvi.html#^Y
+	// Most of the key bindings are derived from those at
+	// http://elvis.the-little-red-haired-girl.org/elvisman/elvisvi.html#index
 
 	g := m.editor
 	v := g.active.leaf
@@ -99,6 +100,75 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 			// TODO: find a way to avoid duplication of 'l'
 			v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward, Reps: reps})
 		}
+	case 'A':
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
+		g.setMode(newInsertMode(g, reps))
+	case 'B':
+		// TODO: Distinction from 'b'
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordBackward, Reps: reps})
+	case 'C':
+		// TODO: Change text to end of line
+		return
+	case 'D':
+		// TODO: Delete till end of line
+		return
+	case 'E':
+		// TODO: Distinction from 'e'
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordEnd, Reps: reps})
+	case 'F':
+		// TODO: Move left to given character
+		return
+	case 'G':
+		// TODO: Move to line #, default last line
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfFile})
+	case 'H':
+		// TODO: Move to line at the top of the screen
+		return
+	case 'I':
+		// TODO: Insert at front of line, after indent
+		return
+	case 'J':
+		// TODO: Join lines, whitespace separated
+		return
+	case 'K':
+		// TODO: Run keywordprog
+		return
+	case 'L':
+		// TODO: Move to line at the bottom of the screen
+		return
+	case 'M':
+		// TODO: Move to line in the middle of the screen
+		return
+	case 'N':
+		// TODO: Repeat previous search, backwards
+		return
+	case 'O':
+		// TODO: Open new line above current
+		return
+	case 'P':
+		// TODO: Paste text before cursor
+		return
+	case 'Q':
+		// TODO: Quit to ex mode
+		return
+	case 'R':
+		// TODO: Replace mode
+		return
+	case 'S':
+		// TODO: Like 'cc'
+		return
+	case 'T':
+		// TODO: Move left to just before the given character
+		return
+	case 'W':
+		// TODO: Make distinct from 'w'
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordForward, Reps: reps})
+	case 'X':
+		// TODO: Delete count character to left of cursor
+		return
+	case 'Y':
+		// TODO: Yank lines
+		return
 	case 'h':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBackward, Reps: reps})
 	case 'j':
@@ -117,17 +187,12 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		v.onVcommand(viewCommand{Cmd: vCommandDeleteRune, Reps: reps})
 	case 'u':
 		v.onVcommand(viewCommand{Cmd: vCommandUndo, Reps: reps})
-	case 'G':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfFile})
 	}
 
 	// Insert mode; record first, then repeat.
 	switch ev.Ch {
 	case 'a':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward})
-		g.setMode(newInsertMode(g, reps))
-	case 'A':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
 		g.setMode(newInsertMode(g, reps))
 	case 'i':
 		g.setMode(newInsertMode(g, reps))
