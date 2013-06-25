@@ -904,12 +904,12 @@ func (v *view) onVcommand(c viewCommand) {
 		v.buf.FinalizeActionGroup()
 	}
 
-	reps := c.Reps
-	if reps == 0 {
-		reps = 1
+	count := c.Count
+	if count == 0 {
+		count = 1
 	}
 
-	for i := 0; i < reps; i++ {
+	for i := 0; i < count; i++ {
 		switch c.Cmd {
 		case vCommandMoveCursorForward:
 			v.moveCursorForward()
@@ -1155,7 +1155,7 @@ type viewCommand struct {
 	Cmd vCommand
 
 	// Number of times to repeat the command
-	Reps int
+	Count int
 
 	// Rune to use in the command
 	Rune rune

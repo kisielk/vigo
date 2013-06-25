@@ -6,13 +6,13 @@ import (
 
 type insertMode struct {
 	editor *editor
-	reps   int
+	count  int
 }
 
-func newInsertMode(editor *editor, reps int) insertMode {
+func newInsertMode(editor *editor, count int) insertMode {
 	m := insertMode{editor: editor}
 	m.editor.setStatus("Insert")
-	m.reps = reps
+	m.count = count
 	return m
 }
 
@@ -46,7 +46,7 @@ func (m insertMode) onKey(ev *termbox.Event) {
 
 func (m insertMode) exit() {
 	// repeat action specified number of times
-	for i := 0; i < m.reps-1; i++ {
+	for i := 0; i < m.count-1; i++ {
 		g := m.editor
 		v := g.active.leaf
 		a := v.buf.History.LastAction()
