@@ -5,7 +5,7 @@ import (
 	"syscall"
 )
 
-func suspend(g *editor) {
+func suspend(e *Editor) {
 	// finalize termbox
 	termbox.Close()
 
@@ -23,5 +23,5 @@ func suspend(g *editor) {
 		panic(err)
 	}
 	termbox.SetInputMode(termbox.InputAlt)
-	g.Resize()
+	e.Resize()
 }
