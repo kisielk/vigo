@@ -5,14 +5,29 @@ import (
 	"strconv"
 )
 
+type MoveWord struct {
+}
+
+func (m MoveWord) Apply(e *Editor) {
+	// moveCursorWordForward
+	v := e.ActiveView()
+	c := v.Cursor()
+	ok := c.NextWord()
+	if !ok {
+		e.SetStatus("End of buffer")
+		return
+	}
+	v.MoveCursorTo(c)
+}
+
 type normalMode struct {
-	editor *editor
+	editor *Editor
 	count  string
 }
 
-func newNormalMode(editor *editor) *normalMode {
-	m := normalMode{editor: editor}
-	m.editor.setStatus("Normal")
+func newNormalMode(e *Editor) *normalMode {
+	m := normalMode{editor: e}
+	m.editor.SetStatus("Normal")
 	return &m
 }
 
@@ -28,11 +43,13 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 	// a non-starting character.
 	if ('0' < ev.Ch && ev.Ch <= '9') || (ev.Ch == '0' && len(m.count) > 0) {
 		m.count = m.count + string(ev.Ch)
-		m.editor.setStatus(m.count)
+		m.editor.SetStatus(m.count)
 		return
 	}
 
 	count := parseCount(m.count)
+
+	var command Command
 
 	switch ev.Ch {
 	case 0x0:
@@ -210,6 +227,10 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 	switch ev.Ch {
 	case ':':
 		g.setMode(newCommandMode(g, m))
+	}
+
+	if command != nil {
+		m.editor.Commands <- command
 	}
 
 	// Reset repetitions

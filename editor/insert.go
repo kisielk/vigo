@@ -5,13 +5,13 @@ import (
 )
 
 type insertMode struct {
-	editor *editor
+	editor *Editor
 	count  int
 }
 
-func newInsertMode(editor *editor, count int) insertMode {
+func newInsertMode(editor *Editor, count int) insertMode {
 	m := insertMode{editor: editor}
-	m.editor.setStatus("Insert")
+	m.editor.SetStatus("Insert")
 	m.count = count
 	return m
 }

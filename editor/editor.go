@@ -39,7 +39,11 @@ func (k keyEvent) toTermboxEvent() termbox.Event {
 
 var ErrQuit = errors.New("quit")
 
-type editor struct {
+type Command interface {
+	Apply(*Editor)
+}
+
+type Editor struct {
 	uiBuf        tulib.Buffer
 	active       *viewTree // this one is always a leaf node
 	views        *viewTree // a root node
@@ -50,8 +54,9 @@ type editor struct {
 	killBuffer_  []byte
 
 	// Event channels
-	Events chan termbox.Event
-	redraw chan struct{}
+	Events   chan termbox.Event
+	Commands chan Command
+	redraw   chan struct{}
 
 	cutBuffers *cutBuffers
 
@@ -59,79 +64,40 @@ type editor struct {
 	overlay Overlay
 }
 
-func (g *editor) quit() {
-	g.setStatus("Quit")
-	// Signals event loop to quit on next iteration.
-	g.quitFlag = true
+func (e *Editor) ActiveView() *view {
+	return e.active.leaf
 }
 
-func NewEditor(filenames []string) *editor {
-	g := new(editor)
-	g.buffers = make([]*buffer.Buffer, 0, 20)
-	g.cutBuffers = newCutBuffers()
+func (e *Editor) quit() {
+	e.SetStatus("Quit")
+	// Signals event loop to quit on next iteration.
+	e.quitFlag = true
+}
+
+func NewEditor(filenames []string) *Editor {
+	e := new(Editor)
+	e.buffers = make([]*buffer.Buffer, 0, 20)
+	e.cutBuffers = newCutBuffers()
 
 	for _, filename := range filenames {
 		//TODO: Check errors here
-		g.newBufferFromFile(filename)
+		e.newBufferFromFile(filename)
 	}
-	if len(g.buffers) == 0 {
+	if len(e.buffers) == 0 {
 		buf := buffer.NewEmptyBuffer()
-		buf.Name = g.bufferName("unnamed")
-		g.buffers = append(g.buffers, buf)
+		buf.Name = e.bufferName("unnamed")
+		e.buffers = append(e.buffers, buf)
 	}
-	g.redraw = make(chan struct{})
-	g.views = newViewTreeLeaf(nil, newView(g.viewContext(), g.buffers[0], g.redraw))
-	g.active = g.views
-	g.setMode(newNormalMode(g))
-	g.Events = make(chan termbox.Event, 20)
-	return g
+	e.redraw = make(chan struct{})
+	e.views = newViewTreeLeaf(nil, newView(e.viewContext(), e.buffers[0], e.redraw))
+	e.active = e.views
+	e.setMode(newNormalMode(e))
+	e.Events = make(chan termbox.Event, 20)
+	e.Commands = make(chan Command)
+	return e
 }
 
-type cutBuffers map[byte][]byte
-
-func newCutBuffers() *cutBuffers {
-	c := make(cutBuffers, 36)
-	return &c
-}
-
-// UpdateAnon the contents of the anonymous cut buffer 1
-// with the given byte slice s, and rotates the rest of the buffers
-func (bs *cutBuffers) updateAnon(s []byte) {
-	bufs := *bs
-	for i := byte('9'); i > '1'; i-- {
-		bufs[i] = bufs[i-1]
-	}
-	bufs['1'] = s
-	*bs = bufs
-}
-
-// validCutBuffer panics if b is not a valid cut buffer name
-// b must a character between a-z, 1-9, or .
-func validCutBuffer(b byte) {
-	if b != '.' && b < '1' || b > '9' && b < 'a' || b > 'z' {
-		panic(fmt.Errorf("invalid cut buffer: %q", b))
-	}
-}
-
-// Set updates the contents of the cut buffer b with the byte slice s
-func (bs *cutBuffers) set(b byte, s []byte) {
-	validCutBuffer(b)
-	(*bs)[b] = s
-}
-
-// Append appends the byte slice s to the contents of buffer b
-func (bs *cutBuffers) append(b byte, s []byte) {
-	validCutBuffer(b)
-	(*bs)[b] = append((*bs)[b], s...)
-}
-
-// Get returns the contents of the cut buffer b
-func (bs *cutBuffers) get(b byte) []byte {
-	validCutBuffer(b)
-	return (*bs)[b]
-}
-
-func (g *editor) findBufferByFullPath(path string) *buffer.Buffer {
+func (g *Editor) findBufferByFullPath(path string) *buffer.Buffer {
 	for _, buf := range g.buffers {
 		if buf.Path == path {
 			return buf
@@ -141,7 +107,7 @@ func (g *editor) findBufferByFullPath(path string) *buffer.Buffer {
 }
 
 // GetBuffer returns a buffer by name, or nil if there is no such buffer
-func (g *editor) getBuffer(name string) *buffer.Buffer {
+func (g *Editor) getBuffer(name string) *buffer.Buffer {
 	for _, buf := range g.buffers {
 		if buf.Name == name {
 			return buf
@@ -151,7 +117,7 @@ func (g *editor) getBuffer(name string) *buffer.Buffer {
 }
 
 // BufferName generates a buffer name based on the one given.
-func (e *editor) bufferName(name string) string {
+func (e *Editor) bufferName(name string) string {
 	if buf := e.getBuffer(name); buf == nil {
 		return name
 	}
@@ -165,7 +131,7 @@ func (e *editor) bufferName(name string) string {
 	panic("too many buffers opened with the same name")
 }
 
-func (g *editor) newBufferFromFile(filename string) (*buffer.Buffer, error) {
+func (g *Editor) newBufferFromFile(filename string) (*buffer.Buffer, error) {
 	fullpath, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't determine absolute path: %s", err)
@@ -178,16 +144,16 @@ func (g *editor) newBufferFromFile(filename string) (*buffer.Buffer, error) {
 	f, err := os.Open(fullpath)
 	if err == os.ErrNotExist {
 		// Assume a new file
-		g.setStatus("(New file)")
+		g.SetStatus("(New file)")
 		buf = buffer.NewEmptyBuffer()
 	} else if err != nil {
-		g.setStatus(err.Error())
+		g.SetStatus(err.Error())
 		return nil, err
 	}
 	defer f.Close()
 	buf, err = buffer.NewBuffer(f)
 	if err != nil {
-		g.setStatus(err.Error())
+		g.SetStatus(err.Error())
 		return nil, err
 	}
 	buf.Path = fullpath
@@ -197,12 +163,12 @@ func (g *editor) newBufferFromFile(filename string) (*buffer.Buffer, error) {
 	return buf, nil
 }
 
-func (g *editor) setStatus(format string, args ...interface{}) {
+func (g *Editor) SetStatus(format string, args ...interface{}) {
 	g.statusBuf.Reset()
 	fmt.Fprintf(&g.statusBuf, format, args...)
 }
 
-func (g *editor) splitHorizontally() {
+func (g *Editor) splitHorizontally() {
 	if g.active.Width == 0 {
 		return
 	}
@@ -211,7 +177,7 @@ func (g *editor) splitHorizontally() {
 	g.Resize()
 }
 
-func (g *editor) splitVertically() {
+func (g *Editor) splitVertically() {
 	if g.active.Height == 0 {
 		return
 	}
@@ -220,7 +186,7 @@ func (g *editor) splitVertically() {
 	g.Resize()
 }
 
-func (g *editor) killActiveView() {
+func (g *Editor) killActiveView() {
 	p := g.active.parent
 	if p == nil {
 		return
@@ -240,7 +206,7 @@ func (g *editor) killActiveView() {
 	g.Resize()
 }
 
-func (g *editor) killAllViewsButActive() {
+func (g *Editor) killAllViewsButActive() {
 	g.views.traverse(func(v *viewTree) {
 		if v == g.active {
 			return
@@ -255,14 +221,14 @@ func (g *editor) killAllViewsButActive() {
 }
 
 // Call it manually only when views layout has changed.
-func (g *editor) Resize() {
+func (g *Editor) Resize() {
 	g.uiBuf = tulib.TermboxBuffer()
 	views_area := g.uiBuf.Rect
 	views_area.Height -= 1 // reserve space for command line
 	g.views.resize(views_area)
 }
 
-func (g *editor) Draw() {
+func (g *Editor) Draw() {
 	var needsCursor bool
 	if g.overlay != nil {
 		needsCursor = g.overlay.needsCursor()
@@ -290,7 +256,7 @@ func (g *editor) Draw() {
 	termbox.SetCursor(cx, cy)
 }
 
-func (g *editor) drawStatus(text []byte) {
+func (g *Editor) drawStatus(text []byte) {
 	lp := tulib.DefaultLabelParams
 	r := g.uiBuf.Rect
 	r.Y = r.Height - 1
@@ -299,7 +265,7 @@ func (g *editor) drawStatus(text []byte) {
 	g.uiBuf.DrawLabel(r, &lp, text)
 }
 
-func (g *editor) compositeRecursively(v *viewTree) {
+func (g *Editor) compositeRecursively(v *viewTree) {
 	if v.leaf != nil {
 		g.uiBuf.Blit(v.Rect, 0, 0, &v.leaf.uiBuf)
 		return
@@ -328,7 +294,7 @@ func (g *editor) compositeRecursively(v *viewTree) {
 	}
 }
 
-func (g *editor) fixEdges(v *viewTree) {
+func (g *Editor) fixEdges(v *viewTree) {
 	var x, y int
 	var cell *termbox.Cell
 	if v.leaf != nil {
@@ -377,12 +343,12 @@ func (g *editor) fixEdges(v *viewTree) {
 }
 
 // cursorPosition returns the absolute screen coordinates of the cursor
-func (g *editor) CursorPosition() (int, int) {
+func (g *Editor) CursorPosition() (int, int) {
 	x, y := g.active.leaf.cursorPosition()
 	return g.active.X + x, g.active.Y + y
 }
 
-func (g *editor) onSysKey(ev *termbox.Event) {
+func (g *Editor) onSysKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyCtrlQ:
 		g.quit()
@@ -392,7 +358,7 @@ func (g *editor) onSysKey(ev *termbox.Event) {
 }
 
 // Loop starts the editor main loop which consumes events from g.Events
-func (e *editor) Loop() error {
+func (e *Editor) Loop() error {
 	for {
 		select {
 		case ev := <-e.Events:
@@ -410,6 +376,9 @@ func (e *editor) Loop() error {
 					break consume
 				}
 			}
+		case command := <-e.Commands:
+			// XXX: This causes a deadlock right now.
+			command.Apply(e)
 		case <-e.redraw:
 		}
 		e.Draw()
@@ -418,10 +387,10 @@ func (e *editor) Loop() error {
 	return nil
 }
 
-func (g *editor) handleEvent(ev *termbox.Event) error {
+func (g *Editor) handleEvent(ev *termbox.Event) error {
 	switch ev.Type {
 	case termbox.EventKey:
-		g.setStatus("") // reset status on every key event
+		g.SetStatus("") // reset status on every key event
 		g.onSysKey(ev)
 		g.mode.onKey(ev)
 
@@ -441,7 +410,7 @@ func (g *editor) handleEvent(ev *termbox.Event) error {
 	return nil
 }
 
-func (g *editor) setMode(m editorMode) {
+func (g *Editor) setMode(m editorMode) {
 	if g.mode != nil {
 		g.mode.exit()
 	}
@@ -453,17 +422,17 @@ func (g *editor) setMode(m editorMode) {
 	}
 }
 
-func (g *editor) viewContext() viewContext {
+func (g *Editor) viewContext() viewContext {
 	return viewContext{
 		setStatus: func(f string, args ...interface{}) {
-			g.setStatus(f, args...)
+			g.SetStatus(f, args...)
 		},
 		killBuffer: &g.killBuffer_,
 		buffers:    &g.buffers,
 	}
 }
 
-func (g *editor) hasUnsavedBuffers() bool {
+func (g *Editor) hasUnsavedBuffers() bool {
 	for _, buf := range g.buffers {
 		if !buf.SyncedWithDisk() {
 			return true

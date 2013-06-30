@@ -9,12 +9,12 @@ import (
 
 type commandMode struct {
 	Overlay
-	editor *editor
+	editor *Editor
 	mode   editorMode
 	buffer *bytes.Buffer
 }
 
-func newCommandMode(editor *editor, mode editorMode) commandMode {
+func newCommandMode(editor *Editor, mode editorMode) commandMode {
 	m := commandMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
 	return m
 }
@@ -41,9 +41,9 @@ func (m commandMode) onKey(ev *termbox.Event) {
 	case termbox.KeyEnter:
 		c := m.buffer.String()
 		if err := execCommand(m.editor, c); err != nil {
-			m.editor.setStatus(fmt.Sprintf("error: %s", err))
+			m.editor.SetStatus(fmt.Sprintf("error: %s", err))
 		} else {
-			m.editor.setStatus(":" + c)
+			m.editor.SetStatus(":" + c)
 		}
 		m.editor.setMode(m.mode)
 	case termbox.KeySpace:
@@ -61,7 +61,7 @@ func (m commandMode) draw() {
 }
 
 // Interpret command and apply changes to editor.
-func execCommand(e *editor, command string) error {
+func execCommand(e *Editor, command string) error {
 	fields := strings.Fields(command)
 	cmd, args := fields[0], fields[1:]
 	switch cmd {

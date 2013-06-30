@@ -5,7 +5,7 @@ import (
 )
 
 type textObjectMode struct {
-	editor *editor
+	editor *Editor
 	object textObject
 }
 
@@ -27,7 +27,7 @@ const (
 	textObjectBraces
 )
 
-func newTextObjectMode(editor *editor, inner bool) *textObjectMode {
+func newTextObjectMode(editor *Editor, inner bool) *textObjectMode {
 	return &textObjectMode{editor: editor, object: textObject{inner: inner}}
 }
 
