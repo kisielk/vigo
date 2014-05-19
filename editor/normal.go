@@ -124,11 +124,10 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		// TODO: Distinction from 'b'
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordBackward, Count: count})
 	case 'C':
-		// TODO: Change text to end of line
-		return
+		v.onVcommand(viewCommand{Cmd: vCommandDeleteToEndOfLine})
+		g.setMode(newInsertMode(g, count))
 	case 'D':
-		// TODO: Delete till end of line
-		return
+		v.onVcommand(viewCommand{Cmd: vCommandDeleteToEndOfLine})
 	case 'E':
 		// TODO: Distinction from 'e'
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordEnd, Count: count})
