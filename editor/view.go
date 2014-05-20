@@ -988,6 +988,8 @@ func (v *view) onVcommand(c viewCommand) {
 			v.wordTo(bytes.ToLower)
 		case vCommandDeleteToEndOfLine:
 			v.deleteToEndOfLine();
+		case vCommandDisplayFileStatus:
+			v.displayFileStatus()
 		}
 	}
 
@@ -1153,6 +1155,16 @@ func (v *view) deleteToEndOfLine() {
 	v.buf.Delete(c, len(l.Data) - len(d) )
 }
 
+// Display info for the current file. Information displayed is:
+// filepath - number of lines - position in file as percentage
+func (v *view) displayFileStatus() {
+	path := v.buf.Path
+	numLines := v.buf.NumLines
+	c := v.cursor
+	pc := (float64(c.LineNum) / float64(numLines)) * 100
+	v.ctx.setStatus("\"%s\" %d lines --%d%%--", path, numLines, int(pc))
+}
+
 //----------------------------------------------------------------------------
 // view commands
 //----------------------------------------------------------------------------
@@ -1235,6 +1247,7 @@ const (
 	vCommandWordToUpper
 	vCommandWordToTitle
 	vCommandWordToLower
+	vCommandDisplayFileStatus
 	_vCommandMiscEnd
 )
 
