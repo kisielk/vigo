@@ -986,6 +986,8 @@ func (v *view) onVcommand(c viewCommand) {
 			})
 		case vCommandWordToLower:
 			v.wordTo(bytes.ToLower)
+		case vCommandDeleteToEndOfLine:
+			v.deleteToEndOfLine();
 		}
 	}
 
@@ -1143,6 +1145,14 @@ func (v *view) filterText(from, to buffer.Cursor, filter func([]byte) []byte) {
 	v.buf.Insert(c1, data)
 }
 
+// Delete from the current cursor position to the end of the line.
+func (v *view) deleteToEndOfLine() {
+	c := v.cursor
+	l := c.Line
+	d := l.Data[:c.Boffset]
+	v.buf.Delete(c, len(l.Data) - len(d) )
+}
+
 //----------------------------------------------------------------------------
 // view commands
 //----------------------------------------------------------------------------
@@ -1206,6 +1216,7 @@ const (
 	vCommandKillWord
 	vCommandKillWordBackward
 	vCommandKillRegion
+	vCommandDeleteToEndOfLine	
 	_vCommandDeletionEnd
 
 	// history commands (undo/redo)
