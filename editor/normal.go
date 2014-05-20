@@ -72,8 +72,7 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 			//TODO: should move a full page
 			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Count: count})
 		case termbox.KeyCtrlG:
-			//TODO: Show file status
-			return
+			v.onVcommand(viewCommand{Cmd: vCommandDisplayFileStatus})
 		case termbox.KeyCtrlH:
 			// Same as 'h'
 			// TODO: find a way to avoid duplication of 'h'
