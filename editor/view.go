@@ -990,6 +990,8 @@ func (v *view) onVcommand(c viewCommand) {
 			v.deleteToEndOfLine();
 		case vCommandDisplayFileStatus:
 			v.displayFileStatus()
+		case vCommandMoveCursorFrontOfLine:
+			v.moveCursorFrontOfLine()
 		}
 	}
 
@@ -1165,6 +1167,13 @@ func (v *view) displayFileStatus() {
 	v.ctx.setStatus("\"%s\" %d lines --%d%%--", path, numLines, int(pc))
 }
 
+func (v *view) moveCursorFrontOfLine() {
+	c := v.cursor
+	pos := utils.IndexFirstNonSpace(c.Line.Data)
+	c.Boffset = pos
+	v.MoveCursorTo(c)
+}
+
 //----------------------------------------------------------------------------
 // view commands
 //----------------------------------------------------------------------------
@@ -1212,6 +1221,7 @@ const (
 	vCommandMoveCursorToLine
 	vCommandMoveViewHalfForward
 	vCommandMoveViewHalfBackward
+	vCommandMoveCursorFrontOfLine
 	_vCommandMovementEnd
 
 	// insertion commands

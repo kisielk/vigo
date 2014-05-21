@@ -140,8 +140,8 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		// TODO: Move to line at the top of the screen
 		return
 	case 'I':
-		// TODO: Insert at front of line, after indent
-		return
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorFrontOfLine})
+		g.setMode(newInsertMode(g, count))
 	case 'J':
 		// TODO: Join lines, whitespace separated
 		return
