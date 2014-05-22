@@ -2,10 +2,13 @@ package buffer
 
 import (
 	"bytes"
-	"github.com/kisielk/vigo/utils"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/kisielk/vigo/utils"
 )
+
+type RangeFunc func(from Cursor, to Cursor)
 
 // A Cursor represents a position within a buffer.
 type Cursor struct {

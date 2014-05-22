@@ -1,8 +1,9 @@
 package editor
 
 import (
-	"github.com/nsf/termbox-go"
 	"strconv"
+
+	"github.com/nsf/termbox-go"
 )
 
 type MoveWord struct {
@@ -219,6 +220,22 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBeginningOfLine})
 	case '$':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
+	}
+
+	switch ev.Ch {
+	case 'd':
+		g.setMode(newTextObjectMode(g, m, v.buf.DeleteRange, count))
+	}
+
+	if ev.Ch == 0x0 {
+		switch ev.Key {
+		// TODO Cursor centering after Ctrl-U/D seems off.
+		// TODO Ctrl-U and CTRL-D have configurable ranges of motion.
+		case termbox.KeyCtrlU, termbox.KeyCtrlB:
+			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Count: count})
+		case termbox.KeyCtrlD, termbox.KeyCtrlF:
+			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Count: count})
+		}
 	}
 
 	// TODO use count to set range for command mode
