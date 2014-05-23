@@ -3,8 +3,9 @@ package editor
 import (
 	"bytes"
 	"fmt"
-	"github.com/nsf/termbox-go"
 	"strings"
+
+	"github.com/nsf/termbox-go"
 )
 
 type commandMode struct {
@@ -32,7 +33,7 @@ func (m commandMode) cursorPosition() (int, int) {
 func (m commandMode) onKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
-		m.editor.setMode(m.mode)
+		m.editor.SetMode(m.mode)
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		l := m.buffer.Len()
 		if l > 0 {
@@ -45,7 +46,7 @@ func (m commandMode) onKey(ev *termbox.Event) {
 		} else {
 			m.editor.SetStatus(":" + c)
 		}
-		m.editor.setMode(m.mode)
+		m.editor.SetMode(m.mode)
 	case termbox.KeySpace:
 		m.buffer.WriteRune(' ')
 	default:

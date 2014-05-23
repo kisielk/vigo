@@ -26,7 +26,7 @@ type normalMode struct {
 	count  string
 }
 
-func newNormalMode(e *Editor) *normalMode {
+func NewNormalMode(e *Editor) *normalMode {
 	m := normalMode{editor: e}
 	m.editor.SetStatus("Normal")
 	return &m
@@ -119,13 +119,13 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		}
 	case 'A':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
-		g.setMode(newInsertMode(g, count))
+		g.SetMode(NewInsertMode(g, count))
 	case 'B':
 		// TODO: Distinction from 'b'
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordBackward, Count: count})
 	case 'C':
 		v.onVcommand(viewCommand{Cmd: vCommandDeleteToEndOfLine})
-		g.setMode(newInsertMode(g, count))
+		g.SetMode(NewInsertMode(g, count))
 	case 'D':
 		v.onVcommand(viewCommand{Cmd: vCommandDeleteToEndOfLine})
 	case 'E':
@@ -142,7 +142,7 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		return
 	case 'I':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorFrontOfLine})
-		g.setMode(newInsertMode(g, count))
+		g.SetMode(NewInsertMode(g, count))
 	case 'J':
 		// TODO: Join lines, whitespace separated
 		return
@@ -209,9 +209,9 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 	switch ev.Ch {
 	case 'a':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward})
-		g.setMode(newInsertMode(g, count))
+		g.SetMode(NewInsertMode(g, count))
 	case 'i':
-		g.setMode(newInsertMode(g, count))
+		g.SetMode(NewInsertMode(g, count))
 	}
 
 	// No point repeating these commands
@@ -224,7 +224,7 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 
 	switch ev.Ch {
 	case 'd':
-		g.setMode(newTextObjectMode(g, m, v.buf.DeleteRange, count))
+		g.SetMode(newTextObjectMode(g, m, v.buf.DeleteRange, count))
 	}
 
 	if ev.Ch == 0x0 {
@@ -241,7 +241,7 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 	// TODO use count to set range for command mode
 	switch ev.Ch {
 	case ':':
-		g.setMode(newCommandMode(g, m))
+		g.SetMode(newCommandMode(g, m))
 	}
 
 	if command != nil {

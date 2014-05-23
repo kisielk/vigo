@@ -101,7 +101,7 @@ loop:
 		} else {
 			m.err = ErrBadTextObject
 		}
-		m.editor.setMode(m.mode)
+		m.editor.SetMode(m.mode)
 	}
 }
 

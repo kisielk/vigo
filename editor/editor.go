@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/kisielk/vigo/buffer"
-	"github.com/nsf/termbox-go"
-	"github.com/nsf/tulib"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/kisielk/vigo/buffer"
+	"github.com/nsf/termbox-go"
+	"github.com/nsf/tulib"
 )
 
 // this is a structure which represents a key press, used for keyboard macros
@@ -54,7 +55,7 @@ type Editor struct {
 	killBuffer_  []byte
 
 	// Event channels
-	Events   chan termbox.Event
+	UIEvents chan termbox.Event
 	Commands chan Command
 	redraw   chan struct{}
 
@@ -91,8 +92,8 @@ func NewEditor(filenames []string) *Editor {
 	e.redraw = make(chan struct{})
 	e.views = newViewTreeLeaf(nil, newView(e.viewContext(), e.buffers[0], e.redraw))
 	e.active = e.views
-	e.setMode(newNormalMode(e))
-	e.Events = make(chan termbox.Event, 20)
+	e.SetMode(NewNormalMode(e))
+	e.UIEvents = make(chan termbox.Event, 20)
 	e.Commands = make(chan Command)
 	return e
 }
@@ -357,20 +358,20 @@ func (e *Editor) onSysKey(ev *termbox.Event) {
 	}
 }
 
-// Loop starts the editor main loop which consumes events from g.Events
+// Loops starts the editor main loop
 func (e *Editor) Loop() error {
 	for {
 		select {
-		case ev := <-e.Events:
+		case ev := <-e.UIEvents:
 			// The consume loop handles the event and any other events that
 			// until there are no more in the queue.
 		consume:
 			for {
-				if err := e.handleEvent(&ev); err != nil {
+				if err := e.handleUIEvent(&ev); err != nil {
 					return err
 				}
 				select {
-				case nextEv := <-e.Events:
+				case nextEv := <-e.UIEvents:
 					ev = nextEv
 				default:
 					break consume
@@ -384,10 +385,9 @@ func (e *Editor) Loop() error {
 		e.Draw()
 		termbox.Flush()
 	}
-	return nil
 }
 
-func (e *Editor) handleEvent(ev *termbox.Event) error {
+func (e *Editor) handleUIEvent(ev *termbox.Event) error {
 	switch ev.Type {
 	case termbox.EventKey:
 		e.SetStatus("") // reset status on every key event
@@ -410,7 +410,7 @@ func (e *Editor) handleEvent(ev *termbox.Event) error {
 	return nil
 }
 
-func (e *Editor) setMode(m editorMode) {
+func (e *Editor) SetMode(m editorMode) {
 	if e.mode != nil {
 		e.mode.exit()
 	}

@@ -1,9 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"github.com/kisielk/vigo/editor"
 	"github.com/nsf/termbox-go"
-	"os"
 )
 
 func main() {
@@ -20,7 +21,7 @@ func main() {
 	termbox.Flush()
 	go func() {
 		for {
-			e.Events <- termbox.PollEvent()
+			e.UIEvents <- termbox.PollEvent()
 		}
 	}()
 	if err := e.Loop(); err != editor.ErrQuit {

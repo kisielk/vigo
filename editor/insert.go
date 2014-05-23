@@ -9,7 +9,7 @@ type insertMode struct {
 	count  int
 }
 
-func newInsertMode(editor *Editor, count int) insertMode {
+func NewInsertMode(editor *Editor, count int) insertMode {
 	m := insertMode{editor: editor}
 	m.editor.SetStatus("Insert")
 	m.count = count
@@ -22,7 +22,7 @@ func (m insertMode) onKey(ev *termbox.Event) {
 
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
-		g.setMode(newNormalMode(g))
+		g.SetMode(NewNormalMode(g))
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		v.onVcommand(viewCommand{Cmd: vCommandDeleteRuneBackward})
 	case termbox.KeyDelete, termbox.KeyCtrlD:
