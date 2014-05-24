@@ -11,33 +11,6 @@ const (
 	Backward Dir = 1
 )
 
-type MoveWord struct {
-	Dir Dir
-}
-
-func (m MoveWord) Apply(e *editor.Editor) {
-	// moveCursorWordForward
-	v := e.ActiveView()
-	c := v.Cursor()
-
-	switch m.Dir {
-	case Forward:
-		ok := c.NextWord()
-		if !ok {
-			e.SetStatus("End of file")
-			return
-		}
-	case Backward:
-		ok := c.PrevWord()
-		if !ok {
-			e.SetStatus("Beginning of file")
-			return
-		}
-	}
-
-	v.MoveCursorTo(c)
-}
-
 type MoveRune struct {
 	Dir  Dir
 	Wrap bool
@@ -49,17 +22,64 @@ func (m MoveRune) Apply(e *editor.Editor) {
 
 	switch m.Dir {
 	case Forward:
-		if c.LastLine() && c.EOL() {
+		if !c.NextRune(m.Wrap) {
 			v.SetStatus("End of file")
 			return
 		}
-		c.NextRune(m.Wrap)
 	case Backward:
-		if c.FirstLine() && c.BOL() {
+		if !c.PrevRune(m.Wrap) {
 			v.SetStatus("Beginning of file")
 			return
 		}
-		c.PrevRune(m.Wrap)
+	}
+
+	v.MoveCursorTo(c)
+}
+
+type MoveWord struct {
+	Dir Dir
+}
+
+func (m MoveWord) Apply(e *editor.Editor) {
+	// moveCursorWordForward
+	v := e.ActiveView()
+	c := v.Cursor()
+
+	switch m.Dir {
+	case Forward:
+		if !c.NextWord() {
+			e.SetStatus("End of file")
+			return
+		}
+	case Backward:
+		if !c.PrevWord() {
+			e.SetStatus("Beginning of file")
+			return
+		}
+	}
+
+	v.MoveCursorTo(c)
+}
+
+type MoveLine struct {
+	Dir Dir
+}
+
+func (m MoveLine) Apply(e *editor.Editor) {
+	v := e.ActiveView()
+	c := v.Cursor()
+
+	switch m.Dir {
+	case Forward:
+		if !c.NextLine() {
+			v.SetStatus("End of file")
+			return
+		}
+	case Backward:
+		if !c.PrevLine() {
+			v.SetStatus("Beginning of file")
+			return
+		}
 	}
 
 	v.MoveCursorTo(c)

@@ -27,24 +27,34 @@ func (c *Cursor) RuneBefore() (rune, int) {
 	return utf8.DecodeLastRune(c.Line.Data[:c.Boffset])
 }
 
-// FirstLine returns true if the cursor is at the first line of the buffer.
+// FirstLine reports whether the cursor is at the first line of the buffer.
 func (c *Cursor) FirstLine() bool {
 	return c.Line.Prev == nil
 }
 
-// LastLine returns true if the cursor is at the last line of the buffer.
+// LastLine reports whether the cursor is at the last line of the buffer.
 func (c *Cursor) LastLine() bool {
 	return c.Line.Next == nil
 }
 
-// EOL returns true if the cursor is at the end of the current line.
+// EOL reports whether the cursor is at the end of the current line.
 func (c *Cursor) EOL() bool {
 	return c.Boffset == len(c.Line.Data)
 }
 
-// BOL returns true if the cursor is at the beginning of the current line.
+// BOL reports whether the cursor is at the beginning of the current line.
 func (c *Cursor) BOL() bool {
 	return c.Boffset == 0
+}
+
+// EOF reports whether the cursor is at the end of the file.
+func (c *Cursor) EOF() bool {
+	return c.LastLine() && c.EOL()
+}
+
+// BOF reports whether the cursor is at the beginning of the file.
+func (c *Cursor) BOF() bool {
+	return c.FirstLine() && c.BOL()
 }
 
 // Distance returns the distance between the cursor and another in bytes.
@@ -111,17 +121,21 @@ func (c *Cursor) ExtractBytes(n int) []byte {
 // of the current one is reached. Returns true if motion succeeded,
 // false otherwise.
 func (c *Cursor) NextRune(wrap bool) bool {
-	if !c.EOL() {
+	switch {
+	case c.EOF():
+		return false
+	case !c.EOL():
 		_, rlen := c.RuneUnder()
 		c.Boffset += rlen
 		return true
-	} else if wrap && !c.LastLine() {
+	case wrap:
 		c.Line = c.Line.Next
 		c.LineNum++
 		c.Boffset = 0
 		return true
+	default:
+		return false
 	}
-	return false
 }
 
 // PrevRune moves cursor to the previous rune. If wrap is true,
@@ -129,17 +143,47 @@ func (c *Cursor) NextRune(wrap bool) bool {
 // the current one is reached. Returns true if motion succeeded,
 // false otherwise.
 func (c *Cursor) PrevRune(wrap bool) bool {
-	if !c.BOL() {
+	switch {
+	case c.BOF():
+		return false
+	case !c.BOL():
 		_, rlen := c.RuneBefore()
 		c.Boffset -= rlen
 		return true
-	} else if wrap && !c.FirstLine() {
+	case wrap:
 		c.Line = c.Line.Prev
 		c.LineNum--
 		c.Boffset = len(c.Line.Data)
 		return true
+	default:
+		return false
 	}
-	return false
+}
+
+// PrevLine moves the cursor to the next line.
+// It reports whether the motion succeeded.
+func (c *Cursor) NextLine() bool {
+	if c.LastLine() {
+		return false
+	}
+
+	c.Line = c.Line.Next
+	c.LineNum = c.LineNum + 1
+	c.Boffset = -1
+	return true
+}
+
+// PrevLine moves the cursor to the previous line.
+// It reports whether the motion succeeded.
+func (c *Cursor) PrevLine() bool {
+	if c.FirstLine() {
+		return false
+	}
+
+	c.Line = c.Line.Prev
+	c.LineNum = c.LineNum - 1
+	c.Boffset = -1
+	return true
 }
 
 // MoveBOL moves the cursor to the beginning of the current line.
