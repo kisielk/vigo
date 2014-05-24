@@ -3,12 +3,13 @@ package editor
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"unicode/utf8"
+
 	"github.com/kisielk/vigo/buffer"
 	"github.com/kisielk/vigo/utils"
 	"github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
-	"os"
-	"unicode/utf8"
 )
 
 //----------------------------------------------------------------------------
@@ -148,6 +149,11 @@ type view struct {
 	lastCommand viewCommand
 
 	bufferEvents chan buffer.BufferEvent
+}
+
+// SetStatus sets the status line of the view
+func (v *view) SetStatus(format string, args ...interface{}) {
+	v.ctx.setStatus(format, args...)
 }
 
 func (v *view) Buffer() *buffer.Buffer {
@@ -987,7 +993,7 @@ func (v *view) onVcommand(c viewCommand) {
 		case vCommandWordToLower:
 			v.wordTo(bytes.ToLower)
 		case vCommandDeleteToEndOfLine:
-			v.deleteToEndOfLine();
+			v.deleteToEndOfLine()
 		case vCommandDisplayFileStatus:
 			v.displayFileStatus()
 		case vCommandMoveCursorFrontOfLine:
@@ -1154,7 +1160,7 @@ func (v *view) deleteToEndOfLine() {
 	c := v.cursor
 	l := c.Line
 	d := l.Data[:c.Boffset]
-	v.buf.Delete(c, len(l.Data) - len(d) )
+	v.buf.Delete(c, len(l.Data)-len(d))
 }
 
 // Display info for the current file. Information displayed is:
@@ -1238,7 +1244,7 @@ const (
 	vCommandKillWord
 	vCommandKillWordBackward
 	vCommandKillRegion
-	vCommandDeleteToEndOfLine	
+	vCommandDeleteToEndOfLine
 	_vCommandDeletionEnd
 
 	// history commands (undo/redo)
