@@ -159,8 +159,8 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		// TODO: Repeat previous search, backwards
 		return
 	case 'O':
-		// TODO: Open new line above current
-		return
+		v.onVcommand(viewCommand{Cmd: vCommandNewLineAbove})
+		g.SetMode(NewInsertMode(g, count))
 	case 'P':
 		// TODO: Paste text before cursor
 		return
@@ -193,6 +193,9 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorPrevLine, Count: count})
 	case 'l':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward, Count: count})
+	case 'o':
+		v.onVcommand(viewCommand{Cmd: vCommandNewLineBelow})
+		g.SetMode(NewInsertMode(g, count))
 	case 'w':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordForward, Count: count})
 	case 'e':

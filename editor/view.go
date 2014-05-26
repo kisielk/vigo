@@ -998,6 +998,13 @@ func (v *view) onVcommand(c viewCommand) {
 			v.displayFileStatus()
 		case vCommandMoveCursorFrontOfLine:
 			v.moveCursorFrontOfLine()
+		case vCommandNewLineAbove:
+			v.moveCursorPrevLine()
+			v.moveCursorEndOfLine()
+			v.buf.InsertRune(v.cursor, '\n')
+		case vCommandNewLineBelow:
+			v.moveCursorEndOfLine()
+			v.buf.InsertRune(v.cursor, '\n')
 		}
 	}
 
@@ -1234,6 +1241,8 @@ const (
 	_vCommandInsertionBeg
 	vCommandInsertRune
 	vCommandYank
+	vCommandNewLineAbove
+	vCommandNewLineBelow
 	_vCommandInsertionEnd
 
 	// deletion commands
