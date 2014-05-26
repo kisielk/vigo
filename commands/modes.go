@@ -1,5 +1,6 @@
 package commands
 
+/*
 import (
 	"github.com/kisielk/vigo/editor"
 )
@@ -17,3 +18,4 @@ type EnterInsertMode struct {
 func (m EnterInsertMode) Apply(e *editor.Editor) {
 	e.SetMode(editor.NewInsertMode(e, m.Count))
 }
+*/

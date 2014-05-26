@@ -1,15 +1,16 @@
-package editor
+package mode
 
 import (
-	"strconv"
-
+	cmd "github.com/kisielk/vigo/commands"
+	"github.com/kisielk/vigo/editor"
+	"github.com/kisielk/vigo/utils"
 	"github.com/nsf/termbox-go"
 )
 
 type MoveWord struct {
 }
 
-func (m MoveWord) Apply(e *Editor) {
+func (m MoveWord) Apply(e *editor.Editor) {
 	// moveCursorWordForward
 	v := e.ActiveView()
 	c := v.Cursor()
@@ -22,22 +23,28 @@ func (m MoveWord) Apply(e *Editor) {
 }
 
 type normalMode struct {
-	editor *Editor
+	editor *editor.Editor
 	count  string
 }
 
-func NewNormalMode(e *Editor) *normalMode {
+func NewNormalMode(e *editor.Editor) *normalMode {
 	m := normalMode{editor: e}
 	m.editor.SetStatus("Normal")
 	return &m
 }
 
-func (m *normalMode) onKey(ev *termbox.Event) {
+func (m *normalMode) repeat(cmd editor.Command, count int) {
+	for i := 0; i < count; i++ {
+		m.editor.Commands <- cmd
+	}
+}
+
+func (m *normalMode) OnKey(ev *termbox.Event) {
 	// Most of the key bindings are derived from those at
 	// http://elvis.the-little-red-haired-girl.org/elvisman/elvisvi.html#index
 
 	g := m.editor
-	v := g.active.leaf
+	v := g.ActiveView()
 
 	// Consequtive non-zero digits specify action multiplier;
 	// accumulate and return. Accept zero only if it's
@@ -48,9 +55,12 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		return
 	}
 
-	count := parseCount(m.count)
+	count := utils.ParseCount(m.count)
+	if count == 0 {
+		count = 1
+	}
 
-	var command Command
+	// var command editor.Command
 
 	switch ev.Ch {
 	case 0x0:
@@ -62,26 +72,26 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 			return
 		case termbox.KeyCtrlB:
 			//TODO: should move a full page
-			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Count: count})
 		case termbox.KeyCtrlD:
 			// TODO: should move by count lines, default to 1/2 screen
-			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Count: count})
 		case termbox.KeyCtrlE:
 			// TODO: should move by count lines, default to 1
-			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Count: count})
 		case termbox.KeyCtrlF:
 			//TODO: should move a full page
-			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Count: count})
 		case termbox.KeyCtrlG:
-			v.onVcommand(viewCommand{Cmd: vCommandDisplayFileStatus})
+			// v.onVcommand(viewCommand{Cmd: vCommandDisplayFileStatus})
 		case termbox.KeyCtrlH:
 			// Same as 'h'
 			// TODO: find a way to avoid duplication of 'h'
-			v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBackward, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBackward, Count: count})
 		case termbox.KeyCtrlJ, termbox.KeyCtrlN:
 			// Same as 'j'
 			// TODO: find a way to avoid duplication of 'j'
-			v.onVcommand(viewCommand{Cmd: vCommandMoveCursorNextLine, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorNextLine, Count: count})
 		case termbox.KeyCtrlL:
 			// TODO: redraw screen
 			return
@@ -91,12 +101,12 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		case termbox.KeyCtrlP:
 			// same as 'k'
 			// TODO: find a way to avoid duplication of 'k'
-			v.onVcommand(viewCommand{Cmd: vCommandMoveCursorPrevLine, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorPrevLine, Count: count})
 		case termbox.KeyCtrlR:
-			v.onVcommand(viewCommand{Cmd: vCommandRedo, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandRedo, Count: count})
 		case termbox.KeyCtrlU:
 			//TODO: should move by count lines, default to 1/2 screen
-			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Count: count})
 		case termbox.KeyCtrlV:
 			//TODO: Start visual selection
 			return
@@ -108,40 +118,40 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 			return
 		case termbox.KeyCtrlY:
 			//TODO: should move by count lines, default to 1
-			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Count: count})
 		case termbox.KeyEsc:
 			//TODO: Cancel the current command
 			return
 		case termbox.KeySpace:
 			// Same as 'l'
 			// TODO: find a way to avoid duplication of 'l'
-			v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward, Count: count})
 		}
 	case 'A':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
 		g.SetMode(NewInsertMode(g, count))
 	case 'B':
 		// TODO: Distinction from 'b'
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordBackward, Count: count})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordBackward, Count: count})
 	case 'C':
-		v.onVcommand(viewCommand{Cmd: vCommandDeleteToEndOfLine})
+		// v.onVcommand(viewCommand{Cmd: vCommandDeleteToEndOfLine})
 		g.SetMode(NewInsertMode(g, count))
 	case 'D':
-		v.onVcommand(viewCommand{Cmd: vCommandDeleteToEndOfLine})
+		// v.onVcommand(viewCommand{Cmd: vCommandDeleteToEndOfLine})
 	case 'E':
 		// TODO: Distinction from 'e'
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordEnd, Count: count})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordEnd, Count: count})
 	case 'F':
 		// TODO: Move left to given character
 		return
 	case 'G':
 		// TODO: Move to line #, default last line
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfFile})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfFile})
 	case 'H':
 		// TODO: Move to line at the top of the screen
 		return
 	case 'I':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorFrontOfLine})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorFrontOfLine})
 		g.SetMode(NewInsertMode(g, count))
 	case 'J':
 		// TODO: Join lines, whitespace separated
@@ -159,7 +169,7 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		// TODO: Repeat previous search, backwards
 		return
 	case 'O':
-		v.onVcommand(viewCommand{Cmd: vCommandNewLineAbove})
+		// v.onVcommand(viewCommand{Cmd: vCommandNewLineAbove})
 		g.SetMode(NewInsertMode(g, count))
 	case 'P':
 		// TODO: Paste text before cursor
@@ -178,7 +188,7 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		return
 	case 'W':
 		// TODO: Make distinct from 'w'
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordForward, Count: count})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordForward, Count: count})
 	case 'X':
 		// TODO: Delete count character to left of cursor
 		return
@@ -186,32 +196,33 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		// TODO: Yank lines
 		return
 	case 'h':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBackward, Count: count})
+		m.repeat(cmd.MoveRune{Dir: cmd.Backward, Wrap: false}, count)
 	case 'j':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorNextLine, Count: count})
+		m.repeat(cmd.MoveLine{Dir: cmd.Forward}, count)
 	case 'k':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorPrevLine, Count: count})
+		m.repeat(cmd.MoveLine{Dir: cmd.Backward}, count)
 	case 'l':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward, Count: count})
+		m.repeat(cmd.MoveRune{Dir: cmd.Forward, Wrap: false}, count)
 	case 'o':
-		v.onVcommand(viewCommand{Cmd: vCommandNewLineBelow})
+		// v.onVcommand(viewCommand{Cmd: vCommandNewLineBelow})
 		g.SetMode(NewInsertMode(g, count))
 	case 'w':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordForward, Count: count})
+		m.repeat(cmd.MoveWord{Dir: cmd.Forward}, count)
 	case 'e':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordEnd, Count: count})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordEnd, Count: count})
 	case 'b':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordBackward, Count: count})
+		m.repeat(cmd.MoveWord{Dir: cmd.Backward}, count)
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordBackward, Count: count})
 	case 'x':
-		v.onVcommand(viewCommand{Cmd: vCommandDeleteRune, Count: count})
+		// v.onVcommand(viewCommand{Cmd: vCommandDeleteRune, Count: count})
 	case 'u':
-		v.onVcommand(viewCommand{Cmd: vCommandUndo, Count: count})
+		// v.onVcommand(viewCommand{Cmd: vCommandUndo, Count: count})
 	}
 
 	// Insert mode; record first, then repeat.
 	switch ev.Ch {
 	case 'a':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorForward})
 		g.SetMode(NewInsertMode(g, count))
 	case 'i':
 		g.SetMode(NewInsertMode(g, count))
@@ -220,16 +231,16 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 	// No point repeating these commands
 	switch ev.Ch {
 	case '0':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBeginningOfLine})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBeginningOfLine})
 	case '$':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
 	case '^':
-		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorFrontOfLine})
+		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorFrontOfLine})
 	}
 
 	switch ev.Ch {
 	case 'd':
-		g.SetMode(newTextObjectMode(g, m, v.buf.DeleteRange, count))
+		g.SetMode(NewTextObjectMode(g, m, v.Buffer().DeleteRange, count))
 	}
 
 	if ev.Ch == 0x0 {
@@ -237,38 +248,25 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		// TODO Cursor centering after Ctrl-U/D seems off.
 		// TODO Ctrl-U and CTRL-D have configurable ranges of motion.
 		case termbox.KeyCtrlU, termbox.KeyCtrlB:
-			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Count: count})
 		case termbox.KeyCtrlD, termbox.KeyCtrlF:
-			v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Count: count})
+			// v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfForward, Count: count})
 		}
 	}
 
 	// TODO use count to set range for command mode
 	switch ev.Ch {
 	case ':':
-		g.SetMode(newCommandMode(g, m))
+		g.SetMode(editor.NewCommandMode(g, m))
 	}
 
-	if command != nil {
-		m.editor.Commands <- command
-	}
+	// if command != nil {
+	// 	m.editor.Commands <- command
+	// }
 
 	// Reset repetitions
 	m.count = ""
 }
 
-// Parse action multiplier from a string.
-func parseCount(s string) int {
-	var n int64 = 1
-	var err error
-	if len(s) > 0 {
-		n, err = strconv.ParseInt(s, 10, 32)
-		if err != nil {
-			panic("could not parse action multiplier")
-		}
-	}
-	return int(n)
-}
-
-func (m *normalMode) exit() {
+func (m *normalMode) Exit() {
 }

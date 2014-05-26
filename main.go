@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/kisielk/vigo/editor"
+	"github.com/kisielk/vigo/mode"
 	"github.com/nsf/termbox-go"
 )
 
@@ -15,6 +16,7 @@ func main() {
 	termbox.SetInputMode(termbox.InputEsc)
 
 	e := editor.NewEditor(os.Args[1:])
+	e.SetMode(mode.NewNormalMode(e))
 	e.Resize()
 	e.Draw()
 	termbox.SetCursor(e.CursorPosition())
