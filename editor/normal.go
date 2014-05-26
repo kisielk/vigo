@@ -223,6 +223,8 @@ func (m *normalMode) onKey(ev *termbox.Event) {
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorBeginningOfLine})
 	case '$':
 		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorEndOfLine})
+	case '^':
+		v.onVcommand(viewCommand{Cmd: vCommandMoveCursorFrontOfLine})
 	}
 
 	switch ev.Ch {
