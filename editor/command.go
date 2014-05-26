@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"strconv"
 
 	"github.com/nsf/termbox-go"
 )
@@ -95,5 +96,12 @@ func execCommand(e *Editor, command string) error {
 		}
 		e.active.leaf.attach(buffer)
 	}
+
+	if lineNum, err := strconv.Atoi(cmd); err == nil {
+		// cmd is a number, we should move to that line
+		v := e.active.leaf
+		v.MoveCursorToLine(lineNum)
+	}
+
 	return nil
 }
