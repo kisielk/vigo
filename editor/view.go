@@ -146,7 +146,7 @@ type view struct {
 	// statusBuf is a buffer used for drawing the status line
 	statusBuf bytes.Buffer
 
-	lastCommand viewCommand
+	lastCommand Command
 
 	bufferEvents chan buffer.BufferEvent
 }
@@ -172,7 +172,7 @@ func newView(ctx viewContext, buf *buffer.Buffer, redraw chan struct{}) *view {
 }
 
 func (v *view) activate() {
-	v.lastCommand = viewCommand{Cmd: vCommandNone}
+	v.lastCommand = nil
 }
 
 func (v *view) deactivate() {
@@ -271,18 +271,18 @@ func (v *view) height() int {
 
 func (v *view) verticalThreshold() int {
 	maxVthreshold := (v.height() - 1) / 2
-	if viewVerticalThreshold > maxVthreshold {
+	if ViewVerticalThreshold > maxVthreshold {
 		return maxVthreshold
 	}
-	return viewVerticalThreshold
+	return ViewVerticalThreshold
 }
 
 func (v *view) horizontalThreshold() int {
 	max_h_threshold := (v.width() - 1) / 2
-	if viewHorizontalThreshold > max_h_threshold {
+	if ViewHorizontalThreshold > max_h_threshold {
 		return max_h_threshold
 	}
-	return viewHorizontalThreshold
+	return ViewHorizontalThreshold
 }
 
 func (v *view) width() int {
@@ -306,7 +306,7 @@ func (v *view) drawLine(line *buffer.Line, lineNum, coff, lineVoffset int) {
 		}
 
 		if x == tabstop {
-			tabstop += tabstopLength
+			tabstop += TabstopLength
 		}
 
 		if rx >= v.uiBuf.Width {
@@ -642,7 +642,7 @@ func (v *view) moveCursorForward() {
 		return
 	}
 
-	c.NextRune(configWrapRight)
+	c.NextRune(ConfigWrapRight)
 	v.MoveCursorTo(c)
 }
 
@@ -654,7 +654,7 @@ func (v *view) moveCursorBackward() {
 		return
 	}
 
-	c.PrevRune(configWrapLeft)
+	c.PrevRune(ConfigWrapLeft)
 	v.MoveCursorTo(c)
 }
 
@@ -752,7 +752,7 @@ func (v *view) moveCursorWordBackward() {
 }
 
 // Move view 'n' lines forward or backward.
-func (v *view) moveViewNlines(n int) {
+func (v *view) MoveViewLines(n int) {
 	prevtop := v.topLineNum
 	v.moveTopLineNtimes(n)
 	if prevtop != v.topLineNum {
@@ -786,7 +786,7 @@ func (v *view) canMoveTopLineNtimes(n int) bool {
 // Move view 'n' lines forward or backward only if it's possible.
 func (v *view) maybeMoveViewNlines(n int) {
 	if v.canMoveTopLineNtimes(n) {
-		v.moveViewNlines(n)
+		v.MoveViewLines(n)
 	}
 }
 
@@ -912,105 +912,6 @@ func (v *view) onDelete(a *buffer.Action) {
 	v.dirty = dirtyEverything
 }
 
-func (v *view) onVcommand(c viewCommand) {
-	lastClass := v.lastCommand.Cmd.class()
-	if c.Cmd.class() != lastClass || lastClass == vCommandClassMisc {
-		v.buf.FinalizeActionGroup()
-	}
-
-	count := c.Count
-	if count == 0 {
-		count = 1
-	}
-
-	for i := 0; i < count; i++ {
-		switch c.Cmd {
-		case vCommandMoveCursorForward:
-			v.moveCursorForward()
-
-		case vCommandMoveCursorBackward:
-			v.moveCursorBackward()
-
-		case vCommandMoveCursorWordForward:
-			v.moveCursorWordFoward()
-
-		case vCommandMoveCursorWordEnd:
-			v.moveCursorWordEnd()
-
-		case vCommandMoveCursorWordBackward:
-			v.moveCursorWordBackward()
-
-		case vCommandMoveCursorNextLine:
-			v.moveCursorNextLine()
-
-		case vCommandMoveCursorPrevLine:
-			v.moveCursorPrevLine()
-
-		case vCommandMoveCursorBeginningOfLine:
-			v.moveCursorBeginningOfLine()
-
-		case vCommandMoveCursorEndOfLine:
-			v.moveCursorEndOfLine()
-
-		case vCommandMoveCursorBeginningOfFile:
-			v.moveCursorBeginningOfFile()
-
-		case vCommandMoveCursorEndOfFile:
-			v.moveCursorEndOfFile()
-			/*
-				case vCommandMoveCursorToLine:
-					v.MoveCursorToLine(int(arg))
-			*/
-
-		case vCommandMoveViewHalfForward:
-			v.maybeMoveViewNlines(v.height() / 2)
-		case vCommandMoveViewHalfBackward:
-			v.moveViewNlines(-v.height() / 2)
-		case vCommandInsertRune:
-			v.buf.InsertRune(v.cursor, c.Rune)
-		case vCommandYank:
-			v.yank()
-		case vCommandDeleteRuneBackward:
-			v.buf.DeleteRuneBackward(v.cursor)
-		case vCommandDeleteRune:
-			v.buf.DeleteRune(v.cursor)
-		case vCommandKillLine:
-			v.killLine()
-		case vCommandKillWord:
-			v.killWord()
-		case vCommandKillWordBackward:
-			v.killWordBackward()
-		case vCommandUndo:
-			v.buf.Undo()
-		case vCommandRedo:
-			v.buf.Redo()
-		case vCommandWordToUpper:
-			v.wordTo(bytes.ToUpper)
-		case vCommandWordToTitle:
-			v.wordTo(func(s []byte) []byte {
-				return bytes.Title(bytes.ToLower(s))
-			})
-		case vCommandWordToLower:
-			v.wordTo(bytes.ToLower)
-		case vCommandDeleteToEndOfLine:
-			v.deleteToEndOfLine()
-		case vCommandDisplayFileStatus:
-			v.displayFileStatus()
-		case vCommandMoveCursorFrontOfLine:
-			v.moveCursorFrontOfLine()
-		case vCommandNewLineAbove:
-			v.moveCursorPrevLine()
-			v.moveCursorEndOfLine()
-			v.buf.InsertRune(v.cursor, '\n')
-		case vCommandNewLineBelow:
-			v.moveCursorEndOfLine()
-			v.buf.InsertRune(v.cursor, '\n')
-		}
-	}
-
-	v.lastCommand = c
-}
-
 func (v *view) dumpInfo() {
 	p := func(format string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, format, args...)
@@ -1079,29 +980,33 @@ func (v *view) makeCell(line, offset int, ch rune) termbox.Cell {
 }
 
 func (v *view) appendToKillBuffer(cursor buffer.Cursor, nbytes int) {
-	kb := *v.ctx.killBuffer
+	/*
+		kb := *v.ctx.killBuffer
 
-	switch v.lastCommand.Cmd {
-	case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
-	default:
-		kb = kb[:0]
-	}
+		switch v.lastCommand.Cmd {
+		case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
+		default:
+			kb = kb[:0]
+		}
 
-	kb = append(kb, cursor.ExtractBytes(nbytes)...)
-	*v.ctx.killBuffer = kb
+		kb = append(kb, cursor.ExtractBytes(nbytes)...)
+		*v.ctx.killBuffer = kb
+	*/
 }
 
 func (v *view) prependToKillBuffer(cursor buffer.Cursor, nbytes int) {
-	kb := *v.ctx.killBuffer
+	/*
+		kb := *v.ctx.killBuffer
 
-	switch v.lastCommand.Cmd {
-	case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
-	default:
-		kb = kb[:0]
-	}
+		switch v.lastCommand.Cmd {
+		case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
+		default:
+			kb = kb[:0]
+		}
 
-	kb = append(cursor.ExtractBytes(nbytes), kb...)
-	*v.ctx.killBuffer = kb
+		kb = append(cursor.ExtractBytes(nbytes), kb...)
+		*v.ctx.killBuffer = kb
+	*/
 }
 
 func (v *view) yank() {
@@ -1185,109 +1090,4 @@ func (v *view) moveCursorFrontOfLine() {
 	pos := utils.IndexFirstNonSpace(c.Line.Data)
 	c.Boffset = pos
 	v.MoveCursorTo(c)
-}
-
-//----------------------------------------------------------------------------
-// view commands
-//----------------------------------------------------------------------------
-
-type vCommandClass int
-
-const (
-	vCommandClassNone vCommandClass = iota
-	vCommandClassMovement
-	vCommandClassInsertion
-	vCommandClassDeletion
-	vCommandClassHistory
-	vCommandClassMisc
-)
-
-type viewCommand struct {
-	// The command to execute
-	Cmd vCommand
-
-	// Number of times to repeat the command
-	Count int
-
-	// Rune to use in the command
-	Rune rune
-}
-
-type vCommand int
-
-const (
-	vCommandNone vCommand = iota
-
-	// movement commands (finalize undo action group)
-	_vCommandMovementBeg
-	vCommandMoveCursorForward
-	vCommandMoveCursorBackward
-	vCommandMoveCursorWordForward
-	vCommandMoveCursorWordEnd
-	vCommandMoveCursorWordBackward
-	vCommandMoveCursorNextLine
-	vCommandMoveCursorPrevLine
-	vCommandMoveCursorBeginningOfLine
-	vCommandMoveCursorEndOfLine
-	vCommandMoveCursorBeginningOfFile
-	vCommandMoveCursorEndOfFile
-	vCommandMoveCursorToLine
-	vCommandMoveViewHalfForward
-	vCommandMoveViewHalfBackward
-	vCommandMoveCursorFrontOfLine
-	_vCommandMovementEnd
-
-	// insertion commands
-	_vCommandInsertionBeg
-	vCommandInsertRune
-	vCommandYank
-	vCommandNewLineAbove
-	vCommandNewLineBelow
-	_vCommandInsertionEnd
-
-	// deletion commands
-	_vCommandDeletionBeg
-	vCommandDeleteRuneBackward
-	vCommandDeleteRune
-	vCommandKillLine
-	vCommandKillWord
-	vCommandKillWordBackward
-	vCommandKillRegion
-	vCommandDeleteToEndOfLine
-	_vCommandDeletionEnd
-
-	// history commands (undo/redo)
-	_vCommandHistoryBeg
-	vCommandUndo
-	vCommandRedo
-	_vCommandHistoryEnd
-
-	// misc commands
-	_vCommandMiscBeg
-	vCommandIndentRegion
-	vCommandDeindentRegion
-	vCommandCopyRegion
-	vCommandRegionToUpper
-	vCommandRegionToLower
-	vCommandWordToUpper
-	vCommandWordToTitle
-	vCommandWordToLower
-	vCommandDisplayFileStatus
-	_vCommandMiscEnd
-)
-
-func (c vCommand) class() vCommandClass {
-	switch {
-	case c > _vCommandMovementBeg && c < _vCommandMovementEnd:
-		return vCommandClassMovement
-	case c > _vCommandInsertionBeg && c < _vCommandInsertionEnd:
-		return vCommandClassInsertion
-	case c > _vCommandDeletionBeg && c < _vCommandDeletionEnd:
-		return vCommandClassDeletion
-	case c > _vCommandHistoryBeg && c < _vCommandHistoryEnd:
-		return vCommandClassHistory
-	case c > _vCommandMiscBeg && c < _vCommandMiscEnd:
-		return vCommandClassMisc
-	}
-	return vCommandClassNone
 }

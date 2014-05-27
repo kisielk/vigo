@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"strconv"
 	"unicode"
 )
 
@@ -143,4 +144,17 @@ func GrowByteSlice(s []byte, desiredCap int) []byte {
 		return ns
 	}
 	return s
+}
+
+// ParseCount parses action multiplier from a string.
+func ParseCount(s string) int {
+	var n int64 = 1
+	var err error
+	if len(s) > 0 {
+		n, err = strconv.ParseInt(s, 10, 32)
+		if err != nil {
+			panic("could not parse action multiplier")
+		}
+	}
+	return int(n)
 }

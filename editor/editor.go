@@ -45,14 +45,13 @@ type Command interface {
 }
 
 type Editor struct {
-	uiBuf        tulib.Buffer
-	active       *viewTree // this one is always a leaf node
-	views        *viewTree // a root node
-	buffers      []*buffer.Buffer
-	lastCmdClass vCommandClass
-	statusBuf    bytes.Buffer
-	quitFlag     bool
-	killBuffer_  []byte
+	uiBuf       tulib.Buffer
+	active      *viewTree // this one is always a leaf node
+	views       *viewTree // a root node
+	buffers     []*buffer.Buffer
+	statusBuf   bytes.Buffer
+	quitFlag    bool
+	killBuffer_ []byte
 
 	// Event channels
 	UIEvents chan termbox.Event
@@ -61,7 +60,7 @@ type Editor struct {
 
 	cutBuffers *cutBuffers
 
-	mode    editorMode
+	mode    EditorMode
 	overlay Overlay
 }
 
@@ -92,9 +91,8 @@ func NewEditor(filenames []string) *Editor {
 	e.redraw = make(chan struct{})
 	e.views = newViewTreeLeaf(nil, newView(e.viewContext(), e.buffers[0], e.redraw))
 	e.active = e.views
-	e.SetMode(NewNormalMode(e))
 	e.UIEvents = make(chan termbox.Event, 20)
-	e.Commands = make(chan Command)
+	e.Commands = make(chan Command, 20)
 	return e
 }
 
@@ -343,6 +341,10 @@ func (e *Editor) fixEdges(v *viewTree) {
 	}
 }
 
+func (e *Editor) Height() int {
+	return e.uiBuf.Height
+}
+
 // cursorPosition returns the absolute screen coordinates of the cursor
 func (e *Editor) CursorPosition() (int, int) {
 	x, y := e.active.leaf.cursorPosition()
@@ -378,7 +380,6 @@ func (e *Editor) Loop() error {
 				}
 			}
 		case command := <-e.Commands:
-			// XXX: This causes a deadlock right now.
 			command.Apply(e)
 		case <-e.redraw:
 		}
@@ -392,7 +393,7 @@ func (e *Editor) handleUIEvent(ev *termbox.Event) error {
 	case termbox.EventKey:
 		e.SetStatus("") // reset status on every key event
 		e.onSysKey(ev)
-		e.mode.onKey(ev)
+		e.mode.OnKey(ev)
 
 		if e.quitFlag {
 			return ErrQuit
@@ -410,9 +411,9 @@ func (e *Editor) handleUIEvent(ev *termbox.Event) error {
 	return nil
 }
 
-func (e *Editor) SetMode(m editorMode) {
+func (e *Editor) SetMode(m EditorMode) {
 	if e.mode != nil {
-		e.mode.exit()
+		e.mode.Exit()
 	}
 	e.mode = m
 	e.overlay = nil

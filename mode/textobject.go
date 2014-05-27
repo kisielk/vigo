@@ -1,15 +1,16 @@
-package editor
+package mode
 
 import (
 	"errors"
-
 	"github.com/kisielk/vigo/buffer"
+	"github.com/kisielk/vigo/editor"
+	"github.com/kisielk/vigo/utils"
 	"github.com/nsf/termbox-go"
 )
 
-type textObjectMode struct {
-	editor *Editor
-	mode   editorMode
+type TextObjectMode struct {
+	editor *editor.Editor
+	mode   editor.EditorMode
 	object textObject
 	stage  textObjectStage // Text object parsing stage
 	err    error           // Set in case of error during text object parsing.
@@ -61,8 +62,8 @@ var textObjectKeyToType = map[rune]textObjectKind{
 	'B': textObjectBraces,
 }
 
-func newTextObjectMode(editor *Editor, mode editorMode, f buffer.RangeFunc, count int) *textObjectMode {
-	return &textObjectMode{
+func NewTextObjectMode(editor *editor.Editor, mode editor.EditorMode, f buffer.RangeFunc, count int) *TextObjectMode {
+	return &TextObjectMode{
 		editor:     editor,
 		mode:       mode,
 		object:     textObject{},
@@ -74,14 +75,14 @@ func newTextObjectMode(editor *Editor, mode editorMode, f buffer.RangeFunc, coun
 
 var ErrBadTextObject error = errors.New("bad text object")
 
-func (m *textObjectMode) onKey(ev *termbox.Event) {
+func (m *TextObjectMode) OnKey(ev *termbox.Event) {
 loop:
 	switch m.stage {
 	case textObjectStageReps:
 		if ('0' < ev.Ch && ev.Ch <= '9') || (ev.Ch == '0' && len(m.countChars) > 0) {
 			m.countChars = append(m.countChars, ev.Ch)
 		} else {
-			m.count = parseCount(string(m.countChars))
+			m.count = utils.ParseCount(string(m.countChars))
 			m.stage = textObjectStageChar1
 			goto loop
 		}
@@ -105,26 +106,26 @@ loop:
 	}
 }
 
-func (m *textObjectMode) exit() {
+func (m *TextObjectMode) Exit() {
 	if m.err != nil {
 		m.editor.SetStatus(m.err.Error())
 		return
 	}
 
-	v := m.editor.active.leaf
+	v := m.editor.ActiveView()
 
 	switch m.object.kind {
 	case textObjectWord:
 		for i := 0; i < m.count*m.outerCount; i++ {
-			from := v.cursor
-			to := v.cursor
+			from := v.Cursor()
+			to := v.Cursor()
 			// FIXME this wraps onto next line
 			if !to.NextWord() {
-				v.ctx.setStatus("End of buffer")
+				v.SetStatus("End of buffer")
 			}
 			m.f(from, to)
 		}
-		v.buf.FinalizeActionGroup()
+		v.Buffer().FinalizeActionGroup()
 	default:
 		m.editor.SetStatus("range conversion not implemented")
 	}

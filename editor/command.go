@@ -12,11 +12,11 @@ import (
 type commandMode struct {
 	Overlay
 	editor *Editor
-	mode   editorMode
+	mode   EditorMode
 	buffer *bytes.Buffer
 }
 
-func newCommandMode(editor *Editor, mode editorMode) commandMode {
+func NewCommandMode(editor *Editor, mode EditorMode) commandMode {
 	m := commandMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
 	return m
 }
@@ -31,7 +31,7 @@ func (m commandMode) cursorPosition() (int, int) {
 	return m.buffer.Len() + 1, r.Height - 1
 }
 
-func (m commandMode) onKey(ev *termbox.Event) {
+func (m commandMode) OnKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
 		m.editor.SetMode(m.mode)
@@ -55,7 +55,7 @@ func (m commandMode) onKey(ev *termbox.Event) {
 	}
 }
 
-func (m commandMode) exit() {
+func (m commandMode) Exit() {
 }
 
 func (m commandMode) draw() {
