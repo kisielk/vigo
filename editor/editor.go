@@ -45,14 +45,13 @@ type Command interface {
 }
 
 type Editor struct {
-	uiBuf        tulib.Buffer
-	active       *viewTree // this one is always a leaf node
-	views        *viewTree // a root node
-	buffers      []*buffer.Buffer
-	lastCmdClass vCommandClass
-	statusBuf    bytes.Buffer
-	quitFlag     bool
-	killBuffer_  []byte
+	uiBuf       tulib.Buffer
+	active      *viewTree // this one is always a leaf node
+	views       *viewTree // a root node
+	buffers     []*buffer.Buffer
+	statusBuf   bytes.Buffer
+	quitFlag    bool
+	killBuffer_ []byte
 
 	// Event channels
 	UIEvents chan termbox.Event
@@ -343,7 +342,7 @@ func (e *Editor) fixEdges(v *viewTree) {
 }
 
 func (e *Editor) Height() int {
-	return e.uiBuf.Rect.Height
+	return e.uiBuf.Height
 }
 
 // cursorPosition returns the absolute screen coordinates of the cursor

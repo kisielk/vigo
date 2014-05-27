@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"github.com/kisielk/vigo/buffer"
 	"github.com/kisielk/vigo/editor"
+	"github.com/kisielk/vigo/utils"
 )
 
 type Dir int
@@ -48,17 +50,30 @@ func (m MoveWord) Apply(e *editor.Editor) {
 	switch m.Dir {
 	case Forward:
 		if !c.NextWord() {
-			e.SetStatus("End of file")
+			v.SetStatus("End of file")
 			return
 		}
 	case Backward:
 		if !c.PrevWord() {
-			e.SetStatus("Beginning of file")
+			v.SetStatus("Beginning of file")
 			return
 		}
 	}
 
 	v.MoveCursorTo(c)
+}
+
+type MoveWordEnd struct{}
+
+func (m MoveWordEnd) Apply(e *editor.Editor) {
+	v := e.ActiveView()
+	c := v.Cursor()
+	ok := c.EndWord()
+	v.MoveCursorTo(c)
+	// FIXME Message is never printed
+	if !ok {
+		v.SetStatus("End of buffer")
+	}
 }
 
 type MoveLine struct {
@@ -83,4 +98,62 @@ func (m MoveLine) Apply(e *editor.Editor) {
 	}
 
 	v.MoveCursorTo(c)
+}
+
+type MoveBOL struct{}
+
+func (m MoveBOL) Apply(e *editor.Editor) {
+	v := e.ActiveView()
+	c := v.Cursor()
+	c.MoveBOL()
+	v.MoveCursorTo(c)
+}
+
+// Front-of-line is defined as the first non-space character in the line.
+type MoveFOL struct{}
+
+func (m MoveFOL) Apply(e *editor.Editor) {
+	v := e.ActiveView()
+	c := v.Cursor()
+	pos := utils.IndexFirstNonSpace(c.Line.Data)
+	c.Boffset = pos
+	v.MoveCursorTo(c)
+}
+
+type MoveEOL struct{}
+
+func (m MoveEOL) Apply(e *editor.Editor) {
+	v := e.ActiveView()
+	c := v.Cursor()
+	c.MoveEOL()
+	v.MoveCursorTo(c)
+}
+
+type MoveEOF struct{}
+
+func (m MoveEOF) Apply(e *editor.Editor) {
+	v := e.ActiveView()
+	b := v.Buffer()
+	c := buffer.Cursor{
+		Line:    b.LastLine,
+		LineNum: b.NumLines,
+		Boffset: b.LastLine.Len(),
+	}
+	v.MoveCursorTo(c)
+}
+
+type MoveView struct {
+	// TODO use Repeat{} rather than lines argument?
+	Lines int
+	Dir   Dir
+}
+
+func (m MoveView) Apply(e *editor.Editor) {
+	v := e.ActiveView()
+	switch m.Dir {
+	case Forward:
+		v.MoveViewLines(m.Lines)
+	case Backward:
+		v.MoveViewLines(-m.Lines)
+	}
 }

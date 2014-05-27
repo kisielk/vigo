@@ -26,3 +26,13 @@ func (_ DeleteRuneBackward) Apply(e *editor.Editor) {
 	view := e.ActiveView()
 	view.Buffer().DeleteRuneBackward(view.Cursor())
 }
+
+type DeleteEOL struct{}
+
+func (_ DeleteEOL) Apply(e *editor.Editor) {
+	v := e.ActiveView()
+	c := v.Cursor()
+	l := c.Line
+	d := l.Data[:c.Boffset]
+	v.Buffer().Delete(c, len(l.Data)-len(d))
+}
