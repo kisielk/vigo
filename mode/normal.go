@@ -103,7 +103,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 			// TODO: find a way to avoid duplication of 'k'
 			// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorPrevLine, Count: count})
 		case termbox.KeyCtrlR:
-			// v.onVcommand(viewCommand{Cmd: vCommandRedo, Count: count})
+			g.Commands <- cmd.Repeat{cmd.Redo{}, count}
 		case termbox.KeyCtrlU:
 			//TODO: should move by count lines, default to 1/2 screen
 			// v.onVcommand(viewCommand{Cmd: vCommandMoveViewHalfBackward, Count: count})
@@ -196,27 +196,26 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		// TODO: Yank lines
 		return
 	case 'h':
-		m.repeat(cmd.MoveRune{Dir: cmd.Backward, Wrap: false}, count)
+		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Backward, Wrap: false}, count}
 	case 'j':
-		m.repeat(cmd.MoveLine{Dir: cmd.Forward}, count)
+		g.Commands <- cmd.Repeat{cmd.MoveLine{Dir: cmd.Forward}, count}
 	case 'k':
-		m.repeat(cmd.MoveLine{Dir: cmd.Backward}, count)
+		g.Commands <- cmd.Repeat{cmd.MoveLine{Dir: cmd.Backward}, count}
 	case 'l':
-		m.repeat(cmd.MoveRune{Dir: cmd.Forward, Wrap: false}, count)
+		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Forward, Wrap: false}, count}
 	case 'o':
 		// v.onVcommand(viewCommand{Cmd: vCommandNewLineBelow})
 		g.SetMode(NewInsertMode(g, count))
 	case 'w':
-		m.repeat(cmd.MoveWord{Dir: cmd.Forward}, count)
+		g.Commands <- cmd.Repeat{cmd.MoveWord{Dir: cmd.Forward}, count}
 	case 'e':
 		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordEnd, Count: count})
 	case 'b':
-		m.repeat(cmd.MoveWord{Dir: cmd.Backward}, count)
-		// v.onVcommand(viewCommand{Cmd: vCommandMoveCursorWordBackward, Count: count})
+		g.Commands <- cmd.Repeat{cmd.MoveWord{Dir: cmd.Backward}, count}
 	case 'x':
-		// v.onVcommand(viewCommand{Cmd: vCommandDeleteRune, Count: count})
+		g.Commands <- cmd.Repeat{cmd.DeleteRune{}, count}
 	case 'u':
-		// v.onVcommand(viewCommand{Cmd: vCommandUndo, Count: count})
+		g.Commands <- cmd.Repeat{cmd.Undo{}, count}
 	}
 
 	// Insert mode; record first, then repeat.

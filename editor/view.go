@@ -146,7 +146,7 @@ type view struct {
 	// statusBuf is a buffer used for drawing the status line
 	statusBuf bytes.Buffer
 
-	lastCommand viewCommand
+	lastCommand Command
 
 	bufferEvents chan buffer.BufferEvent
 }
@@ -172,7 +172,7 @@ func newView(ctx viewContext, buf *buffer.Buffer, redraw chan struct{}) *view {
 }
 
 func (v *view) activate() {
-	v.lastCommand = viewCommand{Cmd: vCommandNone}
+	v.lastCommand = nil
 }
 
 func (v *view) deactivate() {
@@ -912,6 +912,7 @@ func (v *view) onDelete(a *buffer.Action) {
 	v.dirty = dirtyEverything
 }
 
+/*
 func (v *view) onVcommand(c viewCommand) {
 	lastClass := v.lastCommand.Cmd.class()
 	if c.Cmd.class() != lastClass || lastClass == vCommandClassMisc {
@@ -957,10 +958,8 @@ func (v *view) onVcommand(c viewCommand) {
 
 		case vCommandMoveCursorEndOfFile:
 			v.moveCursorEndOfFile()
-			/*
-				case vCommandMoveCursorToLine:
-					v.MoveCursorToLine(int(arg))
-			*/
+			// case vCommandMoveCursorToLine:
+			//	v.MoveCursorToLine(int(arg))
 
 		case vCommandMoveViewHalfForward:
 			v.maybeMoveViewNlines(v.height() / 2)
@@ -1010,6 +1009,7 @@ func (v *view) onVcommand(c viewCommand) {
 
 	v.lastCommand = c
 }
+*/
 
 func (v *view) dumpInfo() {
 	p := func(format string, args ...interface{}) {
@@ -1079,29 +1079,33 @@ func (v *view) makeCell(line, offset int, ch rune) termbox.Cell {
 }
 
 func (v *view) appendToKillBuffer(cursor buffer.Cursor, nbytes int) {
-	kb := *v.ctx.killBuffer
+	/*
+		kb := *v.ctx.killBuffer
 
-	switch v.lastCommand.Cmd {
-	case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
-	default:
-		kb = kb[:0]
-	}
+		switch v.lastCommand.Cmd {
+		case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
+		default:
+			kb = kb[:0]
+		}
 
-	kb = append(kb, cursor.ExtractBytes(nbytes)...)
-	*v.ctx.killBuffer = kb
+		kb = append(kb, cursor.ExtractBytes(nbytes)...)
+		*v.ctx.killBuffer = kb
+	*/
 }
 
 func (v *view) prependToKillBuffer(cursor buffer.Cursor, nbytes int) {
-	kb := *v.ctx.killBuffer
+	/*
+		kb := *v.ctx.killBuffer
 
-	switch v.lastCommand.Cmd {
-	case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
-	default:
-		kb = kb[:0]
-	}
+		switch v.lastCommand.Cmd {
+		case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
+		default:
+			kb = kb[:0]
+		}
 
-	kb = append(cursor.ExtractBytes(nbytes), kb...)
-	*v.ctx.killBuffer = kb
+		kb = append(cursor.ExtractBytes(nbytes), kb...)
+		*v.ctx.killBuffer = kb
+	*/
 }
 
 func (v *view) yank() {

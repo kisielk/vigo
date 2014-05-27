@@ -381,7 +381,6 @@ func (e *Editor) Loop() error {
 				}
 			}
 		case command := <-e.Commands:
-			// XXX: This causes a deadlock right now.
 			command.Apply(e)
 		case <-e.redraw:
 		}
