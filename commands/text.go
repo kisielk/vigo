@@ -36,3 +36,18 @@ func (_ DeleteEOL) Apply(e *editor.Editor) {
 	d := l.Data[:c.Boffset]
 	v.Buffer().Delete(c, len(l.Data)-len(d))
 }
+
+type NewLine struct {
+	Dir Dir
+}
+
+func (t NewLine) Apply(e *editor.Editor) {
+	// FIXME: Using Repeat{} results in added lines being separated.
+	switch t.Dir {
+	case Forward:
+	case Backward:
+		MoveLine{Backward}.Apply(e)
+	}
+	MoveEOL{}.Apply(e)
+	InsertRune{'\n'}.Apply(e)
+}

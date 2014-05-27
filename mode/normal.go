@@ -144,7 +144,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		// TODO: Repeat previous search, backwards
 		return
 	case 'O':
-		// v.onVcommand(viewCommand{Cmd: vCommandNewLineAbove})
+		g.Commands <- cmd.Repeat{cmd.NewLine{Dir: cmd.Backward}, count}
 		g.SetMode(NewInsertMode(g, count))
 	case 'P':
 		// TODO: Paste text before cursor
@@ -185,7 +185,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	case 'l':
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Forward, Wrap: false}, count}
 	case 'o':
-		// v.onVcommand(viewCommand{Cmd: vCommandNewLineBelow})
+		g.Commands <- cmd.Repeat{cmd.NewLine{Dir: cmd.Forward}, count}
 		g.SetMode(NewInsertMode(g, count))
 	case 'w':
 		g.Commands <- cmd.Repeat{cmd.MoveWord{Dir: cmd.Forward}, count}
