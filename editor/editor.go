@@ -68,7 +68,7 @@ func (e *Editor) ActiveView() *view {
 	return e.active.leaf
 }
 
-func (e *Editor) quit() {
+func (e *Editor) Quit() {
 	e.SetStatus("Quit")
 	// Signals event loop to quit on next iteration.
 	e.quitFlag = true
@@ -81,7 +81,7 @@ func NewEditor(filenames []string) *Editor {
 
 	for _, filename := range filenames {
 		//TODO: Check errors here
-		e.newBufferFromFile(filename)
+		e.NewBufferFromFile(filename)
 	}
 	if len(e.buffers) == 0 {
 		buf := buffer.NewEmptyBuffer()
@@ -130,7 +130,7 @@ func (e *Editor) bufferName(name string) string {
 	panic("too many buffers opened with the same name")
 }
 
-func (e *Editor) newBufferFromFile(filename string) (*buffer.Buffer, error) {
+func (e *Editor) NewBufferFromFile(filename string) (*buffer.Buffer, error) {
 	fullpath, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't determine absolute path: %s", err)
@@ -194,7 +194,7 @@ func (e *Editor) killActiveView() {
 	pp := p.parent
 	sib := e.active.sibling()
 	e.active.leaf.deactivate()
-	e.active.leaf.detach()
+	e.active.leaf.Detach()
 
 	*p = *sib
 	p.parent = pp
@@ -211,7 +211,7 @@ func (e *Editor) killAllViewsButActive() {
 			return
 		}
 		if v.leaf != nil {
-			v.leaf.detach()
+			v.leaf.Detach()
 		}
 	})
 	e.views = e.active
@@ -230,32 +230,32 @@ func (e *Editor) Resize() {
 func (e *Editor) Draw() {
 	var needsCursor bool
 	if e.overlay != nil {
-		needsCursor = e.overlay.needsCursor()
+		needsCursor = e.overlay.NeedsCursor()
 	}
 
 	// draw everything
 	e.views.draw()
 	e.compositeRecursively(e.views)
 	e.fixEdges(e.views)
-	e.drawStatus(e.statusBuf.Bytes())
+	e.DrawStatus(e.statusBuf.Bytes())
 
 	// draw overlay if any
 	if e.overlay != nil {
-		e.overlay.draw()
+		e.overlay.Draw()
 	}
 
 	// update cursor position
 	var cx, cy int
 	if needsCursor {
 		// this can be true, only when g.Overlay != nil, see above
-		cx, cy = e.overlay.cursorPosition()
+		cx, cy = e.overlay.CursorPosition()
 	} else {
 		cx, cy = e.CursorPosition()
 	}
 	termbox.SetCursor(cx, cy)
 }
 
-func (e *Editor) drawStatus(text []byte) {
+func (e *Editor) DrawStatus(text []byte) {
 	lp := tulib.DefaultLabelParams
 	r := e.uiBuf.Rect
 	r.Y = r.Height - 1
@@ -354,7 +354,7 @@ func (e *Editor) CursorPosition() (int, int) {
 func (e *Editor) onSysKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyCtrlQ:
-		e.quit()
+		e.Quit()
 	case termbox.KeyCtrlZ:
 		suspend(e)
 	}
@@ -402,7 +402,7 @@ func (e *Editor) handleUIEvent(ev *termbox.Event) error {
 		termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 		e.Resize()
 		if e.overlay != nil {
-			e.overlay.onResize(ev)
+			e.overlay.OnResize(ev)
 		}
 	case termbox.EventError:
 		return ev.Err

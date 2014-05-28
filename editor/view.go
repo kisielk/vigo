@@ -164,7 +164,7 @@ func newView(ctx viewContext, buf *buffer.Buffer, redraw chan struct{}) *view {
 	v := new(view)
 	v.ctx = ctx
 	v.uiBuf = tulib.NewBuffer(1, 1)
-	v.attach(buf)
+	v.Attach(buf)
 	v.highlightRanges = make([]byteRange, 0, 10)
 	v.tags = make([]viewTag, 0, 10)
 	v.redraw = redraw
@@ -178,12 +178,12 @@ func (v *view) activate() {
 func (v *view) deactivate() {
 }
 
-func (v *view) attach(b *buffer.Buffer) {
+func (v *view) Attach(b *buffer.Buffer) {
 	if v.buf == b {
 		return
 	}
 	if v.buf != nil {
-		v.detach()
+		v.Detach()
 	}
 
 	v.buf = b
@@ -249,7 +249,7 @@ func (v *view) bufferEventLoop() {
 	}
 }
 
-func (v *view) detach() {
+func (v *view) Detach() {
 	// Stop listening to current buffer and close event loop.
 	v.buf.RemoveListener(v.bufferEvents)
 	close(v.bufferEvents)

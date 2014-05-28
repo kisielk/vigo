@@ -5,8 +5,8 @@ import (
 )
 
 type Overlay interface {
-	needsCursor() bool
-	cursorPosition() (int, int)
-	onResize(ev *termbox.Event)
-	draw()
+	NeedsCursor() bool
+	CursorPosition() (int, int)
+	OnResize(ev *termbox.Event)
+	Draw()
 }

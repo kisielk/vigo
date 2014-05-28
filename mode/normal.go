@@ -209,7 +209,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		g.SetMode(NewInsertMode(g, count))
 	case ':':
 		// TODO use count to set range for command mode
-		g.SetMode(editor.NewCommandMode(g, m))
+		g.SetMode(NewCommandMode(g, m))
 	}
 
 	// Reset repetitions
