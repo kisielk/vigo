@@ -1,5 +1,4 @@
-ViGo - Vi in Go
-===============
+# ViGo - Vi in Go
 
 [![Build Status](https://drone.io/github.com/kisielk/vigo/status.png)](https://drone.io/github.com/kisielk/vigo/latest)
 
@@ -8,8 +7,7 @@ The project is still in its early days and definitely not suitable for daily use
 
 It's based on nsf's religious [godit](https://github.com/nsf/godit)
 
-Contributing
-------------
+## Contributing
 
 ViGo is still in its early days, though contributions are welcome. In order to get started, you will first need to fork the respository.
 
@@ -30,7 +28,6 @@ $ git push fork
 $ git pull origin master
 ```
 
-Building
---------
+## Building
 
 In the project directory, you can build ViGo by running `go build`. This will produce a `vigo` binary which you can run with `./vigo`.
