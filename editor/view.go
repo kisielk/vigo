@@ -164,7 +164,7 @@ func newView(ctx viewContext, buf *buffer.Buffer, redraw chan struct{}) *view {
 	v := new(view)
 	v.ctx = ctx
 	v.uiBuf = tulib.NewBuffer(1, 1)
-	v.attach(buf)
+	v.Attach(buf)
 	v.highlightRanges = make([]byteRange, 0, 10)
 	v.tags = make([]viewTag, 0, 10)
 	v.redraw = redraw
@@ -178,12 +178,12 @@ func (v *view) activate() {
 func (v *view) deactivate() {
 }
 
-func (v *view) attach(b *buffer.Buffer) {
+func (v *view) Attach(b *buffer.Buffer) {
 	if v.buf == b {
 		return
 	}
 	if v.buf != nil {
-		v.detach()
+		v.Detach()
 	}
 
 	v.buf = b
@@ -249,7 +249,7 @@ func (v *view) bufferEventLoop() {
 	}
 }
 
-func (v *view) detach() {
+func (v *view) Detach() {
 	// Stop listening to current buffer and close event loop.
 	v.buf.RemoveListener(v.bufferEvents)
 	close(v.bufferEvents)
@@ -593,13 +593,6 @@ func (v *view) cursorPosition() (int, int) {
 	return x, y
 }
 
-func (v *view) cursorPositionFor(cursor buffer.Cursor) (int, int) {
-	y := cursor.LineNum - v.topLineNum
-	vo, _ := cursor.VoffsetCoffset()
-	x := vo - v.lineVoffset
-	return x, y
-}
-
 // Move cursor to the 'boffset' position in the 'line'. Obviously 'line' must be
 // from the attached buffer. If 'boffset' < 0, use 'last_cursor_voffset'. Keep
 // in mind that there is no need to maintain connections between lines (e.g. for
@@ -634,74 +627,6 @@ func (v *view) MoveCursorTo(c buffer.Cursor) {
 	v.adjustTopLine()
 }
 
-// Move cursor one character forward.
-func (v *view) moveCursorForward() {
-	c := v.cursor
-	if c.LastLine() && c.EOL() {
-		v.ctx.setStatus("End of buffer")
-		return
-	}
-
-	c.NextRune(ConfigWrapRight)
-	v.MoveCursorTo(c)
-}
-
-// Move cursor one character backward.
-func (v *view) moveCursorBackward() {
-	c := v.cursor
-	if c.FirstLine() && c.BOL() {
-		v.ctx.setStatus("Beginning of buffer")
-		return
-	}
-
-	c.PrevRune(ConfigWrapLeft)
-	v.MoveCursorTo(c)
-}
-
-// Move cursor to the next line.
-func (v *view) moveCursorNextLine() {
-	c := v.cursor
-	if !c.LastLine() {
-		c = buffer.Cursor{
-			Line:    c.Line.Next,
-			LineNum: c.LineNum + 1,
-			Boffset: -1,
-		}
-		v.MoveCursorTo(c)
-	} else {
-		v.ctx.setStatus("End of buffer")
-	}
-}
-
-// Move cursor to the previous line.
-func (v *view) moveCursorPrevLine() {
-	c := v.cursor
-	if !c.FirstLine() {
-		c = buffer.Cursor{
-			Line:    c.Line.Prev,
-			LineNum: c.LineNum - 1,
-			Boffset: -1,
-		}
-		v.MoveCursorTo(c)
-	} else {
-		v.ctx.setStatus("Beginning of buffer")
-	}
-}
-
-// Move cursor to the beginning of the line.
-func (v *view) moveCursorBeginningOfLine() {
-	c := v.cursor
-	c.MoveBOL()
-	v.MoveCursorTo(c)
-}
-
-// Move cursor to the end of the line.
-func (v *view) moveCursorEndOfLine() {
-	c := v.cursor
-	c.MoveEOL()
-	v.MoveCursorTo(c)
-}
-
 // Move cursor to the beginning of the file (buffer).
 func (v *view) moveCursorBeginningOfFile() {
 	c := buffer.Cursor{
@@ -710,45 +635,6 @@ func (v *view) moveCursorBeginningOfFile() {
 		Boffset: 0,
 	}
 	v.MoveCursorTo(c)
-}
-
-// Move cursor to the end of the file (buffer).
-func (v *view) moveCursorEndOfFile() {
-	c := buffer.Cursor{
-		Line:    v.buf.LastLine,
-		LineNum: v.buf.NumLines,
-		Boffset: v.buf.LastLine.Len(),
-	}
-	v.MoveCursorTo(c)
-}
-
-// Move cursor to the end of the next (or current) word.
-func (v *view) moveCursorWordFoward() {
-	c := v.cursor
-	ok := c.NextWord()
-	v.MoveCursorTo(c)
-	if !ok {
-		v.ctx.setStatus("End of buffer")
-	}
-}
-
-// Move cursor to the end of the current word.
-func (v *view) moveCursorWordEnd() {
-	c := v.cursor
-	ok := c.EndWord()
-	v.MoveCursorTo(c)
-	if !ok {
-		v.ctx.setStatus("End of buffer")
-	}
-}
-
-func (v *view) moveCursorWordBackward() {
-	c := v.cursor
-	ok := c.PrevWord()
-	v.MoveCursorTo(c)
-	if !ok {
-		v.ctx.setStatus("Beginning of buffer")
-	}
 }
 
 // Move view 'n' lines forward or backward.
@@ -787,44 +673,6 @@ func (v *view) canMoveTopLineNtimes(n int) bool {
 func (v *view) maybeMoveViewNlines(n int) {
 	if v.canMoveTopLineNtimes(n) {
 		v.MoveViewLines(n)
-	}
-}
-
-// If not at the EOL, remove contents of the current line from the cursor to the
-// end. Otherwise behave like 'delete'.
-func (v *view) killLine() {
-	c := v.cursor
-	if !c.EOL() {
-		// kill data from the cursor to the EOL
-		len := c.Line.Len() - c.Boffset
-		v.appendToKillBuffer(c, len)
-		v.buf.Delete(c, len)
-		return
-	}
-	v.appendToKillBuffer(c, 1)
-	v.buf.DeleteRune(c)
-}
-
-func (v *view) killWord() {
-	c1 := v.cursor
-	c2 := c1
-	c2.NextWord()
-	d := c1.Distance(c2)
-	if d > 0 {
-		v.appendToKillBuffer(c1, d)
-		v.buf.Delete(c1, d)
-	}
-}
-
-func (v *view) killWordBackward() {
-	c2 := v.cursor
-	c1 := c2
-	c1.PrevWord()
-	d := c1.Distance(c2)
-	if d > 0 {
-		v.prependToKillBuffer(c1, d)
-		v.buf.Delete(c1, d)
-		v.MoveCursorTo(c1)
 	}
 }
 
@@ -1048,14 +896,6 @@ func (v *view) deindentLine(line buffer.Cursor) {
 	}
 }
 
-func (v *view) wordTo(filter func([]byte) []byte) {
-	c1, c2 := v.cursor, v.cursor
-	c2.NextWord()
-	v.filterText(c1, c2, filter)
-	c1.NextWord()
-	v.MoveCursorTo(c1)
-}
-
 // Filter _must_ return a new slice and shouldn't touch contents of the
 // argument, perfect filter examples are: bytes.Title, bytes.ToUpper,
 // bytes.ToLower
@@ -1065,29 +905,4 @@ func (v *view) filterText(from, to buffer.Cursor, filter func([]byte) []byte) {
 	v.buf.Delete(c1, d)
 	data := filter(v.buf.History.LastAction().Data)
 	v.buf.Insert(c1, data)
-}
-
-// Delete from the current cursor position to the end of the line.
-func (v *view) deleteToEndOfLine() {
-	c := v.cursor
-	l := c.Line
-	d := l.Data[:c.Boffset]
-	v.buf.Delete(c, len(l.Data)-len(d))
-}
-
-// Display info for the current file. Information displayed is:
-// filepath - number of lines - position in file as percentage
-func (v *view) displayFileStatus() {
-	path := v.buf.Path
-	numLines := v.buf.NumLines
-	c := v.cursor
-	pc := (float64(c.LineNum) / float64(numLines)) * 100
-	v.ctx.setStatus("\"%s\" %d lines --%d%%--", path, numLines, int(pc))
-}
-
-func (v *view) moveCursorFrontOfLine() {
-	c := v.cursor
-	pos := utils.IndexFirstNonSpace(c.Line.Data)
-	c.Boffset = pos
-	v.MoveCursorTo(c)
 }
