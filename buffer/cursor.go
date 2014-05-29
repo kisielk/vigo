@@ -435,39 +435,6 @@ func (c *Cursor) OnDeleteAdjust(a *Action) {
 	c.Boffset = a.Cursor.Boffset + n
 }
 
-func (c Cursor) searchForward(word []byte) (Cursor, bool) {
-	for c.Line != nil {
-		i := bytes.Index(c.Line.Data[c.Boffset:], word)
-		if i != -1 {
-			c.Boffset += i
-			return c, true
-		}
-
-		c.Line = c.Line.Next
-		c.LineNum++
-		c.Boffset = 0
-	}
-	return c, false
-}
-
-func (c Cursor) searchBackward(word []byte) (Cursor, bool) {
-	for {
-		i := bytes.LastIndex(c.Line.Data[:c.Boffset], word)
-		if i != -1 {
-			c.Boffset = i
-			return c, true
-		}
-
-		c.Line = c.Line.Prev
-		if c.Line == nil {
-			break
-		}
-		c.LineNum--
-		c.Boffset = len(c.Line.Data)
-	}
-	return c, false
-}
-
 // SortCursors orders a pair of cursors, from closest to
 // furthest from the beginning of the buffer.
 func SortCursors(c1, c2 Cursor) (r1, r2 Cursor) {

@@ -59,6 +59,8 @@ type Editor struct {
 	quitFlag    bool
 	killBuffer_ []byte
 
+	LastSearchTerm string
+
 	// Event channels
 	UIEvents chan termbox.Event
 	Commands chan Command
