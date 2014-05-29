@@ -65,7 +65,14 @@ func (m CommandMode) Draw() {
 // Interpret command and apply changes to editor.
 func execCommand(e *editor.Editor, command string) error {
 	fields := strings.Fields(command)
+
+	// prevent a crash if no commands are given
+	if len(fields) == 0 {
+		return nil
+	}
+
 	cmd, args := fields[0], fields[1:]
+	
 	switch cmd {
 	case "q":
 		// TODO if more than one split, close active one only.
