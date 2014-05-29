@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/kisielk/vigo/editor"
+	cmd "github.com/kisielk/vigo/commands"
 	"github.com/nsf/termbox-go"
 )
 
@@ -46,6 +47,7 @@ func (m SearchMode) OnKey(ev *termbox.Event) {
 		} else {
 			m.editor.SetStatus("/" + c)
 		}
+		m.editor.Commands <- cmd.Search{Dir: cmd.Forward}
 		m.editor.SetMode(m.mode)
 	case termbox.KeySpace:
 		m.buffer.WriteRune(' ')
