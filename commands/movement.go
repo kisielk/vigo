@@ -25,12 +25,12 @@ func (m MoveRune) Apply(e *editor.Editor) {
 	switch m.Dir {
 	case Forward:
 		if !c.NextRune(m.Wrap) {
-			v.SetStatus("End of file")
+			v.SetStatus("End of line")
 			return
 		}
 	case Backward:
 		if !c.PrevRune(m.Wrap) {
-			v.SetStatus("Beginning of file")
+			v.SetStatus("Beginning of line")
 			return
 		}
 	}

@@ -160,7 +160,7 @@ func (c *Cursor) PrevRune(wrap bool) bool {
 	}
 }
 
-// PrevLine moves the cursor to the next line.
+// NextLine moves the cursor to the next line.
 // It reports whether the motion succeeded.
 func (c *Cursor) NextLine() bool {
 	if c.LastLine() {
