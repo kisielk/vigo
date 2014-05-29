@@ -157,3 +157,39 @@ func (m MoveView) Apply(e *editor.Editor) {
 		v.MoveViewLines(-m.Lines)
 	}
 }
+
+type NearestHSplit struct {
+	Dir Dir
+}
+
+func (m NearestHSplit) Apply(e *editor.Editor) {
+	n := e.ActiveViewNode()
+	var d int
+	switch m.Dir {
+	case Forward:
+		d = 1
+	case Backward:
+		d = -1
+	}
+	if k := n.NearestHSplit(d); k != nil {
+		e.SetActiveViewNode(k)
+	}
+}
+
+type NearestVSplit struct {
+	Dir Dir
+}
+
+func (m NearestVSplit) Apply(e *editor.Editor) {
+	n := e.ActiveViewNode()
+	var d int
+	switch m.Dir {
+	case Forward:
+		d = 1
+	case Backward:
+		d = -1
+	}
+	if k := n.NearestVSplit(d); k != nil {
+		e.SetActiveViewNode(k)
+	}
+}
