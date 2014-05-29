@@ -201,7 +201,6 @@ func (e *Editor) killActiveView() {
 
 	pp := p.parent
 	sib := e.active.sibling()
-	e.active.leaf.deactivate()
 	e.active.leaf.Detach()
 
 	*p = *sib
@@ -209,7 +208,6 @@ func (e *Editor) killActiveView() {
 	p.reparent()
 
 	e.active = p.firstLeafNode()
-	e.active.leaf.activate()
 	e.Resize()
 }
 

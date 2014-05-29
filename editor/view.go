@@ -146,8 +146,6 @@ type view struct {
 	// statusBuf is a buffer used for drawing the status line
 	statusBuf bytes.Buffer
 
-	lastCommand Command
-
 	bufferEvents chan buffer.BufferEvent
 }
 
@@ -169,13 +167,6 @@ func newView(ctx viewContext, buf *buffer.Buffer, redraw chan struct{}) *view {
 	v.tags = make([]viewTag, 0, 10)
 	v.redraw = redraw
 	return v
-}
-
-func (v *view) activate() {
-	v.lastCommand = nil
-}
-
-func (v *view) deactivate() {
 }
 
 func (v *view) Attach(b *buffer.Buffer) {
@@ -825,36 +816,6 @@ func (v *view) makeCell(line, offset int, ch rune) termbox.Cell {
 		cell.Bg = hlBG
 	}
 	return cell
-}
-
-func (v *view) appendToKillBuffer(cursor buffer.Cursor, nbytes int) {
-	/*
-		kb := *v.ctx.killBuffer
-
-		switch v.lastCommand.Cmd {
-		case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
-		default:
-			kb = kb[:0]
-		}
-
-		kb = append(kb, cursor.ExtractBytes(nbytes)...)
-		*v.ctx.killBuffer = kb
-	*/
-}
-
-func (v *view) prependToKillBuffer(cursor buffer.Cursor, nbytes int) {
-	/*
-		kb := *v.ctx.killBuffer
-
-		switch v.lastCommand.Cmd {
-		case vCommandKillWord, vCommandKillWordBackward, vCommandKillRegion, vCommandKillLine:
-		default:
-			kb = kb[:0]
-		}
-
-		kb = append(cursor.ExtractBytes(nbytes), kb...)
-		*v.ctx.killBuffer = kb
-	*/
 }
 
 func (v *view) yank() {
