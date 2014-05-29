@@ -68,6 +68,10 @@ func (e *Editor) ActiveView() *view {
 	return e.active.leaf
 }
 
+func (e *Editor) ActiveViewNode() *viewTree {
+	return e.active
+}
+
 func (e *Editor) Quit() {
 	e.SetStatus("Quit")
 	// Signals event loop to quit on next iteration.
@@ -167,20 +171,24 @@ func (e *Editor) SetStatus(format string, args ...interface{}) {
 	fmt.Fprintf(&e.statusBuf, format, args...)
 }
 
-func (e *Editor) splitHorizontally() {
+func (e *Editor) SetActiveViewNode(node *viewTree) {
+	e.active = node
+}
+
+func (e *Editor) SplitVertically() {
 	if e.active.Width == 0 {
 		return
 	}
-	e.active.splitHorizontally()
+	e.active.splitVertically()
 	e.active = e.active.left
 	e.Resize()
 }
 
-func (e *Editor) splitVertically() {
+func (e *Editor) SplitHorizontally() {
 	if e.active.Height == 0 {
 		return
 	}
-	e.active.splitVertically()
+	e.active.splitHorizontally()
 	e.active = e.active.top
 	e.Resize()
 }

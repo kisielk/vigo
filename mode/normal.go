@@ -87,8 +87,8 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 			// TODO: Start visual selection
 			return
 		case termbox.KeyCtrlW:
-			// TODO: Buffer the ctrl-W and then implement some windowing commands
-			return
+			// TODO Use count for window width/height
+			g.SetMode(NewWindowMode(g, count))
 		case termbox.KeyCtrlX:
 			// TODO: Move to column count
 			return

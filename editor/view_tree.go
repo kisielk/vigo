@@ -30,7 +30,7 @@ func newViewTreeLeaf(parent *viewTree, v *view) *viewTree {
 	}
 }
 
-func (v *viewTree) splitVertically() {
+func (v *viewTree) splitHorizontally() {
 	top := v.leaf
 	bottom := newView(top.ctx, top.buf, top.redraw)
 	*v = viewTree{
@@ -41,7 +41,7 @@ func (v *viewTree) splitVertically() {
 	}
 }
 
-func (v *viewTree) splitHorizontally() {
+func (v *viewTree) splitVertically() {
 	left := v.leaf
 	right := newView(left.ctx, left.buf, left.redraw)
 	*v = viewTree{
@@ -112,24 +112,38 @@ func (v *viewTree) traverse(cb func(*viewTree)) {
 	}
 }
 
-func (v *viewTree) nearestVSplit() *viewTree {
-	v = v.parent
-	for v != nil {
-		if v.top != nil {
-			return v
+// NearestHSplit returns the viewTree node with the nearest
+// horizontally split neighbour view. dir argument controls the search
+// direction; -1 searches above the current view, 1 searches below.
+// nil is returned if no neighbour is found.
+func (v *viewTree) NearestHSplit(dir int) *viewTree {
+	w := v.parent
+	for w != nil {
+		if dir < 0 && w.top != nil && v == w.bottom {
+			return w.top.firstLeafNode()
+		} else if dir > 0 && w.bottom != nil && v == w.top {
+			return w.bottom.firstLeafNode()
 		}
-		v = v.parent
+		v = w
+		w = w.parent
 	}
 	return nil
 }
 
-func (v *viewTree) nearestHSplit() *viewTree {
-	v = v.parent
-	for v != nil {
-		if v.left != nil {
-			return v
+// NearestVSplit returns the viewTree node with the nearest
+// vertically split neighbour view. dir argument controls the search
+// direction; -1 searches to the left of current view, 1 searches to the right.
+// nil is returned if no neighbour is found.
+func (v *viewTree) NearestVSplit(dir int) *viewTree {
+	w := v.parent
+	for w != nil {
+		if dir < 0 && w.left != nil && v == w.right {
+			return w.left.firstLeafNode()
+		} else if dir > 0 && w.right != nil && v == w.left {
+			return w.right.firstLeafNode()
 		}
-		v = v.parent
+		v = w
+		w = w.parent
 	}
 	return nil
 }

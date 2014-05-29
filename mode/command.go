@@ -67,6 +67,7 @@ func execCommand(e *editor.Editor, command string) error {
 	cmd, args := fields[0], fields[1:]
 	switch cmd {
 	case "q":
+		// TODO if more than one split, close active one only.
 		e.Quit()
 	case "w":
 		b := e.ActiveView().Buffer()
@@ -95,6 +96,11 @@ func execCommand(e *editor.Editor, command string) error {
 			return err
 		}
 		e.ActiveView().Attach(buffer)
+	case "sp", "split":
+		e.SplitHorizontally()
+		// TODO file argument | shell command argument
+	case "vsp", "vsplit":
+		e.SplitVertically()
 	}
 
 	if lineNum, err := strconv.Atoi(cmd); err == nil {
