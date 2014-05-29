@@ -22,7 +22,7 @@ func (s Search) Apply(e *editor.Editor) {
 	switch s.Dir {
 	case Forward:
 		e.SetStatus("Search forward for: %s", e.LastSearchTerm)
-		for c.Line != nil {
+		for {
 
 			// move the cursor one run forward.
 			// this allows us to move to the next match.
