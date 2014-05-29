@@ -3,20 +3,21 @@ package mode
 import (
 	"bytes"
 	"fmt"
-	"github.com/kisielk/vigo/editor"
-	"github.com/nsf/termbox-go"
 	"strconv"
 	"strings"
+
+	"github.com/kisielk/vigo/editor"
+	"github.com/nsf/termbox-go"
 )
 
 type CommandMode struct {
 	editor.Overlay
 	editor *editor.Editor
-	mode   editor.EditorMode
+	mode   editor.Mode
 	buffer *bytes.Buffer
 }
 
-func NewCommandMode(editor *editor.Editor, mode editor.EditorMode) CommandMode {
+func NewCommandMode(editor *editor.Editor, mode editor.Mode) CommandMode {
 	m := CommandMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
 	return m
 }

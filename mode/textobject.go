@@ -2,6 +2,7 @@ package mode
 
 import (
 	"errors"
+
 	"github.com/kisielk/vigo/buffer"
 	"github.com/kisielk/vigo/editor"
 	"github.com/kisielk/vigo/utils"
@@ -10,7 +11,7 @@ import (
 
 type TextObjectMode struct {
 	editor *editor.Editor
-	mode   editor.EditorMode
+	mode   editor.Mode
 	object textObject
 	stage  textObjectStage // Text object parsing stage
 	err    error           // Set in case of error during text object parsing.
@@ -62,7 +63,7 @@ var textObjectKeyToType = map[rune]textObjectKind{
 	'B': textObjectBraces,
 }
 
-func NewTextObjectMode(editor *editor.Editor, mode editor.EditorMode, f buffer.RangeFunc, count int) *TextObjectMode {
+func NewTextObjectMode(editor *editor.Editor, mode editor.Mode, f buffer.RangeFunc, count int) *TextObjectMode {
 	return &TextObjectMode{
 		editor:     editor,
 		mode:       mode,

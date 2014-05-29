@@ -14,6 +14,11 @@ import (
 	"github.com/nsf/tulib"
 )
 
+type Mode interface {
+	OnKey(ev *termbox.Event)
+	Exit()
+}
+
 // this is a structure which represents a key press, used for keyboard macros
 type keyEvent struct {
 	mod termbox.Modifier
@@ -61,7 +66,7 @@ type Editor struct {
 
 	cutBuffers *cutBuffers
 
-	mode    EditorMode
+	mode    Mode
 	overlay Overlay
 }
 
@@ -421,7 +426,7 @@ func (e *Editor) handleUIEvent(ev *termbox.Event) error {
 	return nil
 }
 
-func (e *Editor) SetMode(m EditorMode) {
+func (e *Editor) SetMode(m Mode) {
 	if e.mode != nil {
 		e.mode.Exit()
 	}
