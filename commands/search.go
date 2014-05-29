@@ -13,6 +13,10 @@ func (s Search) Apply(e *editor.Editor) {
 	v := e.ActiveView()
 	c := v.Cursor()
 
+	if e.LastSearchTerm == "" {
+		e.SetStatus("Nothing to search for.")
+		return
+	}
 	word := []byte(e.LastSearchTerm)
 
 	switch s.Dir {
