@@ -141,8 +141,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		// TODO: Move to line in the middle of the screen
 		return
 	case 'N':
-		// TODO: Repeat previous search, backwards
-		return
+		g.Commands <- cmd.Search{Dir: cmd.Backward}
 	case 'O':
 		g.Commands <- cmd.Repeat{cmd.NewLine{Dir: cmd.Backward}, count}
 		g.SetMode(NewInsertMode(g, count))
@@ -197,6 +196,8 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		g.Commands <- cmd.Repeat{cmd.DeleteRune{}, count}
 	case 'u':
 		g.Commands <- cmd.Repeat{cmd.Undo{}, count}
+	case 'n':
+		g.Commands <- cmd.Search{Dir: cmd.Forward}
 	}
 
 	switch ev.Ch {
@@ -210,6 +211,8 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	case ':':
 		// TODO use count to set range for command mode
 		g.SetMode(NewCommandMode(g, m))
+	case '/':
+		g.SetMode(NewSearchMode(g, m))
 	}
 
 	// Reset repetitions
