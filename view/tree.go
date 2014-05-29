@@ -1,73 +1,108 @@
-package editor
+package view
 
 import (
 	"github.com/nsf/tulib"
 )
 
-//----------------------------------------------------------------------------
-// view_tree
-//----------------------------------------------------------------------------
-
-type viewTree struct {
+type Tree struct {
 	// At the same time only one of these groups can be valid:
 	// 1) 'left', 'right' and 'split'
 	// 2) 'top', 'bottom' and 'split'
 	// 3) 'leaf'
-	parent     *viewTree
-	left       *viewTree
-	top        *viewTree
-	right      *viewTree
-	bottom     *viewTree
-	leaf       *view
+	parent     *Tree
+	left       *Tree
+	top        *Tree
+	right      *Tree
+	bottom     *Tree
+	leaf       *View
 	split      float32
 	tulib.Rect // updated with 'resize' call
 }
 
-func newViewTreeLeaf(parent *viewTree, v *view) *viewTree {
-	return &viewTree{
+func (t *Tree) Leaf() *View {
+	return t.leaf
+}
+
+func NewTree(v *View) *Tree {
+	return &Tree{leaf: v}
+}
+
+func NewTreeLeaf(parent *Tree, v *View) *Tree {
+	return &Tree{
 		parent: parent,
 		leaf:   v,
 	}
 }
 
-func (v *viewTree) splitHorizontally() {
+func (t *Tree) NewLeaf(v *View) *Tree {
+	return &Tree{
+		parent: t,
+		leaf:   v,
+	}
+}
+
+func (t *Tree) Parent() *Tree {
+	return t.parent
+}
+
+func (t *Tree) Left() *Tree {
+	return t.left
+}
+
+func (t *Tree) Right() *Tree {
+	return t.right
+}
+
+func (t *Tree) Top() *Tree {
+	return t.top
+}
+
+func (t *Tree) Bottom() *Tree {
+	return t.bottom
+}
+
+func (v *Tree) SplitHorizontally() {
 	top := v.leaf
-	bottom := newView(top.ctx, top.buf, top.redraw)
-	*v = viewTree{
+	bottom := NewView(top.ctx, top.buf, top.redraw)
+	*v = Tree{
 		parent: v.parent,
-		top:    newViewTreeLeaf(v, top),
-		bottom: newViewTreeLeaf(v, bottom),
 		split:  0.5,
 	}
+	v.top = v.NewLeaf(top)
+	v.bottom = v.NewLeaf(bottom)
 }
 
-func (v *viewTree) splitVertically() {
+func (t *Tree) SetParent(parent *Tree) {
+	t.parent = parent
+}
+
+func (v *Tree) SplitVertically() {
 	left := v.leaf
-	right := newView(left.ctx, left.buf, left.redraw)
-	*v = viewTree{
+	right := NewView(left.ctx, left.buf, left.redraw)
+	*v = Tree{
 		parent: v.parent,
-		left:   newViewTreeLeaf(v, left),
-		right:  newViewTreeLeaf(v, right),
 		split:  0.5,
 	}
+	v.left = v.NewLeaf(left)
+	v.right = v.NewLeaf(right)
 }
 
-func (v *viewTree) draw() {
+func (v *Tree) Draw() {
 	if v.leaf != nil {
 		v.leaf.draw()
 		return
 	}
 
 	if v.left != nil {
-		v.left.draw()
-		v.right.draw()
+		v.left.Draw()
+		v.right.Draw()
 	} else {
-		v.top.draw()
-		v.bottom.draw()
+		v.top.Draw()
+		v.bottom.Draw()
 	}
 }
 
-func (v *viewTree) resize(pos tulib.Rect) {
+func (v *Tree) Resize(pos tulib.Rect) {
 	v.Rect = pos
 	if v.leaf != nil {
 		v.leaf.resize(pos.Width, pos.Height)
@@ -83,8 +118,8 @@ func (v *viewTree) resize(pos tulib.Rect) {
 		}
 		lw := int(float32(w) * v.split)
 		rw := w - lw
-		v.left.resize(tulib.Rect{pos.X, pos.Y, lw, pos.Height})
-		v.right.resize(tulib.Rect{pos.X + lw + 1, pos.Y, rw, pos.Height})
+		v.left.Resize(tulib.Rect{pos.X, pos.Y, lw, pos.Height})
+		v.right.Resize(tulib.Rect{pos.X + lw + 1, pos.Y, rw, pos.Height})
 	} else {
 		// vertical split, use 'h', no need to reserve one line for
 		// splitter, because splitters are part of the buffer's output
@@ -92,37 +127,37 @@ func (v *viewTree) resize(pos tulib.Rect) {
 		h := pos.Height
 		th := int(float32(h) * v.split)
 		bh := h - th
-		v.top.resize(tulib.Rect{pos.X, pos.Y, pos.Width, th})
-		v.bottom.resize(tulib.Rect{pos.X, pos.Y + th, pos.Width, bh})
+		v.top.Resize(tulib.Rect{pos.X, pos.Y, pos.Width, th})
+		v.bottom.Resize(tulib.Rect{pos.X, pos.Y + th, pos.Width, bh})
 	}
 }
 
-func (v *viewTree) traverse(cb func(*viewTree)) {
+func (v *Tree) Walk(cb func(*Tree)) {
 	if v.leaf != nil {
 		cb(v)
 		return
 	}
 
 	if v.left != nil {
-		v.left.traverse(cb)
-		v.right.traverse(cb)
+		v.left.Walk(cb)
+		v.right.Walk(cb)
 	} else if v.top != nil {
-		v.top.traverse(cb)
-		v.bottom.traverse(cb)
+		v.top.Walk(cb)
+		v.bottom.Walk(cb)
 	}
 }
 
-// NearestHSplit returns the viewTree node with the nearest
+// NearestHSplit returns the Tree node with the nearest
 // horizontally split neighbour view. dir argument controls the search
 // direction; -1 searches above the current view, 1 searches below.
 // nil is returned if no neighbour is found.
-func (v *viewTree) NearestHSplit(dir int) *viewTree {
+func (v *Tree) NearestHSplit(dir int) *Tree {
 	w := v.parent
 	for w != nil {
 		if dir < 0 && w.top != nil && v == w.bottom {
-			return w.top.firstLeafNode()
+			return w.top.FirstLeafNode()
 		} else if dir > 0 && w.bottom != nil && v == w.top {
-			return w.bottom.firstLeafNode()
+			return w.bottom.FirstLeafNode()
 		}
 		v = w
 		w = w.parent
@@ -130,17 +165,17 @@ func (v *viewTree) NearestHSplit(dir int) *viewTree {
 	return nil
 }
 
-// NearestVSplit returns the viewTree node with the nearest
+// NearestVSplit returns the Tree node with the nearest
 // vertically split neighbour view. dir argument controls the search
 // direction; -1 searches to the left of current view, 1 searches to the right.
 // nil is returned if no neighbour is found.
-func (v *viewTree) NearestVSplit(dir int) *viewTree {
+func (v *Tree) NearestVSplit(dir int) *Tree {
 	w := v.parent
 	for w != nil {
 		if dir < 0 && w.left != nil && v == w.right {
-			return w.left.firstLeafNode()
+			return w.left.FirstLeafNode()
 		} else if dir > 0 && w.right != nil && v == w.left {
-			return w.right.firstLeafNode()
+			return w.right.FirstLeafNode()
 		}
 		v = w
 		w = w.parent
@@ -148,7 +183,7 @@ func (v *viewTree) NearestVSplit(dir int) *viewTree {
 	return nil
 }
 
-func (v *viewTree) oneStep() float32 {
+func (v *Tree) oneStep() float32 {
 	if v.top != nil {
 		return 1.0 / float32(v.Height)
 	} else if v.left != nil {
@@ -157,7 +192,7 @@ func (v *viewTree) oneStep() float32 {
 	return 0.0
 }
 
-func (v *viewTree) normalizeSplit() {
+func (v *Tree) normalizeSplit() {
 	var off int
 	if v.top != nil {
 		off = int(float32(v.Height) * v.split)
@@ -167,7 +202,7 @@ func (v *viewTree) normalizeSplit() {
 	v.split = float32(off) * v.oneStep()
 }
 
-func (v *viewTree) stepResize(n int) {
+func (v *Tree) stepResize(n int) {
 	if v.Width <= 1 || v.Height <= 0 {
 		// avoid division by zero, result is really bad
 		return
@@ -182,10 +217,11 @@ func (v *viewTree) stepResize(n int) {
 	if v.split < 0.0 {
 		v.split = 0.0
 	}
-	v.resize(v.Rect)
+	v.Resize(v.Rect)
 }
 
-func (v *viewTree) reparent() {
+func (v *Tree) Reparent(parent *Tree) {
+	v.parent = parent
 	if v.left != nil {
 		v.left.parent = v
 		v.right.parent = v
@@ -195,7 +231,7 @@ func (v *viewTree) reparent() {
 	}
 }
 
-func (v *viewTree) sibling() *viewTree {
+func (v *Tree) Sibling() *Tree {
 	p := v.parent
 	if p == nil {
 		return nil
@@ -213,11 +249,11 @@ func (v *viewTree) sibling() *viewTree {
 	panic("unreachable")
 }
 
-func (v *viewTree) firstLeafNode() *viewTree {
+func (v *Tree) FirstLeafNode() *Tree {
 	if v.left != nil {
-		return v.left.firstLeafNode()
+		return v.left.FirstLeafNode()
 	} else if v.top != nil {
-		return v.top.firstLeafNode()
+		return v.top.FirstLeafNode()
 	} else if v.leaf != nil {
 		return v
 	}

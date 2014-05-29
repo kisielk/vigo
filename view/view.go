@@ -1,4 +1,4 @@
-package editor
+package view
 
 import (
 	"bytes"
@@ -12,11 +12,12 @@ import (
 	"github.com/nsf/tulib"
 )
 
-//----------------------------------------------------------------------------
-// dirty flag
-//----------------------------------------------------------------------------
-
 type dirtyFlag int
+
+const (
+	VerticalThreshold   = 5
+	HorizontalThreshold = 10
+)
 
 const (
 	// dirtyContents indicates that the contents of the views buffer has been modified
@@ -119,10 +120,16 @@ var defaultViewTag = viewTag{
 // view context
 //----------------------------------------------------------------------------
 
-type viewContext struct {
-	setStatus  func(format string, args ...interface{})
+type Context struct {
+	setStatus  StatusFunc
 	killBuffer *[]byte
 	buffers    *[]*buffer.Buffer
+}
+
+type StatusFunc func(format string, args ...interface{})
+
+func NewContext(setStatus StatusFunc, killBuffer *[]byte, buffers *[]*buffer.Buffer) Context {
+	return Context{setStatus, killBuffer, buffers}
 }
 
 //----------------------------------------------------------------------------
@@ -132,9 +139,9 @@ type viewContext struct {
 // 'uibuf' and maintains things like cursor position.
 //----------------------------------------------------------------------------
 
-type view struct {
+type View struct {
 	viewLocation
-	ctx             viewContext
+	ctx             Context
 	buf             *buffer.Buffer // currently displayed buffer
 	uiBuf           tulib.Buffer
 	dirty           dirtyFlag
@@ -150,26 +157,31 @@ type view struct {
 }
 
 // SetStatus sets the status line of the view
-func (v *view) SetStatus(format string, args ...interface{}) {
+func (v *View) SetStatus(format string, args ...interface{}) {
 	v.ctx.setStatus(format, args...)
 }
 
-func (v *view) Buffer() *buffer.Buffer {
+func (v *View) Buffer() *buffer.Buffer {
 	return v.buf
 }
 
-func newView(ctx viewContext, buf *buffer.Buffer, redraw chan struct{}) *view {
-	v := new(view)
-	v.ctx = ctx
-	v.uiBuf = tulib.NewBuffer(1, 1)
+func NewView(ctx Context, buf *buffer.Buffer, redraw chan struct{}) *View {
+	v := &View{
+		ctx:             ctx,
+		uiBuf:           tulib.NewBuffer(1, 1),
+		highlightRanges: make([]byteRange, 0, 10),
+		tags:            make([]viewTag, 0, 10),
+		redraw:          redraw,
+	}
 	v.Attach(buf)
-	v.highlightRanges = make([]byteRange, 0, 10)
-	v.tags = make([]viewTag, 0, 10)
-	v.redraw = redraw
 	return v
 }
 
-func (v *view) Attach(b *buffer.Buffer) {
+func (v *View) UIBuf() tulib.Buffer {
+	return v.uiBuf
+}
+
+func (v *View) Attach(b *buffer.Buffer) {
 	if v.buf == b {
 		return
 	}
@@ -196,7 +208,7 @@ func (v *view) Attach(b *buffer.Buffer) {
 	v.dirty = dirtyEverything
 }
 
-func (v *view) bufferEventLoop() {
+func (v *View) bufferEventLoop() {
 	for e := range v.bufferEvents {
 		switch e.Type {
 		case buffer.BufferEventInsert:
@@ -240,7 +252,7 @@ func (v *view) bufferEventLoop() {
 	}
 }
 
-func (v *view) Detach() {
+func (v *View) Detach() {
 	// Stop listening to current buffer and close event loop.
 	v.buf.RemoveListener(v.bufferEvents)
 	close(v.bufferEvents)
@@ -249,39 +261,38 @@ func (v *view) Detach() {
 }
 
 // Resize the 'v.uibuf', adjusting things accordingly.
-func (v *view) resize(w, h int) {
+func (v *View) resize(w, h int) {
 	v.uiBuf.Resize(w, h)
 	v.adjustLineVoffset()
 	v.adjustTopLine()
 	v.dirty = dirtyEverything
 }
 
-func (v *view) height() int {
+func (v *View) height() int {
 	return v.uiBuf.Height - 1
 }
 
-func (v *view) verticalThreshold() int {
+func (v *View) verticalThreshold() int {
 	maxVthreshold := (v.height() - 1) / 2
-	if ViewVerticalThreshold > maxVthreshold {
+	if VerticalThreshold > maxVthreshold {
 		return maxVthreshold
 	}
-	return ViewVerticalThreshold
+	return VerticalThreshold
 }
 
-func (v *view) horizontalThreshold() int {
+func (v *View) horizontalThreshold() int {
 	max_h_threshold := (v.width() - 1) / 2
-	if ViewHorizontalThreshold > max_h_threshold {
+	if HorizontalThreshold > max_h_threshold {
 		return max_h_threshold
 	}
-	return ViewHorizontalThreshold
+	return HorizontalThreshold
 }
 
-func (v *view) width() int {
-	// TODO: perhaps if I want to draw line numbers, I will hack it there
+func (v *View) width() int {
 	return v.uiBuf.Width
 }
 
-func (v *view) drawLine(line *buffer.Line, lineNum, coff, lineVoffset int) {
+func (v *View) drawLine(line *buffer.Line, lineNum, coff, lineVoffset int) {
 	x := 0
 	tabstop := 0
 	bx := 0
@@ -297,7 +308,7 @@ func (v *view) drawLine(line *buffer.Line, lineNum, coff, lineVoffset int) {
 		}
 
 		if x == tabstop {
-			tabstop += TabstopLength
+			tabstop += utils.TabstopLength
 		}
 
 		if rx >= v.uiBuf.Width {
@@ -367,7 +378,7 @@ func (v *view) drawLine(line *buffer.Line, lineNum, coff, lineVoffset int) {
 	}
 }
 
-func (v *view) drawContents() {
+func (v *View) drawContents() {
 	if len(v.highlightBytes) == 0 {
 		v.highlightRanges = v.highlightRanges[:0]
 	}
@@ -403,7 +414,7 @@ func (v *view) drawContents() {
 	}
 }
 
-func (v *view) drawStatus() {
+func (v *View) drawStatus() {
 	// fill background with '─'
 	lp := tulib.DefaultLabelParams
 	lp.Bg = termbox.AttrReverse
@@ -436,7 +447,7 @@ func (v *view) drawStatus() {
 }
 
 // Draw the current view to the 'v.uibuf'.
-func (v *view) draw() {
+func (v *View) draw() {
 	if v.dirty&dirtyContents != 0 {
 		v.dirty &^= dirtyContents
 		v.drawContents()
@@ -449,21 +460,21 @@ func (v *view) draw() {
 }
 
 // Center view on the cursor.
-func (v *view) centerViewOnCursor() {
+func (v *View) centerViewOnCursor() {
 	v.topLine = v.cursor.Line
 	v.topLineNum = v.cursor.LineNum
 	v.moveTopLineNtimes(-v.height() / 2)
 	v.dirty = dirtyEverything
 }
 
-func (v *view) MoveCursorToLine(n int) {
+func (v *View) MoveCursorToLine(n int) {
 	v.moveCursorBeginningOfFile()
 	v.moveCursorLineNtimes(n - 1)
 	v.centerViewOnCursor()
 }
 
 // Move top line 'n' times forward or backward.
-func (v *view) moveTopLineNtimes(n int) {
+func (v *View) moveTopLineNtimes(n int) {
 	if n == 0 {
 		return
 	}
@@ -483,7 +494,7 @@ func (v *view) moveTopLineNtimes(n int) {
 }
 
 // Move cursor line 'n' times forward or backward.
-func (v *view) moveCursorLineNtimes(n int) {
+func (v *View) moveCursorLineNtimes(n int) {
 	if n == 0 {
 		return
 	}
@@ -504,7 +515,7 @@ func (v *view) moveCursorLineNtimes(n int) {
 
 // When 'top_line' was changed, call this function to possibly adjust the
 // 'cursor_line'.
-func (v *view) adjustCursorLine() {
+func (v *View) adjustCursorLine() {
 	vt := v.verticalThreshold()
 	cursor := v.cursor.Line
 	co := v.cursor.LineNum - v.topLineNum
@@ -532,7 +543,7 @@ func (v *view) adjustCursorLine() {
 
 // When 'cursor_line' was changed, call this function to possibly adjust the
 // 'top_line'.
-func (v *view) adjustTopLine() {
+func (v *View) adjustTopLine() {
 	vt := v.verticalThreshold()
 	top := v.topLine
 	co := v.cursor.LineNum - v.topLineNum
@@ -551,7 +562,7 @@ func (v *view) adjustTopLine() {
 
 // When 'cursor_voffset' was changed usually > 0, then call this function to
 // possibly adjust 'line_voffset'.
-func (v *view) adjustLineVoffset() {
+func (v *View) adjustLineVoffset() {
 	ht := v.horizontalThreshold()
 	w := v.uiBuf.Width
 	vo := v.lineVoffset
@@ -578,7 +589,7 @@ func (v *view) adjustLineVoffset() {
 	}
 }
 
-func (v *view) cursorPosition() (int, int) {
+func (v *View) CursorPosition() (int, int) {
 	y := v.cursor.LineNum - v.topLineNum
 	x := v.cursorVoffset - v.lineVoffset
 	return x, y
@@ -588,7 +599,7 @@ func (v *view) cursorPosition() (int, int) {
 // from the attached buffer. If 'boffset' < 0, use 'last_cursor_voffset'. Keep
 // in mind that there is no need to maintain connections between lines (e.g. for
 // moving from a deleted line to another line).
-func (v *view) MoveCursorTo(c buffer.Cursor) {
+func (v *View) MoveCursorTo(c buffer.Cursor) {
 	v.dirty |= dirtyStatus
 	if c.Boffset < 0 {
 		bo, co, vo := c.Line.FindClosestOffsets(v.lastCursorVoffset)
@@ -619,7 +630,7 @@ func (v *view) MoveCursorTo(c buffer.Cursor) {
 }
 
 // Move cursor to the beginning of the file (buffer).
-func (v *view) moveCursorBeginningOfFile() {
+func (v *View) moveCursorBeginningOfFile() {
 	c := buffer.Cursor{
 		Line:    v.buf.FirstLine,
 		LineNum: 1,
@@ -629,7 +640,7 @@ func (v *view) moveCursorBeginningOfFile() {
 }
 
 // Move view 'n' lines forward or backward.
-func (v *view) MoveViewLines(n int) {
+func (v *View) MoveViewLines(n int) {
 	prevtop := v.topLineNum
 	v.moveTopLineNtimes(n)
 	if prevtop != v.topLineNum {
@@ -639,7 +650,7 @@ func (v *view) MoveViewLines(n int) {
 }
 
 // Check if it's possible to move view 'n' lines forward or backward.
-func (v *view) canMoveTopLineNtimes(n int) bool {
+func (v *View) canMoveTopLineNtimes(n int) bool {
 	if n == 0 {
 		return true
 	}
@@ -661,13 +672,13 @@ func (v *view) canMoveTopLineNtimes(n int) bool {
 }
 
 // Move view 'n' lines forward or backward only if it's possible.
-func (v *view) maybeMoveViewNlines(n int) {
+func (v *View) maybeMoveViewNlines(n int) {
 	if v.canMoveTopLineNtimes(n) {
 		v.MoveViewLines(n)
 	}
 }
 
-func (v *view) onInsertAdjustTopLine(a *buffer.Action) {
+func (v *View) onInsertAdjustTopLine(a *buffer.Action) {
 	if a.Cursor.LineNum < v.topLineNum && len(a.Lines) > 0 {
 		// inserted one or more lines above the view
 		v.topLineNum += len(a.Lines)
@@ -675,7 +686,7 @@ func (v *view) onInsertAdjustTopLine(a *buffer.Action) {
 	}
 }
 
-func (v *view) onDeleteAdjustTopLine(a *buffer.Action) {
+func (v *View) onDeleteAdjustTopLine(a *buffer.Action) {
 	if a.Cursor.LineNum < v.topLineNum {
 		// deletion above the top line
 		if len(a.Lines) == 0 {
@@ -702,7 +713,7 @@ func (v *view) onDeleteAdjustTopLine(a *buffer.Action) {
 	}
 }
 
-func (v *view) onInsert(a *buffer.Action) {
+func (v *View) onInsert(a *buffer.Action) {
 	v.onInsertAdjustTopLine(a)
 	if v.topLineNum+v.height() <= a.Cursor.LineNum {
 		// inserted something below the view, don't care
@@ -724,7 +735,7 @@ func (v *view) onInsert(a *buffer.Action) {
 	v.dirty = dirtyEverything
 }
 
-func (v *view) onDelete(a *buffer.Action) {
+func (v *View) onDelete(a *buffer.Action) {
 	v.onDeleteAdjustTopLine(a)
 	if v.topLineNum+v.height() <= a.Cursor.LineNum {
 		// deleted something below the view, don't care
@@ -751,7 +762,7 @@ func (v *view) onDelete(a *buffer.Action) {
 	v.dirty = dirtyEverything
 }
 
-func (v *view) dumpInfo() {
+func (v *View) dumpInfo() {
 	p := func(format string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, format, args...)
 	}
@@ -759,7 +770,7 @@ func (v *view) dumpInfo() {
 	p("Top line num: %d\n", v.topLineNum)
 }
 
-func (v *view) findHighlightRangesForLine(data []byte) {
+func (v *View) findHighlightRangesForLine(data []byte) {
 	v.highlightRanges = v.highlightRanges[:0]
 	offset := 0
 	for {
@@ -777,7 +788,7 @@ func (v *view) findHighlightRangesForLine(data []byte) {
 	}
 }
 
-func (v *view) inOneOfHighlightRanges(offset int) bool {
+func (v *View) inOneOfHighlightRanges(offset int) bool {
 	for _, r := range v.highlightRanges {
 		if r.includes(offset) {
 			return true
@@ -786,7 +797,7 @@ func (v *view) inOneOfHighlightRanges(offset int) bool {
 	return false
 }
 
-func (v *view) tag(line, offset int) *viewTag {
+func (v *View) tag(line, offset int) *viewTag {
 	for i := range v.tags {
 		t := &v.tags[i]
 		if t.includes(line, offset) {
@@ -796,7 +807,7 @@ func (v *view) tag(line, offset int) *viewTag {
 	return &defaultViewTag
 }
 
-func (v *view) makeCell(line, offset int, ch rune) termbox.Cell {
+func (v *View) makeCell(line, offset int, ch rune) termbox.Cell {
 	tag := v.tag(line, offset)
 	if tag != &defaultViewTag {
 		return termbox.Cell{
@@ -818,7 +829,7 @@ func (v *view) makeCell(line, offset int, ch rune) termbox.Cell {
 	return cell
 }
 
-func (v *view) yank() {
+func (v *View) yank() {
 	buf := *v.ctx.killBuffer
 	cursor := v.cursor
 
@@ -835,7 +846,7 @@ func (v *view) yank() {
 	v.MoveCursorTo(cursor)
 }
 
-func (v *view) indentLine(line buffer.Cursor) {
+func (v *View) indentLine(line buffer.Cursor) {
 	line.Boffset = 0
 	v.buf.Insert(line, []byte{'\t'})
 	if v.cursor.Line == line.Line {
@@ -845,7 +856,7 @@ func (v *view) indentLine(line buffer.Cursor) {
 	}
 }
 
-func (v *view) deindentLine(line buffer.Cursor) {
+func (v *View) deindentLine(line buffer.Cursor) {
 	line.Boffset = 0
 	if r, _ := line.RuneUnder(); r == '\t' {
 		v.buf.Delete(line, 1)
@@ -860,7 +871,7 @@ func (v *view) deindentLine(line buffer.Cursor) {
 // Filter _must_ return a new slice and shouldn't touch contents of the
 // argument, perfect filter examples are: bytes.Title, bytes.ToUpper,
 // bytes.ToLower
-func (v *view) filterText(from, to buffer.Cursor, filter func([]byte) []byte) {
+func (v *View) filterText(from, to buffer.Cursor, filter func([]byte) []byte) {
 	c1, c2 := buffer.SortCursors(from, to)
 	d := c1.Distance(c2)
 	v.buf.Delete(c1, d)

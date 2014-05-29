@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/kisielk/vigo/buffer"
+	"github.com/kisielk/vigo/view"
 	"github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
 )
@@ -46,8 +47,8 @@ type Command interface {
 
 type Editor struct {
 	uiBuf       tulib.Buffer
-	active      *viewTree // this one is always a leaf node
-	views       *viewTree // a root node
+	active      *view.Tree // this one is always a leaf node
+	views       *view.Tree // a root node
 	buffers     []*buffer.Buffer
 	statusBuf   bytes.Buffer
 	quitFlag    bool
@@ -64,11 +65,11 @@ type Editor struct {
 	overlay Overlay
 }
 
-func (e *Editor) ActiveView() *view {
-	return e.active.leaf
+func (e *Editor) ActiveView() *view.View {
+	return e.active.Leaf()
 }
 
-func (e *Editor) ActiveViewNode() *viewTree {
+func (e *Editor) ActiveViewNode() *view.Tree {
 	return e.active
 }
 
@@ -93,7 +94,7 @@ func NewEditor(filenames []string) *Editor {
 		e.buffers = append(e.buffers, buf)
 	}
 	e.redraw = make(chan struct{})
-	e.views = newViewTreeLeaf(nil, newView(e.viewContext(), e.buffers[0], e.redraw))
+	e.views = view.NewTree(view.NewView(e.viewContext(), e.buffers[0], e.redraw))
 	e.active = e.views
 	e.UIEvents = make(chan termbox.Event, 20)
 	e.Commands = make(chan Command, 20)
@@ -171,7 +172,7 @@ func (e *Editor) SetStatus(format string, args ...interface{}) {
 	fmt.Fprintf(&e.statusBuf, format, args...)
 }
 
-func (e *Editor) SetActiveViewNode(node *viewTree) {
+func (e *Editor) SetActiveViewNode(node *view.Tree) {
 	e.active = node
 }
 
@@ -179,8 +180,8 @@ func (e *Editor) SplitVertically() {
 	if e.active.Width == 0 {
 		return
 	}
-	e.active.splitVertically()
-	e.active = e.active.left
+	e.active.SplitVertically()
+	e.active = e.active.Left()
 	e.Resize()
 }
 
@@ -188,40 +189,39 @@ func (e *Editor) SplitHorizontally() {
 	if e.active.Height == 0 {
 		return
 	}
-	e.active.splitHorizontally()
-	e.active = e.active.top
+	e.active.SplitHorizontally()
+	e.active = e.active.Top()
 	e.Resize()
 }
 
 func (e *Editor) killActiveView() {
-	p := e.active.parent
+	p := e.active.Parent()
 	if p == nil {
 		return
 	}
 
-	pp := p.parent
-	sib := e.active.sibling()
-	e.active.leaf.Detach()
+	pp := p.Parent()
+	sib := e.active.Sibling()
+	e.active.Leaf().Detach()
 
 	*p = *sib
-	p.parent = pp
-	p.reparent()
+	p.Reparent(pp)
 
-	e.active = p.firstLeafNode()
+	e.active = p.FirstLeafNode()
 	e.Resize()
 }
 
 func (e *Editor) killAllViewsButActive() {
-	e.views.traverse(func(v *viewTree) {
+	e.views.Walk(func(v *view.Tree) {
 		if v == e.active {
 			return
 		}
-		if v.leaf != nil {
-			v.leaf.Detach()
+		if leaf := v.Leaf(); leaf != nil {
+			leaf.Detach()
 		}
 	})
 	e.views = e.active
-	e.views.parent = nil
+	e.views.SetParent(nil)
 	e.Resize()
 }
 
@@ -230,7 +230,7 @@ func (e *Editor) Resize() {
 	e.uiBuf = tulib.TermboxBuffer()
 	viewsArea := e.uiBuf.Rect
 	viewsArea.Height -= 1 // reserve space for command line
-	e.views.resize(viewsArea)
+	e.views.Resize(viewsArea)
 }
 
 func (e *Editor) Draw() {
@@ -240,7 +240,7 @@ func (e *Editor) Draw() {
 	}
 
 	// draw everything
-	e.views.draw()
+	e.views.Draw()
 	e.compositeRecursively(e.views)
 	e.fixEdges(e.views)
 	e.DrawStatus(e.statusBuf.Bytes())
@@ -270,39 +270,42 @@ func (e *Editor) DrawStatus(text []byte) {
 	e.uiBuf.DrawLabel(r, &lp, text)
 }
 
-func (e *Editor) compositeRecursively(v *viewTree) {
-	if v.leaf != nil {
-		e.uiBuf.Blit(v.Rect, 0, 0, &v.leaf.uiBuf)
+func (e *Editor) compositeRecursively(v *view.Tree) {
+	if leaf := v.Leaf(); leaf != nil {
+		buf := v.Leaf().UIBuf()
+		e.uiBuf.Blit(v.Rect, 0, 0, &buf)
 		return
 	}
 
-	if v.left != nil {
-		e.compositeRecursively(v.left)
-		e.compositeRecursively(v.right)
-		splitter := v.right.Rect
+	if left := v.Left(); left != nil {
+		e.compositeRecursively(left)
+		right := v.Right()
+		e.compositeRecursively(right)
+		splitter := right.Rect
 		splitter.X -= 1
 		splitter.Width = 1
-		e.uiBuf.Fill(splitter, termbox.Cell{
+		uiBuf := e.uiBuf
+		uiBuf.Fill(splitter, termbox.Cell{
 			Fg: termbox.AttrReverse,
 			Bg: termbox.AttrReverse,
 			Ch: '│',
 		})
-		e.uiBuf.Set(splitter.X, splitter.Y+splitter.Height-1,
+		uiBuf.Set(splitter.X, splitter.Y+splitter.Height-1,
 			termbox.Cell{
 				Fg: termbox.AttrReverse,
 				Bg: termbox.AttrReverse,
 				Ch: '┴',
 			})
 	} else {
-		e.compositeRecursively(v.top)
-		e.compositeRecursively(v.bottom)
+		e.compositeRecursively(v.Top())
+		e.compositeRecursively(v.Bottom())
 	}
 }
 
-func (e *Editor) fixEdges(v *viewTree) {
+func (e *Editor) fixEdges(v *view.Tree) {
 	var x, y int
 	var cell *termbox.Cell
-	if v.leaf != nil {
+	if leaf := v.Leaf(); leaf != nil {
 		y = v.Y + v.Height - 1
 		x = v.X - 1
 		cell = e.uiBuf.Get(x, y)
@@ -327,9 +330,10 @@ func (e *Editor) fixEdges(v *viewTree) {
 		return
 	}
 
-	if v.left != nil {
-		x = v.right.X - 1
-		y = v.right.Y - 1
+	if left := v.Left(); left != nil {
+		right := v.Right()
+		x = right.X - 1
+		y = right.Y - 1
 		cell = e.uiBuf.Get(x, y)
 		if cell != nil {
 			switch cell.Ch {
@@ -339,11 +343,11 @@ func (e *Editor) fixEdges(v *viewTree) {
 				cell.Ch = '┼'
 			}
 		}
-		e.fixEdges(v.left)
-		e.fixEdges(v.right)
+		e.fixEdges(left)
+		e.fixEdges(right)
 	} else {
-		e.fixEdges(v.top)
-		e.fixEdges(v.bottom)
+		e.fixEdges(v.Top())
+		e.fixEdges(v.Bottom())
 	}
 }
 
@@ -353,7 +357,7 @@ func (e *Editor) Height() int {
 
 // cursorPosition returns the absolute screen coordinates of the cursor
 func (e *Editor) CursorPosition() (int, int) {
-	x, y := e.active.leaf.cursorPosition()
+	x, y := e.active.Leaf().CursorPosition()
 	return e.active.X + x, e.active.Y + y
 }
 
@@ -429,14 +433,8 @@ func (e *Editor) SetMode(m EditorMode) {
 	}
 }
 
-func (e *Editor) viewContext() viewContext {
-	return viewContext{
-		setStatus: func(f string, args ...interface{}) {
-			e.SetStatus(f, args...)
-		},
-		killBuffer: &e.killBuffer_,
-		buffers:    &e.buffers,
-	}
+func (e *Editor) viewContext() view.Context {
+	return view.NewContext(e.SetStatus, &e.killBuffer_, &e.buffers)
 }
 
 func (e *Editor) hasUnsavedBuffers() bool {
