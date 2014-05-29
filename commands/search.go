@@ -67,8 +67,3 @@ func (s Search) Apply(e *editor.Editor) {
 
 	v.MoveCursorTo(c)
 }
-
-
-func searchForward(e *editor.Editor) {
-	
-}
