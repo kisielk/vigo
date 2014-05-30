@@ -46,6 +46,15 @@ func NewVisualMode(e *editor.Editor, lineMode bool) *visualMode {
 }
 
 func (m *visualMode) OnKey(ev *termbox.Event) {
+
+	// Consequtive non-zero digits specify action multiplier;
+	// accumulate and return. Accept zero only if it's
+	// a non-starting character.
+	if ('0' < ev.Ch && ev.Ch <= '9') || (ev.Ch == '0' && len(m.count) > 0) {
+		m.count = m.count + string(ev.Ch)
+		m.editor.SetStatus(m.count)
+		return
+	}
 	count := utils.ParseCount(m.count)
 	if count == 0 {
 		count = 1
