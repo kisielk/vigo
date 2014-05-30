@@ -135,6 +135,14 @@ func (t *viewTag) SetEndOffset(e int) {
 	t.endOffset = e
 }
 
+func (t *viewTag) FlipStartAndEndLines() {
+	t.begLine, t.endLine = t.endLine, t.begLine
+}
+
+func (t *viewTag) FlipStartAndEndOffsets() {
+	t.begOffset, t.endOffset = t.endOffset, t.begOffset
+}
+
 func (t *viewTag) StartPos() (int, int) {
 	return t.begLine, t.begOffset
 }
