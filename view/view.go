@@ -89,7 +89,7 @@ const hlBG = termbox.ColorBlue
 // view tags
 //----------------------------------------------------------------------------
 
-type viewTag struct {
+type Tag struct {
 	begLine   int
 	begOffset int
 	endLine   int
@@ -98,7 +98,7 @@ type viewTag struct {
 	bg        termbox.Attribute
 }
 
-func (t *viewTag) includes(line, offset int) bool {
+func (t *Tag) includes(line, offset int) bool {
 	if line < t.begLine || line > t.endLine {
 		return false
 	}
@@ -111,53 +111,53 @@ func (t *viewTag) includes(line, offset int) bool {
 	return true
 }
 
-func (t *viewTag) AdjustEndLine(count int) {
+func (t *Tag) AdjustEndLine(count int) {
 	t.endLine += count
 }
 
-func (t *viewTag) AdjustStartLine(count int) {
+func (t *Tag) AdjustStartLine(count int) {
 	t.begLine += count
 }
 
-func (t *viewTag) AdjustStartOffset(count int) {
+func (t *Tag) AdjustStartOffset(count int) {
 	t.begOffset += count
 }
 
-func (t *viewTag) AdjustEndOffset(count int) {
+func (t *Tag) AdjustEndOffset(count int) {
 	t.endOffset += count
 }
 
-func (t *viewTag) SetStartOffset(s int) {
+func (t *Tag) SetStartOffset(s int) {
 	t.begOffset = s
 }
 
-func (t *viewTag) SetEndOffset(e int) {
+func (t *Tag) SetEndOffset(e int) {
 	t.endOffset = e
 }
 
-func (t *viewTag) FlipStartAndEndLines() {
+func (t *Tag) FlipStartAndEndLines() {
 	t.begLine, t.endLine = t.endLine, t.begLine
 }
 
-func (t *viewTag) FlipStartAndEndOffsets() {
+func (t *Tag) FlipStartAndEndOffsets() {
 	t.begOffset, t.endOffset = t.endOffset, t.begOffset
 }
 
-func (t *viewTag) StartPos() (int, int) {
+func (t *Tag) StartPos() (int, int) {
 	return t.begLine, t.begOffset
 }
 
-func (t *viewTag) EndPos() (int, int) {
+func (t *Tag) EndPos() (int, int) {
 	return t.endLine, t.endOffset
 }
 
-var defaultViewTag = viewTag{
+var defaultViewTag = Tag{
 	fg: termbox.ColorDefault,
 	bg: termbox.ColorDefault,
 }
 
-func NewViewTag(startLine, startOffset, endLine, endOffset int, fg, bg termbox.Attribute) viewTag {
-	return viewTag{
+func NewTag(startLine, startOffset, endLine, endOffset int, fg, bg termbox.Attribute) Tag {
+	return Tag{
 		begLine: startLine,
 		begOffset: startOffset,
 		endLine: endLine,
@@ -198,13 +198,13 @@ type View struct {
 	dirty           dirtyFlag
 	highlightBytes  []byte
 	highlightRanges []byteRange
-	Tags            []viewTag
+	Tags            []Tag
 	redraw          chan struct{}
 
 	// statusBuf is a buffer used for drawing the status line
 	statusBuf bytes.Buffer
 
-	visualRange     *viewTag
+	visualRange     *Tag
 
 	bufferEvents chan buffer.BufferEvent
 }
@@ -223,18 +223,18 @@ func NewView(ctx Context, buf *buffer.Buffer, redraw chan struct{}) *View {
 		ctx:             ctx,
 		uiBuf:           tulib.NewBuffer(1, 1),
 		highlightRanges: make([]byteRange, 0, 10),
-		Tags:            make([]viewTag, 0, 10),
+		Tags:            make([]Tag, 0, 10),
 		redraw:          redraw,
 	}
 	v.Attach(buf)
 	return v
 }
 
-func (v *View) VisualRange() *viewTag {
+func (v *View) VisualRange() *Tag {
 	return v.visualRange
 }
 
-func (v *View) SetVisualRange(t *viewTag) {
+func (v *View) SetVisualRange(t *Tag) {
 	v.visualRange = t
 }
 
@@ -858,7 +858,7 @@ func (v *View) inOneOfHighlightRanges(offset int) bool {
 	return false
 }
 
-func (v *View) tag(line, offset int) *viewTag {
+func (v *View) tag(line, offset int) *Tag {
 	for i := range v.Tags {
 		t := &v.Tags[i]
 		if t.includes(line, offset) {

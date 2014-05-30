@@ -30,7 +30,7 @@ func NewVisualMode(e *editor.Editor, lineMode bool) *visualMode {
 		m.editor.SetStatus("Visual")
 	}
 
-	viewTag := view.NewViewTag(
+	viewTag := view.NewTag(
 		c.LineNum,
 		startPos,
 		c.LineNum,
