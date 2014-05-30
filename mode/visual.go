@@ -95,10 +95,6 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 		}
 	}
 
-	// FIXME: there must be a better way of doing this
-	// trigger a re-draw
-	g.Resize()
-
 	m.count = ""
 }
 

@@ -104,4 +104,8 @@ func (cmd AdjustSelection) Apply(e *editor.Editor) {
 
 		v.SetVisualRange(vRange)
 	}
+
+	// FIXME: there must be a better way of doing this
+	// trigger a re-draw
+	e.Resize()
 }
