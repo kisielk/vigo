@@ -28,7 +28,7 @@ func NewVisualMode(e *editor.Editor) *visualMode {
 		termbox.ColorDefault|termbox.AttrReverse,
 	)
 
-	v.Tags = append(v.Tags, viewTag)
+	v.VisualRange = &viewTag
 
 	return &m
 }
@@ -41,10 +41,10 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 	g := m.editor
 	v := g.ActiveView()
 	c := v.Cursor()
-	viewTag := v.Tags[0]
+	vRange := v.VisualRange
 
-	startLine, startPos := viewTag.StartPos()
-	endLine, endPos := viewTag.EndPos()
+	startLine, startPos := vRange.StartPos()
+	endLine, endPos := vRange.EndPos()
 
 	switch ev.Key {
 	case termbox.KeyEsc:
@@ -57,80 +57,80 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 			// cursor is right of the start of the selection
 			// or anywhere on the line other that the start line
 			// move the end of the selection left
-			viewTag.AdjustEndOffset(-count)
+			vRange.AdjustEndOffset(-count)
 		} else {
 			// cursor is anywhere on the start line
 			// move the start of the selection left
-			viewTag.AdjustStartOffset(-count)
+			vRange.AdjustStartOffset(-count)
 		}
 
-		v.Tags[0] = viewTag
+		v.VisualRange = vRange
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Backward}, count}
 	case 'j':
 		if c.LineNum >= endLine {
 			// cursor is below the end of the selection
 			// move the end of the selection down
-			viewTag.AdjustEndLine(count)
+			vRange.AdjustEndLine(count)
 		} else {
 			// cursor is above the selection
 			// move the start of the selection down
-			viewTag.AdjustStartLine(count)
+			vRange.AdjustStartLine(count)
 		}
 
 		// cursor is one line above the selection and further
 		// along the line than the start of the selection
 		// flip the start and end offsets of the selection
 		if c.Boffset > endPos && c.LineNum == endLine -1 {
-			viewTag.FlipStartAndEndOffsets()
+			vRange.FlipStartAndEndOffsets()
 		}
 
 		// cursor is on the same line as the entire selection, and left of the end of
 		// the selection.
 		// flip the offsets
 		if c.LineNum == endLine && c.LineNum == startLine && c.Boffset < endPos {
-			viewTag.FlipStartAndEndOffsets()
+			vRange.FlipStartAndEndOffsets()
 		}
 
-		v.Tags[0] = viewTag
+		v.VisualRange = vRange
 		g.Commands <- cmd.Repeat{cmd.MoveLine{Dir: cmd.Forward}, count}
 	case 'k':
 		if c.LineNum <= startLine {
 			// cursor is above the start of the selection
 			// move the start of the selection up
-			viewTag.AdjustStartLine(-count)
+			vRange.AdjustStartLine(-count)
 		} else {
 			// cursor is below the start of the selection
 			// move the end of the selection up
-			viewTag.AdjustEndLine(-count)
+			vRange.AdjustEndLine(-count)
 		}
 
 		// cursor if right of the start of the selection and above
 		// flip the start and end offsets of the selection
 		if c.Boffset > startPos && c.LineNum <= startLine {
-			viewTag.FlipStartAndEndOffsets()
+			vRange.FlipStartAndEndOffsets()
 		}
 		
 		// cursor is left of the start of the selection
 		// and one line below.
 		// flip the offsets
 		if c.Boffset < startPos && c.LineNum == startLine +1 {
-			viewTag.FlipStartAndEndOffsets()
+			vRange.FlipStartAndEndOffsets()
 		}
 
-		v.Tags[0] = viewTag
+		v.VisualRange = vRange
 		g.Commands <- cmd.Repeat{cmd.MoveLine{Dir: cmd.Backward}, count}
 	case 'l':
 		if c.Boffset >= endPos && c.LineNum == endLine {
 			// cursor is right of the end of the selection and on the same line
 			// move the end of the selection right
-			viewTag.AdjustEndOffset(count)
+			vRange.AdjustEndOffset(count)
 		} else {
 			// cursor is left of the selection on any line
 			// move the start of the selection right
-			viewTag.AdjustStartOffset(count)
+			vRange.AdjustStartOffset(count)
 		}
 
-		v.Tags[0] = viewTag
+		v.VisualRange = vRange
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Forward}, count}
 	}
 
@@ -143,5 +143,5 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 
 func (m *visualMode) Exit() {
 	v := m.editor.ActiveView()
-	v.Tags = v.Tags[:0]
+	v.VisualRange = nil
 }

@@ -204,6 +204,8 @@ type View struct {
 	// statusBuf is a buffer used for drawing the status line
 	statusBuf bytes.Buffer
 
+	VisualRange     *viewTag
+
 	bufferEvents chan buffer.BufferEvent
 }
 
@@ -860,6 +862,15 @@ func (v *View) tag(line, offset int) *viewTag {
 
 func (v *View) makeCell(line, offset int, ch rune) termbox.Cell {
 	tag := v.tag(line, offset)
+
+	if v.VisualRange != nil && v.VisualRange.includes(line, offset) {
+		return termbox.Cell{
+			Ch: ch,
+			Fg: v.VisualRange.fg,
+			Bg: v.VisualRange.bg,
+		}
+	}
+
 	if tag != &defaultViewTag {
 		return termbox.Cell{
 			Ch: ch,
