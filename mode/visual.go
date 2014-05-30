@@ -12,19 +12,30 @@ import (
 type visualMode struct {
 	editor *editor.Editor
 	count  string
+	lineMode bool
 }
 
-func NewVisualMode(e *editor.Editor) *visualMode {
-	m := visualMode{editor: e}
+func NewVisualMode(e *editor.Editor, lineMode bool) *visualMode {
+	m := visualMode{editor: e, lineMode: lineMode}
 	v := m.editor.ActiveView()
 	c := v.Cursor()
-	m.editor.SetStatus("Visual")
+
+	startPos, endPos := 0, 0
+
+	if lineMode {
+		m.editor.SetStatus("Visual Line")
+	} else {
+		startPos = c.Boffset
+		endPos = c.Boffset
+
+		m.editor.SetStatus("Visual")
+	}
 
 	viewTag := view.NewViewTag(
 		c.LineNum,
-		c.Boffset,
+		startPos,
 		c.LineNum,
-		c.Boffset,
+		endPos,
 		termbox.ColorDefault,
 		termbox.ColorDefault|termbox.AttrReverse,
 	)
@@ -54,18 +65,20 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 
 	switch ev.Ch {
 	case 'h':
-		if c.Boffset >= startPos || c.LineNum != startLine {
-			// cursor is right of the start of the selection
-			// or anywhere on the line other that the start line
-			// move the end of the selection left
-			vRange.AdjustEndOffset(-count)
-		} else {
-			// cursor is anywhere on the start line
-			// move the start of the selection left
-			vRange.AdjustStartOffset(-count)
-		}
+		if !m.lineMode {
+			if c.Boffset >= startPos || c.LineNum != startLine {
+				// cursor is right of the start of the selection
+				// or anywhere on the line other that the start line
+				// move the end of the selection left
+				vRange.AdjustEndOffset(-count)
+			} else {
+				// cursor is anywhere on the start line
+				// move the start of the selection left
+				vRange.AdjustStartOffset(-count)
+			}
 
-		v.VisualRange = vRange
+			v.VisualRange = vRange
+		}
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Backward}, count}
 	case 'j':
 		if c.LineNum >= endLine {
@@ -121,17 +134,19 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 		v.VisualRange = vRange
 		g.Commands <- cmd.Repeat{cmd.MoveLine{Dir: cmd.Backward}, count}
 	case 'l':
-		if c.Boffset >= endPos && c.LineNum == endLine {
-			// cursor is right of the end of the selection and on the same line
-			// move the end of the selection right
-			vRange.AdjustEndOffset(count)
-		} else {
-			// cursor is left of the selection on any line
-			// move the start of the selection right
-			vRange.AdjustStartOffset(count)
-		}
+		if !m.lineMode {
+			if c.Boffset >= endPos && c.LineNum == endLine {
+				// cursor is right of the end of the selection and on the same line
+				// move the end of the selection right
+				vRange.AdjustEndOffset(count)
+			} else {
+				// cursor is left of the selection on any line
+				// move the start of the selection right
+				vRange.AdjustStartOffset(count)
+			}
 
-		v.VisualRange = vRange
+			v.VisualRange = vRange
+		}
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Forward}, count}
 	case 'd':
 		start, end := getVisualSelection(v)
