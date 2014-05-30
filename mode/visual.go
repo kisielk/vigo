@@ -158,7 +158,7 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 		}
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Forward}, count}
 	case 'd':
-		start, end := getVisualSelection(v)
+		start, end := view.GetVisualSelection(v)
 		v.Buffer().DeleteRange(start, end)
 		m.editor.SetMode(NewNormalMode(m.editor))
 	case 'v':
@@ -181,32 +181,5 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 
 func (m *visualMode) Exit() {
 	v := m.editor.ActiveView()
-	v.VisualRange = nil
-}
-
-// TODO: maybe move this to view/view.go ?
-func getVisualSelection(v *view.View) (buffer.Cursor, buffer.Cursor) {
-	r := v.VisualRange
-	startLine, startPos := r.StartPos()
-	endLine, endPos := r.EndPos()
-
-	start := buffer.Cursor{LineNum: startLine, Boffset: startPos}
-	end := buffer.Cursor{LineNum: endLine, Boffset: endPos}
-
-	line := v.Buffer().FirstLine
-	lineNum := 1
-
-	for line.Next != nil {
-		if lineNum == startLine {
-			start.Line = line
-		}
-
-		if lineNum == endLine {
-			end.Line = line
-		}
-		lineNum++
-		line = line.Next
-	}
-
-	return start, end
+	v.SetVisualRange(nil)
 }

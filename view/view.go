@@ -940,3 +940,29 @@ func (v *View) filterText(from, to buffer.Cursor, filter func([]byte) []byte) {
 	data := filter(v.buf.History.LastAction().Data)
 	v.buf.Insert(c1, data)
 }
+
+func GetVisualSelection(v *View) (buffer.Cursor, buffer.Cursor) {
+	r := v.VisualRange()
+	startLine, startPos := r.StartPos()
+	endLine, endPos := r.EndPos()
+
+	start := buffer.Cursor{LineNum: startLine, Boffset: startPos}
+	end := buffer.Cursor{LineNum: endLine, Boffset: endPos}
+
+	line := v.Buffer().FirstLine
+	lineNum := 1
+
+	for line.Next != nil {
+		if lineNum == startLine {
+			start.Line = line
+		}
+
+		if lineNum == endLine {
+			end.Line = line
+		}
+		lineNum++
+		line = line.Next
+	}
+
+	return start, end
+}
