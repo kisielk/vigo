@@ -152,6 +152,15 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 		start, end := getVisualSelection(v)
 		v.Buffer().DeleteRange(start, end)
 		m.editor.SetMode(NewNormalMode(m.editor))
+	case 'v':
+		m.editor.SetMode(NewNormalMode(m.editor))
+	case 'V':
+		if m.lineMode {
+			m.editor.SetMode(NewNormalMode(m.editor))
+		} else {
+			v.VisualRange.SetStartOffset(0)
+			v.VisualRange.SetEndOffset(len(c.Line.Data))
+		}
 	}
 
 	// FIXME: there must be a better way of doing this
