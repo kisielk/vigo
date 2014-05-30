@@ -89,7 +89,7 @@ const hlBG = termbox.ColorBlue
 // view tags
 //----------------------------------------------------------------------------
 
-type viewTag struct {
+type Tag struct {
 	begLine   int
 	begOffset int
 	endLine   int
@@ -98,7 +98,7 @@ type viewTag struct {
 	bg        termbox.Attribute
 }
 
-func (t *viewTag) includes(line, offset int) bool {
+func (t *Tag) includes(line, offset int) bool {
 	if line < t.begLine || line > t.endLine {
 		return false
 	}
@@ -111,9 +111,60 @@ func (t *viewTag) includes(line, offset int) bool {
 	return true
 }
 
-var defaultViewTag = viewTag{
+func (t *Tag) AdjustEndLine(count int) {
+	t.endLine += count
+}
+
+func (t *Tag) AdjustStartLine(count int) {
+	t.begLine += count
+}
+
+func (t *Tag) AdjustStartOffset(count int) {
+	t.begOffset += count
+}
+
+func (t *Tag) AdjustEndOffset(count int) {
+	t.endOffset += count
+}
+
+func (t *Tag) SetStartOffset(s int) {
+	t.begOffset = s
+}
+
+func (t *Tag) SetEndOffset(e int) {
+	t.endOffset = e
+}
+
+func (t *Tag) FlipStartAndEndLines() {
+	t.begLine, t.endLine = t.endLine, t.begLine
+}
+
+func (t *Tag) FlipStartAndEndOffsets() {
+	t.begOffset, t.endOffset = t.endOffset, t.begOffset
+}
+
+func (t *Tag) StartPos() (int, int) {
+	return t.begLine, t.begOffset
+}
+
+func (t *Tag) EndPos() (int, int) {
+	return t.endLine, t.endOffset
+}
+
+var defaultViewTag = Tag{
 	fg: termbox.ColorDefault,
 	bg: termbox.ColorDefault,
+}
+
+func NewTag(startLine, startOffset, endLine, endOffset int, fg, bg termbox.Attribute) Tag {
+	return Tag{
+		begLine: startLine,
+		begOffset: startOffset,
+		endLine: endLine,
+		endOffset: endOffset,
+		fg: fg,
+		bg: bg,
+	}
 }
 
 //----------------------------------------------------------------------------
@@ -147,11 +198,13 @@ type View struct {
 	dirty           dirtyFlag
 	highlightBytes  []byte
 	highlightRanges []byteRange
-	tags            []viewTag
+	tags            []Tag
 	redraw          chan struct{}
 
 	// statusBuf is a buffer used for drawing the status line
 	statusBuf bytes.Buffer
+
+	visualRange     *Tag
 
 	bufferEvents chan buffer.BufferEvent
 }
@@ -170,11 +223,19 @@ func NewView(ctx Context, buf *buffer.Buffer, redraw chan struct{}) *View {
 		ctx:             ctx,
 		uiBuf:           tulib.NewBuffer(1, 1),
 		highlightRanges: make([]byteRange, 0, 10),
-		tags:            make([]viewTag, 0, 10),
+		tags:            make([]Tag, 0, 10),
 		redraw:          redraw,
 	}
 	v.Attach(buf)
 	return v
+}
+
+func (v *View) VisualRange() *Tag {
+	return v.visualRange
+}
+
+func (v *View) SetVisualRange(t *Tag) {
+	v.visualRange = t
 }
 
 func (v *View) UIBuf() tulib.Buffer {
@@ -797,7 +858,7 @@ func (v *View) inOneOfHighlightRanges(offset int) bool {
 	return false
 }
 
-func (v *View) tag(line, offset int) *viewTag {
+func (v *View) tag(line, offset int) *Tag {
 	for i := range v.tags {
 		t := &v.tags[i]
 		if t.includes(line, offset) {
@@ -809,6 +870,16 @@ func (v *View) tag(line, offset int) *viewTag {
 
 func (v *View) makeCell(line, offset int, ch rune) termbox.Cell {
 	tag := v.tag(line, offset)
+
+	vRange := v.VisualRange()
+	if vRange != nil && vRange.includes(line, offset) {
+		return termbox.Cell{
+			Ch: ch,
+			Fg: vRange.fg,
+			Bg: vRange.bg,
+		}
+	}
+
 	if tag != &defaultViewTag {
 		return termbox.Cell{
 			Ch: ch,
@@ -877,4 +948,30 @@ func (v *View) filterText(from, to buffer.Cursor, filter func([]byte) []byte) {
 	v.buf.Delete(c1, d)
 	data := filter(v.buf.History.LastAction().Data)
 	v.buf.Insert(c1, data)
+}
+
+func GetVisualSelection(v *View) (buffer.Cursor, buffer.Cursor) {
+	r := v.VisualRange()
+	startLine, startPos := r.StartPos()
+	endLine, endPos := r.EndPos()
+
+	start := buffer.Cursor{LineNum: startLine, Boffset: startPos}
+	end := buffer.Cursor{LineNum: endLine, Boffset: endPos}
+
+	line := v.Buffer().FirstLine
+	lineNum := 1
+
+	for line.Next != nil {
+		if lineNum == startLine {
+			start.Line = line
+		}
+
+		if lineNum == endLine {
+			end.Line = line
+		}
+		lineNum++
+		line = line.Next
+	}
+
+	return start, end
 }
