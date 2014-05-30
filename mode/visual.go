@@ -3,14 +3,14 @@ package mode
 import (
 	cmd "github.com/kisielk/vigo/commands"
 	"github.com/kisielk/vigo/editor"
-	"github.com/kisielk/vigo/view"
 	"github.com/kisielk/vigo/utils"
+	"github.com/kisielk/vigo/view"
 	"github.com/nsf/termbox-go"
 )
 
 type visualMode struct {
-	editor *editor.Editor
-	count  string
+	editor   *editor.Editor
+	count    string
 	lineMode bool
 }
 

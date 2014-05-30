@@ -4,8 +4,8 @@ import (
 	"github.com/kisielk/vigo/editor"
 )
 
-type AdjustSelection struct{
-	Dir Dir
+type AdjustSelection struct {
+	Dir      Dir
 	LineMode bool
 }
 
@@ -67,7 +67,7 @@ func (cmd AdjustSelection) Apply(e *editor.Editor) {
 		// cursor is left of the start of the selection
 		// and one line below.
 		// flip the offsets
-		if c.Boffset < startPos && c.LineNum == startLine +1 {
+		if c.Boffset < startPos && c.LineNum == startLine+1 {
 			vRange.FlipStartAndEndOffsets()
 		}
 
@@ -86,7 +86,7 @@ func (cmd AdjustSelection) Apply(e *editor.Editor) {
 		// cursor is one line above the selection and further
 		// along the line than the start of the selection
 		// flip the start and end offsets of the selection
-		if c.Boffset > endPos && c.LineNum == endLine -1 {
+		if c.Boffset > endPos && c.LineNum == endLine-1 {
 			vRange.FlipStartAndEndOffsets()
 		}
 
@@ -99,8 +99,4 @@ func (cmd AdjustSelection) Apply(e *editor.Editor) {
 
 		v.SetVisualRange(vRange)
 	}
-
-	// FIXME: there must be a better way of doing this
-	// trigger a re-draw
-	e.Resize()
 }

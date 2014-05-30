@@ -158,12 +158,12 @@ var defaultViewTag = Tag{
 
 func NewTag(startLine, startOffset, endLine, endOffset int, fg, bg termbox.Attribute) Tag {
 	return Tag{
-		begLine: startLine,
+		begLine:   startLine,
 		begOffset: startOffset,
-		endLine: endLine,
+		endLine:   endLine,
 		endOffset: endOffset,
-		fg: fg,
-		bg: bg,
+		fg:        fg,
+		bg:        bg,
 	}
 }
 
@@ -204,7 +204,7 @@ type View struct {
 	// statusBuf is a buffer used for drawing the status line
 	statusBuf bytes.Buffer
 
-	visualRange     *Tag
+	visualRange *Tag
 
 	bufferEvents chan buffer.BufferEvent
 }
@@ -236,6 +236,7 @@ func (v *View) VisualRange() *Tag {
 
 func (v *View) SetVisualRange(t *Tag) {
 	v.visualRange = t
+	v.dirty |= dirtyContents
 }
 
 func (v *View) UIBuf() tulib.Buffer {
