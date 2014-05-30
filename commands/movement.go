@@ -11,6 +11,8 @@ type Dir int
 const (
 	Forward  Dir = 0
 	Backward Dir = 1
+	Up       Dir = 2
+	Down     Dir = 3
 )
 
 type MoveRune struct {
