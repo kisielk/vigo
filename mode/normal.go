@@ -160,8 +160,6 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	case 'T':
 		// TODO: Move left to just before the given character
 		return
-	case 'V':
-		g.SetMode(NewVisualMode(g, true))
 	case 'W':
 		// TODO: Make distinct from 'w'
 		g.Commands <- cmd.Repeat{cmd.MoveWord{Dir: cmd.Forward}, count}
@@ -212,6 +210,8 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		g.SetMode(NewInsertMode(g, count))
 	case 'v':
 		g.SetMode(NewVisualMode(g, false))
+	case 'V':
+		g.SetMode(NewVisualMode(g, true))
 	case ':':
 		// TODO use count to set range for command mode
 		g.SetMode(NewCommandMode(g, m))
