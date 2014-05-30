@@ -3,7 +3,6 @@ package mode
 import (
 	cmd "github.com/kisielk/vigo/commands"
 	"github.com/kisielk/vigo/editor"
-	"github.com/kisielk/vigo/buffer"
 	"github.com/kisielk/vigo/view"
 	"github.com/kisielk/vigo/utils"
 	"github.com/nsf/termbox-go"
@@ -40,7 +39,7 @@ func NewVisualMode(e *editor.Editor, lineMode bool) *visualMode {
 		termbox.ColorDefault|termbox.AttrReverse,
 	)
 
-	v.VisualRange = &viewTag
+	v.SetVisualRange(&viewTag)
 
 	return &m
 }
@@ -62,7 +61,7 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 	g := m.editor
 	v := g.ActiveView()
 	c := v.Cursor()
-	vRange := v.VisualRange
+	vRange := v.VisualRange()
 
 	startLine, startPos := vRange.StartPos()
 	endLine, endPos := vRange.EndPos()
@@ -86,7 +85,7 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 				vRange.AdjustStartOffset(-count)
 			}
 
-			v.VisualRange = vRange
+			v.SetVisualRange(vRange)
 		}
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Backward}, count}
 	case 'j':
@@ -114,7 +113,7 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 			vRange.FlipStartAndEndOffsets()
 		}
 
-		v.VisualRange = vRange
+		v.SetVisualRange(vRange)
 		g.Commands <- cmd.Repeat{cmd.MoveLine{Dir: cmd.Forward}, count}
 	case 'k':
 		if c.LineNum <= startLine {
@@ -140,7 +139,7 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 			vRange.FlipStartAndEndOffsets()
 		}
 
-		v.VisualRange = vRange
+		v.SetVisualRange(vRange)
 		g.Commands <- cmd.Repeat{cmd.MoveLine{Dir: cmd.Backward}, count}
 	case 'l':
 		if !m.lineMode {
@@ -154,7 +153,7 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 				vRange.AdjustStartOffset(count)
 			}
 
-			v.VisualRange = vRange
+			v.SetVisualRange(vRange)
 		}
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Forward}, count}
 	case 'd':
@@ -167,8 +166,8 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 		if m.lineMode {
 			m.editor.SetMode(NewNormalMode(m.editor))
 		} else {
-			v.VisualRange.SetStartOffset(0)
-			v.VisualRange.SetEndOffset(len(c.Line.Data))
+			v.VisualRange().SetStartOffset(0)
+			v.VisualRange().SetEndOffset(len(c.Line.Data))
 		}
 	}
 

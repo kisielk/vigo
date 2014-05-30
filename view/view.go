@@ -204,7 +204,7 @@ type View struct {
 	// statusBuf is a buffer used for drawing the status line
 	statusBuf bytes.Buffer
 
-	VisualRange     *viewTag
+	visualRange     *viewTag
 
 	bufferEvents chan buffer.BufferEvent
 }
@@ -228,6 +228,14 @@ func NewView(ctx Context, buf *buffer.Buffer, redraw chan struct{}) *View {
 	}
 	v.Attach(buf)
 	return v
+}
+
+func (v *View) VisualRange() *viewTag {
+	return v.visualRange
+}
+
+func (v *View) SetVisualRange(t *viewTag) {
+	v.visualRange = t
 }
 
 func (v *View) UIBuf() tulib.Buffer {
@@ -863,11 +871,12 @@ func (v *View) tag(line, offset int) *viewTag {
 func (v *View) makeCell(line, offset int, ch rune) termbox.Cell {
 	tag := v.tag(line, offset)
 
-	if v.VisualRange != nil && v.VisualRange.includes(line, offset) {
+	vRange := v.VisualRange()
+	if vRange != nil && vRange.includes(line, offset) {
 		return termbox.Cell{
 			Ch: ch,
-			Fg: v.VisualRange.fg,
-			Bg: v.VisualRange.bg,
+			Fg: vRange.fg,
+			Bg: vRange.bg,
 		}
 	}
 
