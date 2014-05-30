@@ -198,7 +198,7 @@ type View struct {
 	dirty           dirtyFlag
 	highlightBytes  []byte
 	highlightRanges []byteRange
-	Tags            []Tag
+	tags            []Tag
 	redraw          chan struct{}
 
 	// statusBuf is a buffer used for drawing the status line
@@ -223,7 +223,7 @@ func NewView(ctx Context, buf *buffer.Buffer, redraw chan struct{}) *View {
 		ctx:             ctx,
 		uiBuf:           tulib.NewBuffer(1, 1),
 		highlightRanges: make([]byteRange, 0, 10),
-		Tags:            make([]Tag, 0, 10),
+		tags:            make([]Tag, 0, 10),
 		redraw:          redraw,
 	}
 	v.Attach(buf)
@@ -859,8 +859,8 @@ func (v *View) inOneOfHighlightRanges(offset int) bool {
 }
 
 func (v *View) tag(line, offset int) *Tag {
-	for i := range v.Tags {
-		t := &v.Tags[i]
+	for i := range v.tags {
+		t := &v.tags[i]
 		if t.includes(line, offset) {
 			return t
 		}
