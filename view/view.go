@@ -111,9 +111,36 @@ func (t *viewTag) includes(line, offset int) bool {
 	return true
 }
 
+func (t *viewTag) AdjustEndLine(count int) {
+	t.endLine += count
+}
+
+func (t *viewTag) AdjustStartLine(count int) {
+	t.begLine += count
+}
+
+func (t *viewTag) StartPos() (int, int) {
+	return t.begLine, t.begOffset
+}
+
+func (t *viewTag) EndPos() (int, int) {
+	return t.endLine, t.endOffset
+}
+
 var defaultViewTag = viewTag{
 	fg: termbox.ColorDefault,
 	bg: termbox.ColorDefault,
+}
+
+func NewViewTag(startLine, startOffset, endLine, endOffset int, fg, bg termbox.Attribute) viewTag {
+	return viewTag{
+		begLine: startLine,
+		begOffset: startOffset,
+		endLine: endLine,
+		endOffset: endOffset,
+		fg: fg,
+		bg: bg,
+	}
 }
 
 //----------------------------------------------------------------------------
