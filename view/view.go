@@ -119,6 +119,22 @@ func (t *viewTag) AdjustStartLine(count int) {
 	t.begLine += count
 }
 
+func (t *viewTag) AdjustStartOffset(count int) {
+	t.begOffset += count
+}
+
+func (t *viewTag) AdjustEndOffset(count int) {
+	t.endOffset += count
+}
+
+func (t *viewTag) SetStartOffset(s int) {
+	t.begOffset = s
+}
+
+func (t *viewTag) SetEndOffset(e int) {
+	t.endOffset = e
+}
+
 func (t *viewTag) StartPos() (int, int) {
 	return t.begLine, t.begOffset
 }
@@ -174,7 +190,7 @@ type View struct {
 	dirty           dirtyFlag
 	highlightBytes  []byte
 	highlightRanges []byteRange
-	tags            []viewTag
+	Tags            []viewTag
 	redraw          chan struct{}
 
 	// statusBuf is a buffer used for drawing the status line
@@ -197,7 +213,7 @@ func NewView(ctx Context, buf *buffer.Buffer, redraw chan struct{}) *View {
 		ctx:             ctx,
 		uiBuf:           tulib.NewBuffer(1, 1),
 		highlightRanges: make([]byteRange, 0, 10),
-		tags:            make([]viewTag, 0, 10),
+		Tags:            make([]viewTag, 0, 10),
 		redraw:          redraw,
 	}
 	v.Attach(buf)
@@ -825,8 +841,8 @@ func (v *View) inOneOfHighlightRanges(offset int) bool {
 }
 
 func (v *View) tag(line, offset int) *viewTag {
-	for i := range v.tags {
-		t := &v.tags[i]
+	for i := range v.Tags {
+		t := &v.Tags[i]
 		if t.includes(line, offset) {
 			return t
 		}

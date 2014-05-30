@@ -208,6 +208,8 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		g.SetMode(NewTextObjectMode(g, m, v.Buffer().DeleteRange, count))
 	case 'i':
 		g.SetMode(NewInsertMode(g, count))
+	case 'v':
+		g.SetMode(NewVisualMode(g))
 	case ':':
 		// TODO use count to set range for command mode
 		g.SetMode(NewCommandMode(g, m))
