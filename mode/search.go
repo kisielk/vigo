@@ -69,6 +69,7 @@ func storeSearchTerm(e *editor.Editor, command string) error {
 	term := fields[0]
 
 	e.LastSearchTerm = term
+	e.ActiveView().SetHighlightBytes([]byte(term))
 
 	return nil
 }

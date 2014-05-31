@@ -109,6 +109,10 @@ func execCommand(e *editor.Editor, command string) error {
 		// TODO file argument | shell command argument
 	case "vsp", "vsplit":
 		e.SplitVertically()
+	case "nohls":
+		e.ActiveView().ShowHighlights(false)
+	case "hls":
+		e.ActiveView().ShowHighlights(true)
 	}
 
 	if lineNum, err := strconv.Atoi(cmd); err == nil {
