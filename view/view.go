@@ -205,6 +205,7 @@ type View struct {
 	statusBuf bytes.Buffer
 
 	visualRange *Tag
+	showHighlights bool
 
 	bufferEvents chan buffer.BufferEvent
 }
@@ -225,6 +226,7 @@ func NewView(ctx Context, buf *buffer.Buffer, redraw chan struct{}) *View {
 		highlightRanges: make([]byteRange, 0, 10),
 		tags:            make([]Tag, 0, 10),
 		redraw:          redraw,
+		showHighlights:  true,
 	}
 	v.Attach(buf)
 	return v
@@ -241,6 +243,11 @@ func (v *View) SetVisualRange(t *Tag) {
 
 func (v *View) UIBuf() tulib.Buffer {
 	return v.uiBuf
+}
+
+func (v *View) ShowHighlights(b bool) {
+	v.showHighlights = b
+	v.dirty |= dirtyContents
 }
 
 func (v *View) Attach(b *buffer.Buffer) {
@@ -352,6 +359,11 @@ func (v *View) horizontalThreshold() int {
 
 func (v *View) width() int {
 	return v.uiBuf.Width
+}
+
+func (v *View) SetHighlightBytes(b []byte) {
+	v.highlightBytes = b
+	v.dirty |= dirtyContents
 }
 
 func (v *View) drawLine(line *buffer.Line, lineNum, coff, lineVoffset int) {
@@ -894,7 +906,7 @@ func (v *View) makeCell(line, offset int, ch rune) termbox.Cell {
 		Fg: tag.fg,
 		Bg: tag.bg,
 	}
-	if v.inOneOfHighlightRanges(offset) {
+	if v.inOneOfHighlightRanges(offset) && v.showHighlights {
 		cell.Fg = hlFG
 		cell.Bg = hlBG
 	}
