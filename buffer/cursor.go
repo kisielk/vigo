@@ -17,6 +17,45 @@ type Cursor struct {
 	Boffset int
 }
 
+// Before reports whether the cursor is before other.
+func (c Cursor) Before(other Cursor) bool {
+	return c.LineNum < other.LineNum ||
+		(c.LineNum == other.LineNum && c.Boffset < other.Boffset)
+}
+
+// Before reports whether the cursor is after other.
+func (c Cursor) After(other Cursor) bool {
+	return c.LineNum > other.LineNum ||
+		(c.LineNum == other.LineNum && c.Boffset > other.Boffset)
+}
+
+// Left reports whether the cursor is to the left of other, regardless of line.
+func (c Cursor) Left(other Cursor) bool {
+	return c.Boffset < other.Boffset
+}
+
+// Right reports whether the cursor is to the right of other, regardless of line.
+func (c Cursor) Right(other Cursor) bool {
+	return c.Boffset > other.Boffset
+}
+
+// Above reports whether the cursor is above other, regardless of column.
+func (c Cursor) Above(other Cursor) bool {
+	return c.LineNum < other.LineNum
+}
+
+// Below reports whether the cursor is below other, regardless of column.
+func (c Cursor) Below(other Cursor) bool {
+	return c.LineNum > other.LineNum
+}
+
+// Equals reports whether the cursor position equals that of other.
+// This function avoids a check for pointer equality of the Line pointer.
+func (c Cursor) Equals(other Cursor) bool {
+	return c.LineNum == other.LineNum &&
+		c.Boffset == other.Boffset
+}
+
 // RuneUnder returns the rune under the current cursor and its width in bytes.
 func (c *Cursor) RuneUnder() (rune, int) {
 	return utf8.DecodeRune(c.Line.Data[c.Boffset:])
