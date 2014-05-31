@@ -1,6 +1,6 @@
 # ViGo - Vi in Go
 
-[![Build Status](https://drone.io/github.com/kisielk/vigo/status.png)](https://drone.io/github.com/kisielk/vigo/latest)
+[![Build Status](https://travis-ci.org/kisielk/vigo.png?branch=master)](http://travis-ci.org/kisielk/vigo)
 
 ViGo is an attempt to implement a vim-like text editor in Go, while maintaining a lean feature set. 
 The project is still in its early days and definitely not suitable for daily use yet.
