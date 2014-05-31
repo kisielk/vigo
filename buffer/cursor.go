@@ -129,6 +129,9 @@ func (c *Cursor) VoffsetCoffset() (vo, co int) {
 	return
 }
 
+// ExtractBytes returns a slice of up to n bytes from the current cursor position.
+// TODO: This doesn't seem to handle EOF correctly, and doesn't count \n.
+// Probably needs work.
 func (c *Cursor) ExtractBytes(n int) []byte {
 	var buf bytes.Buffer
 	offset := c.Boffset
@@ -477,15 +480,7 @@ func (c *Cursor) OnDeleteAdjust(a *Action) {
 // SortCursors orders a pair of cursors, from closest to
 // furthest from the beginning of the buffer.
 func SortCursors(c1, c2 Cursor) (r1, r2 Cursor) {
-	if c1.LineNum == c2.LineNum {
-		if c1.Boffset > c2.Boffset {
-			return c2, c1
-		} else {
-			return c1, c2
-		}
-	}
-
-	if c1.LineNum > c2.LineNum {
+	if c2.Before(c1) {
 		return c2, c1
 	}
 	return c1, c2
