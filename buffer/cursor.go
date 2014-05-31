@@ -30,12 +30,12 @@ func (c Cursor) After(other Cursor) bool {
 }
 
 // Left reports whether the cursor is to the left of other, regardless of line.
-func (c Cursor) Left(other Cursor) bool {
+func (c Cursor) LeftOf(other Cursor) bool {
 	return c.Boffset < other.Boffset
 }
 
 // Right reports whether the cursor is to the right of other, regardless of line.
-func (c Cursor) Right(other Cursor) bool {
+func (c Cursor) RightOf(other Cursor) bool {
 	return c.Boffset > other.Boffset
 }
 
