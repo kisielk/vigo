@@ -19,6 +19,30 @@ func makeLines(text ...string) []*Line {
 	return lines
 }
 
+func TestExtractBytes(t *testing.T) {
+	lines := makeLines(
+		"// comment",
+		"func bar(i int) {",
+		"}",
+	)
+
+	c0 := &Cursor{Line: lines[0], Boffset: 0}
+	if string(c0.ExtractBytes(10)) != "// comment" {
+		t.Error("Bad bytes inside line")
+	}
+
+	c1 := &Cursor{Line: lines[0], Boffset: 7}
+	if string(c1.ExtractBytes(5)) != "ent\nf" {
+		t.Error("Bad bytes across lines")
+	}
+
+	c2 := &Cursor{Line: lines[1], Boffset: 16}
+	// Extract bytes up to EOF
+	if string(c2.ExtractBytes(5)) != "{\n}" {
+		t.Error("Bad bytes at EOF")
+	}
+}
+
 func TestNextRune(t *testing.T) {
 	lines := makeLines(
 		"// comment",

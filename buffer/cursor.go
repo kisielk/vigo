@@ -130,13 +130,11 @@ func (c *Cursor) VoffsetCoffset() (vo, co int) {
 }
 
 // ExtractBytes returns a slice of up to n bytes from the current cursor position.
-// TODO: This doesn't seem to handle EOF correctly, and doesn't count \n.
-// Probably needs work.
 func (c *Cursor) ExtractBytes(n int) []byte {
 	var buf bytes.Buffer
 	offset := c.Boffset
 	line := c.Line
-	for n > 0 {
+	for n > 0 && line != nil {
 		switch {
 		case offset < line.Len():
 			nb := line.Len() - offset
@@ -147,7 +145,9 @@ func (c *Cursor) ExtractBytes(n int) []byte {
 			n -= nb
 			offset += nb
 		case offset == line.Len():
-			buf.WriteByte('\n')
+			if line.Next != nil {
+				buf.WriteByte('\n')
+			}
 			offset = 0
 			line = line.Next
 			n -= 1
