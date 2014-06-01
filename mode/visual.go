@@ -19,27 +19,20 @@ func NewVisualMode(e *editor.Editor, lineMode bool) *visualMode {
 	v := m.editor.ActiveView()
 	c := v.Cursor()
 
-	startPos, endPos := 0, 0
-
+	var t view.SelectionType
 	if lineMode {
 		m.editor.SetStatus("Visual Line")
+		t = view.SelectionLine
 	} else {
-		startPos = c.Boffset
-		endPos = c.Boffset
-
 		m.editor.SetStatus("Visual")
+		t = view.SelectionChar
 	}
 
-	viewTag := view.NewTag(
-		c.LineNum,
-		startPos,
-		c.LineNum,
-		endPos,
-		termbox.ColorDefault,
-		termbox.ColorDefault|termbox.AttrReverse,
-	)
+	sel := view.Selection{Type: t}
+	sel.Range.Start = c
+	sel.Range.End = c
 
-	v.SetVisualRange(&viewTag)
+	v.SetSelection(sel)
 
 	return &m
 }
@@ -60,7 +53,6 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 	}
 	g := m.editor
 	v := g.ActiveView()
-	c := v.Cursor()
 
 	switch ev.Key {
 	case termbox.KeyEsc:
@@ -69,20 +61,16 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 
 	switch ev.Ch {
 	case 'h':
-		g.Commands <- cmd.Repeat{cmd.AdjustSelection{Dir: cmd.Backward, LineMode: m.lineMode}, count}
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Backward}, count}
 	case 'j':
-		g.Commands <- cmd.Repeat{cmd.AdjustSelection{Dir: cmd.Down, LineMode: m.lineMode}, count}
 		g.Commands <- cmd.Repeat{cmd.MoveLine{Dir: cmd.Forward}, count}
 	case 'k':
-		g.Commands <- cmd.Repeat{cmd.AdjustSelection{Dir: cmd.Up, LineMode: m.lineMode}, count}
 		g.Commands <- cmd.Repeat{cmd.MoveLine{Dir: cmd.Backward}, count}
 	case 'l':
-		g.Commands <- cmd.Repeat{cmd.AdjustSelection{Dir: cmd.Forward, LineMode: m.lineMode}, count}
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Forward}, count}
 	case 'd':
-		start, end := view.GetVisualSelection(v)
-		v.Buffer().DeleteRange(start, end)
+		r := v.Selection().EffectiveRange()
+		v.Buffer().DeleteRange(r.Start, r.End)
 		m.editor.SetMode(NewNormalMode(m.editor))
 	case 'v':
 		m.editor.SetMode(NewNormalMode(m.editor))
@@ -90,8 +78,9 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 		if m.lineMode {
 			m.editor.SetMode(NewNormalMode(m.editor))
 		} else {
-			v.VisualRange().SetStartOffset(0)
-			v.VisualRange().SetEndOffset(len(c.Line.Data))
+			sel := v.Selection()
+			sel.Type = view.SelectionLine
+			v.SetSelection(sel)
 		}
 	}
 
@@ -100,5 +89,5 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 
 func (m *visualMode) Exit() {
 	v := m.editor.ActiveView()
-	v.SetVisualRange(nil)
+	v.SetSelection(view.Selection{Type: view.SelectionNone})
 }
