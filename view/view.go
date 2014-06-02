@@ -170,10 +170,10 @@ func NewTag(startLine, startOffset, endLine, endOffset int, fg, bg termbox.Attri
 type SelectionType int
 
 const (
-	SelectionNone  SelectionType = 0
-	SelectionChar                = 1
-	SelectionLine                = 2
-	SelectionBlock               = 3
+	SelectionNone SelectionType = iota
+	SelectionChar
+	SelectionLine
+	SelectionBlock
 )
 
 type Selection struct {
@@ -182,7 +182,7 @@ type Selection struct {
 }
 
 func (s Selection) EffectiveRange() (r buffer.Range) {
-	r.Start, r.End = buffer.SortCursors(r.Start, r.End)
+	r.Start, r.End = buffer.SortCursors(s.Start, s.End)
 	switch s.Type {
 	case SelectionChar:
 		// Inclusive -> exclusive range
