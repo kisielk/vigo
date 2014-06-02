@@ -1,8 +1,10 @@
 package commands
 
 import (
-	"github.com/kisielk/vigo/editor"
+//	"github.com/kisielk/vigo/editor"
 )
+
+/*
 
 type AdjustSelection struct {
 	Dir      Dir
@@ -100,3 +102,4 @@ func (cmd AdjustSelection) Apply(e *editor.Editor) {
 		v.SetVisualRange(vRange)
 	}
 }
+*/

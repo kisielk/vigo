@@ -167,6 +167,62 @@ func NewTag(startLine, startOffset, endLine, endOffset int, fg, bg termbox.Attri
 	}
 }
 
+type SelectionType int
+
+const (
+	SelectionNone SelectionType = iota
+	SelectionChar
+	SelectionLine
+	SelectionBlock
+)
+
+type Selection struct {
+	buffer.Range
+	Type SelectionType
+}
+
+func (s Selection) EffectiveRange() (r buffer.Range) {
+	r.Start, r.End = buffer.SortCursors(s.Start, s.End)
+	switch s.Type {
+	case SelectionChar:
+		// Inclusive -> exclusive range
+		r.End.NextRune(true)
+	case SelectionLine:
+		// Delete from the beginning of first line to the start of line after last.
+		r.Start.Boffset = 0
+		r.End.NextLine()
+		// XXX NextLine() sets Boffset to -1 which doesn't work for us,
+		// but gets specially handled in view.MoveCursorTo
+		r.End.Boffset = 0
+	case SelectionBlock:
+		// TODO Return a list of effective ranges. This will also work
+		// if we have sparse selection such as in Sublime Text
+		panic("not implemented")
+	}
+	return
+}
+
+func (s Selection) includes(c buffer.Cursor) bool {
+	if s.Type == SelectionNone {
+		return false
+	}
+
+	start, end := buffer.SortCursors(s.Start, s.End)
+	inc := false
+
+	switch s.Type {
+	case SelectionChar:
+		inc = (start.Before(c) || start.Equals(c)) && (c.Before(end) || c.Equals(end))
+	case SelectionLine:
+		inc = start.LineNum <= c.LineNum && c.LineNum <= end.LineNum
+	case SelectionBlock:
+		// TODO
+		panic("not implemented")
+	}
+
+	return inc
+}
+
 //----------------------------------------------------------------------------
 // view context
 //----------------------------------------------------------------------------
@@ -204,7 +260,7 @@ type View struct {
 	// statusBuf is a buffer used for drawing the status line
 	statusBuf bytes.Buffer
 
-	visualRange *Tag
+	selection      Selection
 	showHighlights bool
 
 	bufferEvents chan buffer.BufferEvent
@@ -232,12 +288,12 @@ func NewView(ctx Context, buf *buffer.Buffer, redraw chan struct{}) *View {
 	return v
 }
 
-func (v *View) VisualRange() *Tag {
-	return v.visualRange
+func (v *View) Selection() Selection {
+	return v.selection
 }
 
-func (v *View) SetVisualRange(t *Tag) {
-	v.visualRange = t
+func (v *View) SetSelection(r Selection) {
+	v.selection = r
 	v.dirty |= dirtyContents
 }
 
@@ -701,6 +757,11 @@ func (v *View) MoveCursorTo(c buffer.Cursor) {
 	v.cursor.LineNum = c.LineNum
 	v.adjustLineVoffset()
 	v.adjustTopLine()
+
+	if v.selection.Type != SelectionNone {
+		v.dirty |= dirtyContents
+		v.selection.End = v.Cursor()
+	}
 }
 
 // Move cursor to the beginning of the file (buffer).
@@ -884,12 +945,11 @@ func (v *View) tag(line, offset int) *Tag {
 func (v *View) makeCell(line, offset int, ch rune) termbox.Cell {
 	tag := v.tag(line, offset)
 
-	vRange := v.VisualRange()
-	if vRange != nil && vRange.includes(line, offset) {
+	if v.Selection().includes(buffer.Cursor{LineNum: line, Boffset: offset}) {
 		return termbox.Cell{
 			Ch: ch,
-			Fg: vRange.fg,
-			Bg: vRange.bg,
+			Fg: termbox.ColorDefault,
+			Bg: termbox.ColorDefault | termbox.AttrReverse,
 		}
 	}
 
@@ -961,30 +1021,4 @@ func (v *View) filterText(from, to buffer.Cursor, filter func([]byte) []byte) {
 	v.buf.Delete(c1, d)
 	data := filter(v.buf.History.LastAction().Data)
 	v.buf.Insert(c1, data)
-}
-
-func GetVisualSelection(v *View) (buffer.Cursor, buffer.Cursor) {
-	r := v.VisualRange()
-	startLine, startPos := r.StartPos()
-	endLine, endPos := r.EndPos()
-
-	start := buffer.Cursor{LineNum: startLine, Boffset: startPos}
-	end := buffer.Cursor{LineNum: endLine, Boffset: endPos}
-
-	line := v.Buffer().FirstLine
-	lineNum := 1
-
-	for line.Next != nil {
-		if lineNum == startLine {
-			start.Line = line
-		}
-
-		if lineNum == endLine {
-			end.Line = line
-		}
-		lineNum++
-		line = line.Next
-	}
-
-	return start, end
 }

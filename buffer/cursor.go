@@ -17,6 +17,11 @@ type Cursor struct {
 	Boffset int
 }
 
+type Range struct {
+	Start Cursor
+	End   Cursor
+}
+
 // Before reports whether the cursor is before other.
 func (c Cursor) Before(other Cursor) bool {
 	return c.LineNum < other.LineNum ||
