@@ -2,7 +2,6 @@ package mode
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
 	"github.com/kisielk/vigo/editor"
@@ -42,11 +41,8 @@ func (m SearchMode) OnKey(ev *termbox.Event) {
 		}
 	case termbox.KeyEnter:
 		c := m.buffer.String()
-		if err := storeSearchTerm(m.editor, c); err != nil {
-			m.editor.SetStatus(fmt.Sprintf("error: %s", err))
-		} else {
-			m.editor.SetStatus("/" + c)
-		}
+		term := strings.Fields(c)[0]
+		storeSearchTerm(m.editor, term)
 		m.editor.Commands <- cmd.Search{Dir: cmd.Forward}
 		m.editor.SetMode(m.mode)
 	case termbox.KeySpace:
@@ -64,12 +60,7 @@ func (m SearchMode) Draw() {
 
 // Store the search term on the editor instance.
 // This allows us to use it later in other commands.
-func storeSearchTerm(e *editor.Editor, command string) error {
-	fields := strings.Fields(command)
-	term := fields[0]
-
+func storeSearchTerm(e *editor.Editor, term string) {
 	e.LastSearchTerm = term
 	e.ActiveView().SetHighlightBytes([]byte(term))
-
-	return nil
 }
