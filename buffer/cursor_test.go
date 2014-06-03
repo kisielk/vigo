@@ -300,3 +300,40 @@ func TestSortCursors(t *testing.T) {
 		}
 	}
 }
+
+func TestWordUnderCursor(t *testing.T) {
+	lines := makeLines(
+		"this is a test line",
+	)
+
+	c := &Cursor{Line: lines[0], Boffset: 2}
+
+	// check a regular word
+	word := string(c.WordUnderCursor())
+	if word != "this" {
+		t.Error("Incorrect word:", word)
+	}
+
+	// check a small word
+	c.Boffset = 5
+	word = string(c.WordUnderCursor())
+	if word != "is" {
+		t.Error("Incorrect word:", word)
+	}
+
+	// check that if the cursor is at the start of the line
+	// that the correct word is returned.
+	c.Boffset = 0
+	word = string(c.WordUnderCursor())
+	if word != "this" {
+		t.Error("Incorrect word:", word)
+	}
+
+	// cursor is at the end of a word
+	c.Boffset = 3
+	word = string(c.WordUnderCursor())
+	if word != "this" {
+		t.Error("Incorrect word:", word)
+	}
+
+}
