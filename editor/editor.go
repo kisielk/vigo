@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 
 	"github.com/kisielk/vigo/buffer"
@@ -428,9 +429,16 @@ func (e *Editor) handleUIEvent(ev *termbox.Event) error {
 	return nil
 }
 
+// SetMode sets active editor mode.
+// The specified mode instance will react to keys and other user input until
+// another mode is set. If previous mode type is not the same as current
+// one, current view buffer action group is finalized.
 func (e *Editor) SetMode(m Mode) {
 	if e.mode != nil {
 		e.mode.Exit()
+		if reflect.TypeOf(e.mode) != reflect.TypeOf(m) {
+			e.ActiveView().Buffer().FinalizeActionGroup()
+		}
 	}
 	e.mode = m
 	e.overlay = nil

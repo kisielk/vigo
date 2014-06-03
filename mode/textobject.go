@@ -126,7 +126,6 @@ func (m *TextObjectMode) Exit() {
 			}
 			m.f(from, to)
 		}
-		v.Buffer().FinalizeActionGroup()
 	default:
 		m.editor.SetStatus("range conversion not implemented")
 	}
