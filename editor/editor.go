@@ -431,8 +431,7 @@ func (e *Editor) handleUIEvent(ev *termbox.Event) error {
 
 // SetMode sets active editor mode.
 // The specified mode instance will react to keys and other user input until
-// another mode is set. If previous mode type is not the same as current
-// one, current view buffer action group is finalized.
+// another mode is set.
 func (e *Editor) SetMode(m Mode) {
 	if e.mode != nil {
 		e.mode.Exit()
