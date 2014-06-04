@@ -22,6 +22,9 @@ func NewCommandMode(editor *editor.Editor, mode editor.Mode) CommandMode {
 	return m
 }
 
+func (m CommandMode) Enter(e *editor.Editor) {
+}
+
 func (m CommandMode) NeedsCursor() bool {
 	return true
 }
@@ -72,7 +75,7 @@ func execCommand(e *editor.Editor, command string) error {
 	}
 
 	cmd, args := fields[0], fields[1:]
-	
+
 	switch cmd {
 	case "q":
 		// TODO if more than one split, close active one only.

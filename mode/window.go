@@ -15,6 +15,9 @@ func NewWindowMode(editor *editor.Editor, count int) WindowMode {
 	return WindowMode{editor: editor, count: count}
 }
 
+func (m WindowMode) Enter(e *editor.Editor) {
+}
+
 func (m WindowMode) OnKey(ev *termbox.Event) {
 	switch ev.Ch {
 	case 'h':

@@ -74,6 +74,9 @@ func NewTextObjectMode(editor *editor.Editor, mode editor.Mode, f buffer.RangeFu
 	}
 }
 
+func (m *TextObjectMode) Enter(e *editor.Editor) {
+}
+
 var ErrBadTextObject error = errors.New("bad text object")
 
 func (m *TextObjectMode) OnKey(ev *termbox.Event) {
@@ -126,7 +129,6 @@ func (m *TextObjectMode) Exit() {
 			}
 			m.f(from, to)
 		}
-		v.Buffer().FinalizeActionGroup()
 	default:
 		m.editor.SetStatus("range conversion not implemented")
 	}

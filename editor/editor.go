@@ -15,6 +15,7 @@ import (
 )
 
 type Mode interface {
+	Enter(e *Editor)
 	OnKey(ev *termbox.Event)
 	Exit()
 }
@@ -428,6 +429,9 @@ func (e *Editor) handleUIEvent(ev *termbox.Event) error {
 	return nil
 }
 
+// SetMode sets active editor mode.
+// The specified mode instance will react to keys and other user input until
+// another mode is set.
 func (e *Editor) SetMode(m Mode) {
 	if e.mode != nil {
 		e.mode.Exit()
@@ -438,6 +442,7 @@ func (e *Editor) SetMode(m Mode) {
 	if o, ok := m.(Overlay); ok {
 		e.overlay = o
 	}
+	m.Enter(e)
 }
 
 func (e *Editor) viewContext() view.Context {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kisielk/vigo/editor"
 	cmd "github.com/kisielk/vigo/commands"
+	"github.com/kisielk/vigo/editor"
 	"github.com/nsf/termbox-go"
 )
 
@@ -20,6 +20,9 @@ type SearchMode struct {
 func NewSearchMode(editor *editor.Editor, mode editor.Mode) SearchMode {
 	m := SearchMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
 	return m
+}
+
+func (m SearchMode) Enter(e *editor.Editor) {
 }
 
 func (m SearchMode) NeedsCursor() bool {
