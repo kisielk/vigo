@@ -18,6 +18,10 @@ func NewNormalMode(e *editor.Editor) *normalMode {
 	return &m
 }
 
+func (m *normalMode) Enter(e *editor.Editor) {
+	e.ActiveView().Buffer().FinalizeActionGroup()
+}
+
 func (m *normalMode) OnKey(ev *termbox.Event) {
 	// Most of the key bindings are derived from those at
 	// http://elvis.the-little-red-haired-girl.org/elvisman/elvisvi.html#index

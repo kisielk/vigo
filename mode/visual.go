@@ -37,6 +37,9 @@ func NewVisualMode(e *editor.Editor, lineMode bool) *visualMode {
 	return &m
 }
 
+func (m *visualMode) Enter(e *editor.Editor) {
+}
+
 func (m *visualMode) OnKey(ev *termbox.Event) {
 
 	// Consequtive non-zero digits specify action multiplier;

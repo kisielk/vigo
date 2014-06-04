@@ -18,6 +18,9 @@ func NewInsertMode(editor *editor.Editor, count int) insertMode {
 	return m
 }
 
+func (m insertMode) Enter(editor *editor.Editor) {
+}
+
 func (m insertMode) OnKey(ev *termbox.Event) {
 	g := m.editor
 

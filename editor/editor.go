@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strconv"
 
 	"github.com/kisielk/vigo/buffer"
@@ -16,6 +15,7 @@ import (
 )
 
 type Mode interface {
+	Enter(e *Editor)
 	OnKey(ev *termbox.Event)
 	Exit()
 }
@@ -436,9 +436,6 @@ func (e *Editor) handleUIEvent(ev *termbox.Event) error {
 func (e *Editor) SetMode(m Mode) {
 	if e.mode != nil {
 		e.mode.Exit()
-		if reflect.TypeOf(e.mode) != reflect.TypeOf(m) {
-			e.ActiveView().Buffer().FinalizeActionGroup()
-		}
 	}
 	e.mode = m
 	e.overlay = nil
@@ -446,6 +443,7 @@ func (e *Editor) SetMode(m Mode) {
 	if o, ok := m.(Overlay); ok {
 		e.overlay = o
 	}
+	m.Enter(e)
 }
 
 func (e *Editor) viewContext() view.Context {
