@@ -50,8 +50,11 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		// TODO Ctrl-U and CTRL-D have configurable ranges of motion.
 		switch ev.Key {
 		case termbox.KeyCtrlA:
-			storeSearchTerm(g, string(c.WordUnderCursor()))
-			g.Commands <- cmd.Search{Dir: cmd.Forward}
+			term := c.WordUnderCursor()
+			if term != nil {
+				storeSearchTerm(g, string(term))
+				g.Commands <- cmd.Search{Dir: cmd.Forward}
+			}
 		case termbox.KeyCtrlB:
 			g.Commands <- cmd.MoveView{Dir: cmd.Backward, Lines: viewHeight}
 		case termbox.KeyCtrlD:

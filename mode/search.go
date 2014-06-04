@@ -61,6 +61,10 @@ func (m SearchMode) Draw() {
 // Store the search term on the editor instance.
 // This allows us to use it later in other commands.
 func storeSearchTerm(e *editor.Editor, term string) {
+	// don't do anything if no term is given
+	if term == "" {
+		return
+	}
 	e.LastSearchTerm = term
 	e.ActiveView().SetHighlightBytes([]byte(term))
 }
