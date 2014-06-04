@@ -286,7 +286,10 @@ func (c *Cursor) WordUnderCursor() []byte {
 	}
 
 	// move to the the rune after the end of the word
-	end.EndWord()
+	for utils.IsWord(r) && !end.EOL() {
+		end.Boffset += rlen
+		r, rlen = end.RuneAfter()
+	}
 	end.NextRune(false)
 
 	if beg.Boffset == end.Boffset {

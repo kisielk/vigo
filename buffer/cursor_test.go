@@ -330,9 +330,11 @@ func TestRuneAfter(t *testing.T) {
 func TestWordUnderCursor(t *testing.T) {
 	lines := makeLines(
 		"this is a test line",
+		"another line      with whitespace",
 	)
 
 	c := &Cursor{Line: lines[0], Boffset: 2}
+	c2 := &Cursor{Line: lines[1], Boffset: 14}
 
 	// check a regular word
 	word := string(c.WordUnderCursor())
@@ -355,6 +357,14 @@ func TestWordUnderCursor(t *testing.T) {
 		t.Error("Incorrect word:", word)
 	}
 
+	// check that if the cursor is at the end of the line
+	// the correct word is returned.
+	c.MoveEOL()
+	word = string(c.WordUnderCursor())
+	if word != "line" {
+		t.Error("Incorrect word:", word)
+	}
+
 	// cursor is at the end of a word
 	c.Boffset = 3
 	word = string(c.WordUnderCursor())
@@ -362,9 +372,16 @@ func TestWordUnderCursor(t *testing.T) {
 		t.Error("Incorrect word:", word)
 	}
 
+	// cursor is on a single character word
 	c.Boffset = 8
 	word = string(c.WordUnderCursor())
 	if word != "a" {
 		t.Error("Expected single charactor word - Got:", word)
+	}
+
+	// cursor is on whitespace
+	w := c2.WordUnderCursor()
+	if w != nil {
+		t.Error("Expected to return nil")
 	}
 }
