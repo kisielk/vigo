@@ -30,14 +30,9 @@ const (
 	dirtyEverything = dirtyContents | dirtyStatus
 )
 
-//----------------------------------------------------------------------------
-// view location
-//
-// This structure represents a view location in the buffer. It needs to be
+// viewLocation represents a view's position in the buffer. It needs to be
 // separated from the view, because it's also being saved by the buffer (in case
 // if at the moment buffer has no views attached to it).
-//----------------------------------------------------------------------------
-
 type viewLocation struct {
 	cursor     buffer.Cursor
 	topLine    *buffer.Line
@@ -69,10 +64,6 @@ func (l viewLocation) Cursor() buffer.Cursor {
 	return l.cursor
 }
 
-//----------------------------------------------------------------------------
-// byte_range
-//----------------------------------------------------------------------------
-
 type byteRange struct {
 	begin int
 	end   int
@@ -84,10 +75,6 @@ func (r byteRange) includes(offset int) bool {
 
 const hlFG = termbox.ColorCyan
 const hlBG = termbox.ColorBlue
-
-//----------------------------------------------------------------------------
-// view tags
-//----------------------------------------------------------------------------
 
 type Tag struct {
 	begLine   int
@@ -223,10 +210,6 @@ func (s Selection) includes(c buffer.Cursor) bool {
 	return inc
 }
 
-//----------------------------------------------------------------------------
-// view context
-//----------------------------------------------------------------------------
-
 type Context struct {
 	setStatus  StatusFunc
 	killBuffer *[]byte
@@ -239,13 +222,8 @@ func NewContext(setStatus StatusFunc, killBuffer *[]byte, buffers *[]*buffer.Buf
 	return Context{setStatus, killBuffer, buffers}
 }
 
-//----------------------------------------------------------------------------
-// view
-//
-// Think of it as a window. It draws contents from a portion of a buffer into
+// A view is an abstract "window". It draws contents from a portion of a buffer into
 // 'uibuf' and maintains things like cursor position.
-//----------------------------------------------------------------------------
-
 type View struct {
 	viewLocation
 	ctx             Context

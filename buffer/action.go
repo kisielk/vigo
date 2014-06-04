@@ -2,15 +2,9 @@ package buffer
 
 import (
 	"bytes"
+
 	"github.com/kisielk/vigo/utils"
 )
-
-//----------------------------------------------------------------------------
-// action
-//
-// A single entity of undo/redo history. All changes to contents of a buffer
-// must be initiated by an action.
-//----------------------------------------------------------------------------
 
 type ActionType int
 
@@ -19,6 +13,8 @@ const (
 	ActionDelete ActionType = -1
 )
 
+// An action is a single entity of undo/redo history. All changes to contents of a buffer
+// must be initiated by an action.
 type Action struct {
 	What   ActionType
 	Data   []byte
@@ -192,10 +188,6 @@ func (a *Action) tryMerge(b *Action) bool {
 	}
 	return false
 }
-
-//----------------------------------------------------------------------------
-// action group
-//----------------------------------------------------------------------------
 
 type ActionGroup struct {
 	Actions []Action

@@ -3,11 +3,12 @@ package buffer
 import (
 	"bufio"
 	"fmt"
-	"github.com/kisielk/vigo/utils"
 	"io"
 	"io/ioutil"
 	"os"
 	"unicode/utf8"
+
+	"github.com/kisielk/vigo/utils"
 )
 
 type Line struct {
@@ -39,10 +40,6 @@ func (l *Line) FindClosestOffsets(voffset int) (bo, co, vo int) {
 	}
 	return
 }
-
-//----------------------------------------------------------------------------
-// buffer
-//----------------------------------------------------------------------------
 
 type BufferEventType int
 
@@ -484,10 +481,6 @@ func (b *Buffer) contents() []byte {
 	data, _ := ioutil.ReadAll(b.reader())
 	return data
 }
-
-//----------------------------------------------------------------------------
-// buffer_reader
-//----------------------------------------------------------------------------
 
 type BufferReader struct {
 	buffer *Buffer
