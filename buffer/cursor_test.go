@@ -307,23 +307,32 @@ func TestRuneAfter(t *testing.T) {
 	c := &Cursor{Line: lines[0], Boffset: 2}
 
 	// test cursor is in the middle of a word
-	r, _ := c.RuneAfter()
+	r, rlen := c.RuneAfter()
 	if r != 's' {
 		t.Error("Incorrect rune")
+	}
+	if rlen != 1 {
+		t.Error("Incorrect width")
 	}
 
 	// test cursor is at the end of a word
 	c.Boffset = 3
-	r, _ = c.RuneAfter()
+	r, rlen = c.RuneAfter()
 	if r != ' ' {
 		t.Error("Incorrect rune")
+	}
+	if rlen != 1 {
+		t.Error("Incorrect width")
 	}
 
 	// test if the cursor is at the end of the line
 	c.Boffset = len(c.Line.Data)
-	r, _ = c.RuneAfter()
+	r, rlen = c.RuneAfter()
 	if r != utf8.RuneError {
 		t.Error("Expected RuneError")
+	}
+	if rlen != 0 {
+		t.Error("Incorrect width")
 	}
 }
 
