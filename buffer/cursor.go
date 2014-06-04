@@ -250,15 +250,27 @@ func (c *Cursor) MoveEOL() {
 
 func (c *Cursor) WordUnderCursor() []byte {
 	end, beg := *c, *c
-	r, rlen := beg.RuneBefore()
-	if r == utf8.RuneError && !beg.BOL() {
+	var (
+		r rune
+		rlen int
+	)
+
+	r, _ = beg.RuneUnder()
+	if unicode.IsSpace(r) {
 		return nil
 	}
 
-	// move the `beg` cursor back to the start of the word
-	for utils.IsWord(r) && !beg.BOL() {
-		beg.Boffset -= rlen
+	if !beg.BOL() {
 		r, rlen = beg.RuneBefore()
+		if r == utf8.RuneError {
+			return nil
+		}
+
+		// move the `beg` cursor back to the start of the word
+		for utils.IsWord(r) && !beg.BOL() {
+			beg.Boffset -= rlen
+			r, rlen = beg.RuneBefore()
+		}
 	}
 
 	// set the end cursor to the same position as the start cursor
