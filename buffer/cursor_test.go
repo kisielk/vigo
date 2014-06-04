@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"testing"
+	"unicode/utf8"
 )
 
 // makeLines converts text into an array of lines.
@@ -298,6 +299,31 @@ func TestSortCursors(t *testing.T) {
 		if out1 != p.out1 || out2 != p.out2 {
 			t.Error("Wrong cursor order")
 		}
+	}
+}
+
+func TestRuneAfter(t *testing.T) {
+	lines := makeLines("this is a test line")
+	c := &Cursor{Line: lines[0], Boffset: 2}
+
+	// test cursor is in the middle of a word
+	r, _ := c.RuneAfter()
+	if r != 's' {
+		t.Error("Incorrect rune")
+	}
+
+	// test cursor is at the end of a word
+	c.Boffset = 3
+	r, _ = c.RuneAfter()
+	if r != ' ' {
+		t.Error("Incorrect rune")
+	}
+
+	// test if the cursor is at the end of the line
+	c.Boffset = len(c.Line.Data)
+	r, _ = c.RuneAfter()
+	if r != utf8.RuneError {
+		t.Error("Expected RuneError")
 	}
 }
 
