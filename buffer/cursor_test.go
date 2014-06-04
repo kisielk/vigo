@@ -336,4 +336,9 @@ func TestWordUnderCursor(t *testing.T) {
 		t.Error("Incorrect word:", word)
 	}
 
+	c.Boffset = 8
+	word = string(c.WordUnderCursor())
+	if word != "a" {
+		t.Error("Expected single charactor word - Got:", word)
+	}
 }
