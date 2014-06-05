@@ -317,7 +317,7 @@ func (c *Cursor) NextRuneFunc(f func(rune) bool) bool {
 			c.Boffset += rlen
 			r, rlen = c.RuneUnder()
 		}
-		if c.EOL() {
+		if c.EOL() && !f(r) {
 			continue
 		}
 		break

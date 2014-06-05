@@ -194,6 +194,7 @@ func TestEndWord(t *testing.T) {
 		"}",
 	)
 	stops := []Cursor{
+		{lines[0], 0, 9},
 		{lines[1], 1, 3},
 		{lines[1], 1, 7},
 		{lines[1], 1, 8},
@@ -206,8 +207,8 @@ func TestEndWord(t *testing.T) {
 		{lines[4], 4, 0},
 	}
 
-	// Start at line 2 offset 2 (func)
-	c := &Cursor{Line: lines[1], Boffset: 2}
+	// Start at line 1 offset 5 (comment)
+	c := &Cursor{Line: lines[0], Boffset: 5}
 
 	for i := 0; i < len(stops); i++ {
 		c.EndWord()
