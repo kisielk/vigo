@@ -446,7 +446,7 @@ func (c *Cursor) PrevWord() bool {
 			})
 		}
 	}
-	return !c.BOL()
+	return true
 }
 
 func (c *Cursor) OnInsertAdjust(a *Action) {
