@@ -301,26 +301,17 @@ func (c *Cursor) WordUnderCursor() []byte {
 // Move cursor forward until current rune satisfies condition f.
 // Returns true if the move was successful, false if EOF reached.
 func (c *Cursor) NextRuneFunc(f func(rune) bool) bool {
-	for {
+	r, rlen := c.RuneUnder()
+	for !f(r) {
 		if c.EOL() {
-			if c.LastLine() {
+			next := c.NextLine()
+			if !next {
 				return false
-			} else {
-				c.Line = c.Line.Next
-				c.LineNum++
-				c.Boffset = 0
-				continue
 			}
+			c.Boffset = 0
 		}
-		r, rlen := c.RuneUnder()
-		for !f(r) && !c.EOL() {
-			c.Boffset += rlen
-			r, rlen = c.RuneUnder()
-		}
-		if c.EOL() && !f(r) {
-			continue
-		}
-		break
+		c.Boffset += rlen
+		r, rlen = c.RuneUnder()
 	}
 	return true
 }
