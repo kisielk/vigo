@@ -28,6 +28,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 
 	g := m.editor
 	v := g.ActiveView()
+	c := v.Cursor()
 
 	// Consequtive non-zero digits specify action multiplier;
 	// accumulate and return. Accept zero only if it's
@@ -53,8 +54,11 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		// TODO Ctrl-U and CTRL-D have configurable ranges of motion.
 		switch ev.Key {
 		case termbox.KeyCtrlA:
-			// TODO: search for next occurrence of word under cursor
-			return
+			term := c.WordUnderCursor()
+			if term != nil {
+				storeSearchTerm(g, string(term))
+				g.Commands <- cmd.Search{Dir: cmd.Forward}
+			}
 		case termbox.KeyCtrlB:
 			g.Commands <- cmd.MoveView{Dir: cmd.Backward, Lines: viewHeight}
 		case termbox.KeyCtrlD:
@@ -77,8 +81,8 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 			// TODO: redraw screen
 			return
 		case termbox.KeyCtrlM:
-			// TODO: move to front of next line
-			return
+			g.Commands <- cmd.MoveLine{Dir: cmd.Forward}
+			g.Commands <- cmd.MoveFOL{}
 		case termbox.KeyCtrlP:
 			// same as 'k'
 			g.Commands <- cmd.Repeat{cmd.MoveLine{Dir: cmd.Backward}, count}
@@ -88,7 +92,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 			// TODO: should move by count lines, default to 1/2 screen
 			g.Commands <- cmd.MoveView{Dir: cmd.Backward, Lines: viewHeight / 2}
 		case termbox.KeyCtrlV:
-			// TODO: Start visual selection
+			// TODO: Start visual (block) selection
 			return
 		case termbox.KeyCtrlW:
 			// TODO Use count for window width/height

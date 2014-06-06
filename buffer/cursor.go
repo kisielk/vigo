@@ -71,6 +71,14 @@ func (c *Cursor) RuneBefore() (rune, int) {
 	return utf8.DecodeLastRune(c.Line.Data[:c.Boffset])
 }
 
+// RuneAfter return the rune after the current cursor and its width in bytes.
+func (c *Cursor) RuneAfter() (rune, int) {
+	if c.Boffset == len(c.Line.Data) {
+		return utf8.RuneError, 0
+	}
+	return utf8.DecodeRune(c.Line.Data[c.Boffset+1:])
+}
+
 // FirstLine reports whether the cursor is at the first line of the buffer.
 func (c *Cursor) FirstLine() bool {
 	return c.Line.Prev == nil
@@ -245,15 +253,44 @@ func (c *Cursor) MoveEOL() {
 
 func (c *Cursor) WordUnderCursor() []byte {
 	end, beg := *c, *c
-	r, rlen := beg.RuneBefore()
-	if r == utf8.RuneError {
+	var (
+		r rune
+		rlen int
+	)
+
+	r, _ = beg.RuneUnder()
+	if unicode.IsSpace(r) {
 		return nil
 	}
 
-	for utils.IsWord(r) && !beg.BOL() {
-		beg.Boffset -= rlen
+	if !beg.BOL() {
 		r, rlen = beg.RuneBefore()
+		if r == utf8.RuneError {
+			return nil
+		}
+
+		// move the `beg` cursor back to the start of the word
+		for utils.IsWord(r) && !beg.BOL() {
+			beg.Boffset -= rlen
+			r, rlen = beg.RuneBefore()
+		}
 	}
+
+	// set the end cursor to the same position as the start cursor
+	end.Boffset = beg.Boffset
+
+	// check if the word is just a single character
+	r, rlen = end.RuneAfter()
+	if !utils.IsWord(r) {
+		return c.Line.Data[end.Boffset:end.Boffset+1]
+	}
+
+	// move to the the rune after the end of the word
+	for utils.IsWord(r) && !end.EOL() {
+		end.Boffset += rlen
+		r, rlen = end.RuneAfter()
+	}
+	end.NextRune(false)
 
 	if beg.Boffset == end.Boffset {
 		return nil

@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"testing"
+	"unicode/utf8"
 )
 
 // makeLines converts text into an array of lines.
@@ -298,5 +299,98 @@ func TestSortCursors(t *testing.T) {
 		if out1 != p.out1 || out2 != p.out2 {
 			t.Error("Wrong cursor order")
 		}
+	}
+}
+
+func TestRuneAfter(t *testing.T) {
+	lines := makeLines("this is a test line")
+	c := &Cursor{Line: lines[0], Boffset: 2}
+
+	// test cursor is in the middle of a word
+	r, rlen := c.RuneAfter()
+	if r != 's' {
+		t.Error("Incorrect rune")
+	}
+	if rlen != 1 {
+		t.Error("Incorrect width")
+	}
+
+	// test cursor is at the end of a word
+	c.Boffset = 3
+	r, rlen = c.RuneAfter()
+	if r != ' ' {
+		t.Error("Incorrect rune")
+	}
+	if rlen != 1 {
+		t.Error("Incorrect width")
+	}
+
+	// test if the cursor is at the end of the line
+	c.Boffset = len(c.Line.Data)
+	r, rlen = c.RuneAfter()
+	if r != utf8.RuneError {
+		t.Error("Expected RuneError")
+	}
+	if rlen != 0 {
+		t.Error("Incorrect width")
+	}
+}
+
+func TestWordUnderCursor(t *testing.T) {
+	lines := makeLines(
+		"this is a test line",
+		"another line      with whitespace",
+	)
+
+	c := &Cursor{Line: lines[0], Boffset: 2}
+	c2 := &Cursor{Line: lines[1], Boffset: 14}
+
+	// check a regular word
+	word := string(c.WordUnderCursor())
+	if word != "this" {
+		t.Error("Incorrect word:", word)
+	}
+
+	// check a small word
+	c.Boffset = 5
+	word = string(c.WordUnderCursor())
+	if word != "is" {
+		t.Error("Incorrect word:", word)
+	}
+
+	// check that if the cursor is at the start of the line
+	// that the correct word is returned.
+	c.Boffset = 0
+	word = string(c.WordUnderCursor())
+	if word != "this" {
+		t.Error("Incorrect word:", word)
+	}
+
+	// check that if the cursor is at the end of the line
+	// the correct word is returned.
+	c.MoveEOL()
+	word = string(c.WordUnderCursor())
+	if word != "line" {
+		t.Error("Incorrect word:", word)
+	}
+
+	// cursor is at the end of a word
+	c.Boffset = 3
+	word = string(c.WordUnderCursor())
+	if word != "this" {
+		t.Error("Incorrect word:", word)
+	}
+
+	// cursor is on a single character word
+	c.Boffset = 8
+	word = string(c.WordUnderCursor())
+	if word != "a" {
+		t.Error("Expected single charactor word - Got:", word)
+	}
+
+	// cursor is on whitespace
+	w := c2.WordUnderCursor()
+	if w != nil {
+		t.Error("Expected to return nil")
 	}
 }
