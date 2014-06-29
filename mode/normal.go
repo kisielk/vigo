@@ -8,8 +8,9 @@ import (
 )
 
 type normalMode struct {
-	editor *editor.Editor
-	count  string
+	editor  *editor.Editor
+	count   string
+	command editor.Command
 }
 
 func NewNormalMode(e *editor.Editor) *normalMode {
@@ -42,6 +43,18 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	count := utils.ParseCount(m.count)
 	if count == 0 {
 		count = 1
+	}
+
+	// Consecutive comands that require futher input to complete;
+	// accumulate and return.  Accept escape to reset the command
+	switch ev.Ch {
+	case 0x0:
+		switch ev.Key {
+		case termbox.KeyEsc:
+			m.count = ""
+			m.command = nil
+			return
+		}
 	}
 
 	// TODO: For (half)screen moving commands, use view.Height() in
@@ -103,9 +116,6 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		case termbox.KeyCtrlY:
 			// TODO: should move by count lines, default to 1
 			g.Commands <- cmd.MoveView{Dir: cmd.Backward, Lines: 1}
-		case termbox.KeyEsc:
-			// TODO: Cancel the current command
-			return
 		case termbox.KeySpace:
 			// Same as 'l'
 			g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Forward, Wrap: false}, count}
@@ -125,7 +135,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		// TODO: Distinction from 'e'
 		g.Commands <- cmd.Repeat{cmd.MoveWordEnd{}, count}
 	case 'F':
-		// TODO: Move left to given character
+		// TODO: Distinction from 'f' - move the the first (nth) occurence of following rune
 		return
 	case 'G':
 		// TODO: Move to line #, default last line
@@ -198,6 +208,8 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		g.Commands <- cmd.Repeat{cmd.MoveWord{Dir: cmd.Forward}, count}
 	case 'e':
 		g.Commands <- cmd.Repeat{cmd.MoveWordEnd{}, count}
+	case 'f':
+		// TODO: Move to first (nth) occurance of entered rune to the right
 	case 'b':
 		g.Commands <- cmd.Repeat{cmd.MoveWord{Dir: cmd.Backward}, count}
 	case 'x':
@@ -229,6 +241,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 
 	// Reset repetitions
 	m.count = ""
+	m.command = nil
 }
 
 func (m *normalMode) Exit() {
