@@ -21,19 +21,22 @@ func NewSearchMode(editor *editor.Editor, mode editor.Mode) SearchMode {
 	return m
 }
 
-func (m SearchMode) Enter(e *editor.Editor) {
+func (m *SearchMode) Enter(e *editor.Editor) {
 }
 
-func (m SearchMode) NeedsCursor() bool {
+func (m *SearchMode) NeedsCursor() bool {
 	return true
 }
 
-func (m SearchMode) CursorPosition() (int, int) {
+func (m *SearchMode) CursorPosition() (int, int) {
 	e := m.editor
 	return m.buffer.Len() + 1, e.Height() - 1
 }
 
-func (m SearchMode) OnKey(ev *termbox.Event) {
+func (m *SearchMode) Reset () {
+}
+
+func (m *SearchMode) OnKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
 		m.editor.SetMode(m.mode)
@@ -55,9 +58,9 @@ func (m SearchMode) OnKey(ev *termbox.Event) {
 	}
 }
 
-func (m SearchMode) Exit() {}
+func (m *SearchMode) Exit() {}
 
-func (m SearchMode) Draw() {
+func (m *SearchMode) Draw() {
 	m.editor.DrawStatus([]byte("/" + m.buffer.String()))
 }
 

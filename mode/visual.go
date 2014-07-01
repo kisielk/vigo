@@ -8,14 +8,14 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-type visualMode struct {
+type VisualMode struct {
 	editor   *editor.Editor
 	count    string
 	lineMode bool
 }
 
-func NewVisualMode(e *editor.Editor, lineMode bool) visualMode {
-	m := visualMode{editor: e, lineMode: lineMode}
+func NewVisualMode(e *editor.Editor, lineMode bool) VisualMode {
+	m := VisualMode{editor: e, lineMode: lineMode}
 	v := m.editor.ActiveView()
 	c := v.Cursor()
 
@@ -37,10 +37,10 @@ func NewVisualMode(e *editor.Editor, lineMode bool) visualMode {
 	return m
 }
 
-func (m *visualMode) Enter(e *editor.Editor) {
+func (m *VisualMode) Enter(e *editor.Editor) {
 }
 
-func (m *visualMode) OnKey(ev *termbox.Event) {
+func (m *VisualMode) OnKey(ev *termbox.Event) {
 
 	// Consequtive non-zero digits specify action multiplier;
 	// accumulate and return. Accept zero only if it's
@@ -90,11 +90,11 @@ func (m *visualMode) OnKey(ev *termbox.Event) {
 	m.Reset()
 }
 
-func (m *visualMode) Reset() {
+func (m *VisualMode) Reset() {
   m.count = ""
 }
 
-func (m *visualMode) Exit() {
+func (m *VisualMode) Exit() {
 	v := m.editor.ActiveView()
 	v.SetSelection(view.Selection{Type: view.SelectionNone})
 }
