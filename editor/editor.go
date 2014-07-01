@@ -51,6 +51,12 @@ type Command interface {
 	Apply(*Editor)
 }
 
+type EditorMode interface {
+	Reset()
+	OnKey(*termbox.Event)
+}
+
+
 type Editor struct {
 	uiBuf       tulib.Buffer
 	active      *view.Tree // this one is always a leaf node
