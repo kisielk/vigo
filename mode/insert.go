@@ -4,7 +4,6 @@ import (
 	cmd "github.com/kisielk/vigo/commands"
 	"github.com/kisielk/vigo/editor"
 	"github.com/nsf/termbox-go"
-	"time"
 )
 
 type InsertMode struct {
@@ -36,48 +35,25 @@ func NewInsertMode(editor *editor.Editor, count int) (m *InsertMode) {
 }
 
 func (m *InsertMode) OnKey(ev *termbox.Event) {
-	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlC {
-		m.editor.SetMode(NewNormalMode(m.editor))
-		return
-	}
-
-	var eventChan = make(chan *termbox.Event)
-
 	g := m.editor
 
-	go m.getCommand(g.Commands, eventChan)
-
-	eventChan <- ev
-
-	close(eventChan)
-}
-
-func (m *InsertMode) getCommand(commandChan chan<- editor.Command, eventChan <-chan *termbox.Event) {
-
-	var ev *termbox.Event
-
-	select {
-	case ev = <-eventChan:
-		switch ev.Key {
-		case termbox.KeyBackspace, termbox.KeyBackspace2:
-			commandChan <- cmd.DeleteRuneBackward{}
-		case termbox.KeyDelete, termbox.KeyCtrlD:
-			commandChan <- cmd.DeleteRune{}
-		case termbox.KeySpace:
-			commandChan <- cmd.InsertRune{' '}
-		case termbox.KeyEnter:
-			// we use '\r' for <enter>, because it doesn't cause autoindent
-			commandChan <- cmd.InsertRune{'\r'}
-		case termbox.KeyCtrlJ:
-			commandChan <- cmd.InsertRune{'\n'}
-		default:
-			if ev.Ch != 0 {
-				commandChan <- cmd.InsertRune{ev.Ch}
-			}
+	switch ev.Key {
+	case termbox.KeyEsc, termbox.KeyCtrlC:
+		g.SetMode(NewNormalMode(g))
+	case termbox.KeyBackspace, termbox.KeyBackspace2:
+		g.Commands <- cmd.DeleteRuneBackward{}
+	case termbox.KeyDelete, termbox.KeyCtrlD:
+		g.Commands <- cmd.DeleteRune{}
+	case termbox.KeySpace:
+		g.Commands <- cmd.InsertRune{' '}
+	case termbox.KeyEnter:
+		// we use '\r' for <enter>, because it doesn't cause autoindent
+		g.Commands <- cmd.InsertRune{'\r'}
+	case termbox.KeyCtrlJ:
+		g.Commands <- cmd.InsertRune{'\n'}
+	default:
+		if ev.Ch != 0 {
+			g.Commands <- cmd.InsertRune{ev.Ch}
 		}
-	case <-time.After(time.Nanosecond * 500 * 1000000):
-		commandChan <- cmd.ResetMode{Mode: m}
 	}
-	close(commandChan)
 }
-
