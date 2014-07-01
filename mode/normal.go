@@ -23,6 +23,11 @@ func (m *normalMode) Enter(e *editor.Editor) {
 	e.ActiveView().Buffer().FinalizeActionGroup()
 }
 
+func (m *normalMode) Reset() {
+	m.count = ""
+	m.command = nil
+}
+
 func (m *normalMode) OnKey(ev *termbox.Event) {
 	// Most of the key bindings are derived from those at
 	// http://elvis.the-little-red-haired-girl.org/elvisman/elvisvi.html#index
@@ -51,9 +56,8 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	case 0x0:
 		switch ev.Key {
 		case termbox.KeyEsc:
-			m.count = ""
-			m.command = nil
-			return
+      m.Reset()
+      return
 		}
 	}
 
@@ -240,8 +244,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	}
 
 	// Reset repetitions
-	m.count = ""
-	m.command = nil
+  m.Reset()
 }
 
 func (m *normalMode) Exit() {
