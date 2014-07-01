@@ -11,6 +11,10 @@ type WindowMode struct {
 	count  int
 }
 
+func NewWindowMode(editor *editor.Editor, count int) WindowMode {
+	return WindowMode{editor: editor, count: count}
+}
+
 func (m *WindowMode) Reset() {
 }
 
@@ -19,11 +23,6 @@ func (m *WindowMode) Exit() {
 
 func (m *WindowMode) Enter(e *editor.Editor) {
 }
-
-func NewWindowMode(editor *editor.Editor, count int) WindowMode {
-	return WindowMode{editor: editor, count: count}
-}
-
 
 func (m *WindowMode) OnKey(ev *termbox.Event) {
 	switch ev.Ch {
@@ -40,4 +39,3 @@ func (m *WindowMode) OnKey(ev *termbox.Event) {
 	}
 	m.editor.SetMode(NewNormalMode(m.editor))
 }
-

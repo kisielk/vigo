@@ -36,10 +36,8 @@ func NewInsertMode(editor *editor.Editor, count int) InsertMode {
 }
 
 func (m *InsertMode) OnKey(ev *termbox.Event) {
-	var newMode editor.Mode
 	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlC {
-		newMode = NewNormalMode(m.editor)
-		m.editor.SetMode(&newMode)
+		m.editor.SetMode(NewNormalMode(m.editor))
 		return
 	}
 

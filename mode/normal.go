@@ -32,8 +32,6 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	// Most of the key bindings are derived from those at
 	// http://elvis.the-little-red-haired-girl.org/elvisman/elvisvi.html#index
 
-	var newMode editor.Mode
-
 	g := m.editor
 	v := g.ActiveView()
 	c := v.Cursor()
@@ -115,8 +113,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 			return
 		case termbox.KeyCtrlW:
 			// TODO Use count for window width/height
-			newMode = NewWindowMode(g, count)
-			g.SetMode(&newMode)
+			g.SetMode(NewWindowMode(g, count))
 		case termbox.KeyCtrlX:
 			// TODO: Move to column count
 			return
@@ -129,15 +126,13 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		}
 	case 'A':
 		g.Commands <- cmd.MoveEOL{}
-		newMode = NewInsertMode(g, count)
-		g.SetMode(&newMode)
+		g.SetMode(NewInsertMode(g, count))
 	case 'B':
 		// TODO: Distinction from 'b'
 		g.Commands <- cmd.Repeat{cmd.MoveWord{Dir: cmd.Backward}, count}
 	case 'C':
 		g.Commands <- cmd.DeleteEOL{}
-		newMode = NewInsertMode(g, count)
-		g.SetMode(&newMode)
+		g.SetMode(NewInsertMode(g, count))
 	case 'D':
 		g.Commands <- cmd.DeleteEOL{}
 	case 'E':
@@ -154,8 +149,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		return
 	case 'I':
 		g.Commands <- cmd.MoveFOL{}
-		newMode = NewInsertMode(g, count)
-		g.SetMode(&newMode)
+		g.SetMode(NewInsertMode(g, count))
 	case 'J':
 		// TODO: Join lines, whitespace separated
 		return
@@ -172,8 +166,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		g.Commands <- cmd.Search{Dir: cmd.Backward}
 	case 'O':
 		g.Commands <- cmd.Repeat{cmd.NewLine{Dir: cmd.Backward}, count}
-		newMode = NewInsertMode(g, count)
-		g.SetMode(&newMode)
+		g.SetMode(NewInsertMode(g, count))
 	case 'P':
 		// TODO: Paste text before cursor
 		return
@@ -214,8 +207,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Forward, Wrap: false}, count}
 	case 'o':
 		g.Commands <- cmd.Repeat{cmd.NewLine{Dir: cmd.Forward}, count}
-		newMode = NewInsertMode(g, count)
-		g.SetMode(&newMode)
+		g.SetMode(NewInsertMode(g, count))
 	case 'w':
 		g.Commands <- cmd.Repeat{cmd.MoveWord{Dir: cmd.Forward}, count}
 	case 'e':
@@ -235,20 +227,15 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	switch ev.Ch {
 	case 'a':
 		g.Commands <- cmd.MoveRune{Dir: cmd.Forward, Wrap: false}
-		newMode = NewInsertMode(g, count)
-		g.SetMode(&newMode)
+		g.SetMode(NewInsertMode(g, count))
 	case 'd':
-		newMode = NewTextObjectMode(g, m, v.Buffer().DeleteRange, count)
-		g.SetMode(&newMode)
+		g.SetMode(NewTextObjectMode(g, m, v.Buffer().DeleteRange, count))
 	case 'i':
-		newMode = NewInsertMode(g, count)
-		g.SetMode(&newMode)
+		g.SetMode(NewInsertMode(g, count))
 	case 'v':
-		newMode = NewVisualMode(g, false)
-		g.SetMode(&newMode)
+		g.SetMode(NewVisualMode(g, false))
 	case 'V':
-		newMode = NewVisualMode(g, false)
-		g.SetMode(&newMode)
+		g.SetMode(NewVisualMode(g, false))
 	case ':':
 		// TODO use count to set range for command mode
 		g.SetMode(NewCommandMode(g, m))

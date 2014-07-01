@@ -23,7 +23,7 @@ func NewCommandMode(editor *editor.Editor, mode editor.Mode) CommandMode {
 }
 
 func (m *CommandMode) Reset() {
-	m.editor.SetMode(&m.mode)
+	m.editor.SetMode(m.mode)
 }
 
 func (m *CommandMode) Enter(e *editor.Editor) {
@@ -54,7 +54,7 @@ func (m *CommandMode) OnKey(ev *termbox.Event) {
 		} else {
 			m.editor.SetStatus(":" + c)
 		}
-		m.editor.SetMode(&m.mode)
+		m.editor.SetMode(m.mode)
 	case termbox.KeySpace:
 		m.buffer.WriteRune(' ')
 	default:
