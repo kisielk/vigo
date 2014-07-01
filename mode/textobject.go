@@ -133,3 +133,6 @@ func (m *TextObjectMode) Exit() {
 		m.editor.SetStatus("range conversion not implemented")
 	}
 }
+
+func (m *TextObjectMode) Reset() {
+}

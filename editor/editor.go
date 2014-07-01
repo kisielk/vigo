@@ -18,6 +18,7 @@ type Mode interface {
 	Enter(e *Editor)
 	OnKey(ev *termbox.Event)
 	Exit()
+	Reset()
 }
 
 // this is a structure which represents a key press, used for keyboard macros
@@ -50,12 +51,6 @@ var ErrQuit = errors.New("quit")
 type Command interface {
 	Apply(*Editor)
 }
-
-type EditorMode interface {
-	Reset()
-	OnKey(*termbox.Event)
-}
-
 
 type Editor struct {
 	uiBuf       tulib.Buffer
@@ -438,17 +433,17 @@ func (e *Editor) handleUIEvent(ev *termbox.Event) error {
 // SetMode sets active editor mode.
 // The specified mode instance will react to keys and other user input until
 // another mode is set.
-func (e *Editor) SetMode(m Mode) {
+func (e *Editor) SetMode(m *Mode) {
 	if e.mode != nil {
 		e.mode.Exit()
 	}
-	e.mode = m
+	e.mode = *m
 	e.overlay = nil
 	// Some modes can be overlays.
-	if o, ok := m.(Overlay); ok {
+	if o, ok := (*m).(Overlay); ok {
 		e.overlay = o
 	}
-	m.Enter(e)
+	(*m).Enter(e)
 }
 
 func (e *Editor) viewContext() view.Context {

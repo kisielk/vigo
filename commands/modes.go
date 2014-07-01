@@ -4,7 +4,7 @@ import (
 	"github.com/kisielk/vigo/editor"
 )
 type ResetMode struct {
-	Mode editor.EditorMode
+	Mode editor.Mode
 }
 
 func (m ResetMode) Apply(e *editor.Editor) {

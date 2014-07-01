@@ -7,28 +7,39 @@ import (
 	"time"
 )
 
-type insertMode struct {
+type InsertMode struct {
 	editor *editor.Editor
 	count  int
 }
 
-func NewInsertMode(editor *editor.Editor, count int) insertMode {
-	m := insertMode{editor: editor}
+func (m *InsertMode) Reset() {
+}
+
+func (m *InsertMode) Enter(e *editor.Editor) {
+}
+
+func (m *InsertMode) Exit() {
+	// repeat action specified number of times
+	v := m.editor.ActiveView()
+	b := v.Buffer()
+	for i := 0; i < m.count-1; i++ {
+		a := b.History.LastAction()
+		a.Apply(b)
+	}
+}
+
+func NewInsertMode(editor *editor.Editor, count int) InsertMode {
+	m := InsertMode{editor: editor}
 	m.editor.SetStatus("Insert")
 	m.count = count
 	return m
 }
 
-func (m insertMode) Enter(editor *editor.Editor) {
-}
-
-func (m insertMode) Reset() {
-
-}
-
-func (m insertMode) OnKey(ev *termbox.Event) {
+func (m *InsertMode) OnKey(ev *termbox.Event) {
+	var newMode editor.Mode
 	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlC {
-		m.editor.SetMode(NewNormalMode(m.editor))
+		newMode = NewNormalMode(m.editor)
+		m.editor.SetMode(&newMode)
 		return
 	}
 
@@ -43,7 +54,7 @@ func (m insertMode) OnKey(ev *termbox.Event) {
 	close(eventChan)
 }
 
-func (m insertMode) getCommand(commandChan chan<- editor.Command, eventChan <-chan *termbox.Event) {
+func (m *InsertMode) getCommand(commandChan chan<- editor.Command, eventChan <-chan *termbox.Event) {
 
 	var ev *termbox.Event
 
@@ -72,12 +83,3 @@ func (m insertMode) getCommand(commandChan chan<- editor.Command, eventChan <-ch
 	close(commandChan)
 }
 
-func (m insertMode) Exit() {
-	// repeat action specified number of times
-	v := m.editor.ActiveView()
-	b := v.Buffer()
-	for i := 0; i < m.count-1; i++ {
-		a := b.History.LastAction()
-		a.Apply(b)
-	}
-}
