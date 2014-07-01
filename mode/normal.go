@@ -56,7 +56,7 @@ func (m *NormalMode) OnKey(ev *termbox.Event) {
 	case 0x0:
 		switch ev.Key {
 		case termbox.KeyEsc:
-      m.Reset()
+			g.Commands <- cmd.ResetMode{Mode: m}
       return
 		}
 	}
