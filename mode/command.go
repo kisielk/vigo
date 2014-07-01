@@ -17,9 +17,9 @@ type CommandMode struct {
 	buffer *bytes.Buffer
 }
 
-func NewCommandMode(editor *editor.Editor, mode editor.Mode) CommandMode {
+func NewCommandMode(editor *editor.Editor, mode editor.Mode) *CommandMode {
 	m := CommandMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
-	return m
+	return &m
 }
 
 func (m *CommandMode) Reset() {

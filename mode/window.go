@@ -11,8 +11,8 @@ type WindowMode struct {
 	count  int
 }
 
-func NewWindowMode(editor *editor.Editor, count int) WindowMode {
-	return WindowMode{editor: editor, count: count}
+func NewWindowMode(editor *editor.Editor, count int) *WindowMode {
+	return &WindowMode{editor: editor, count: count}
 }
 
 func (m *WindowMode) Reset() {

@@ -16,9 +16,9 @@ type SearchMode struct {
 	buffer *bytes.Buffer
 }
 
-func NewSearchMode(editor *editor.Editor, mode editor.Mode) SearchMode {
+func NewSearchMode(editor *editor.Editor, mode editor.Mode) *SearchMode {
 	m := SearchMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
-	return m
+	return &m
 }
 
 func (m *SearchMode) Enter(e *editor.Editor) {

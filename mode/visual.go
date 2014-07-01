@@ -14,7 +14,7 @@ type VisualMode struct {
 	lineMode bool
 }
 
-func NewVisualMode(e *editor.Editor, lineMode bool) VisualMode {
+func NewVisualMode(e *editor.Editor, lineMode bool) *VisualMode {
 	m := VisualMode{editor: e, lineMode: lineMode}
 	v := m.editor.ActiveView()
 	c := v.Cursor()
@@ -34,7 +34,7 @@ func NewVisualMode(e *editor.Editor, lineMode bool) VisualMode {
 
 	v.SetSelection(sel)
 
-	return m
+	return &m
 }
 
 func (m *VisualMode) Enter(e *editor.Editor) {

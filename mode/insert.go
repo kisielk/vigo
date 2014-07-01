@@ -28,11 +28,11 @@ func (m *InsertMode) Exit() {
 	}
 }
 
-func NewInsertMode(editor *editor.Editor, count int) InsertMode {
-	m := InsertMode{editor: editor}
+func NewInsertMode(editor *editor.Editor, count int) (m *InsertMode) {
+	m = &InsertMode{editor: editor}
 	m.editor.SetStatus("Insert")
 	m.count = count
-	return m
+	return
 }
 
 func (m *InsertMode) OnKey(ev *termbox.Event) {
