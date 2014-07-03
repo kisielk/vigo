@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"text/template"
 
 	"github.com/kisielk/vigo/buffer"
 	"github.com/kisielk/vigo/view"
@@ -19,6 +20,8 @@ type Mode interface {
 	OnKey(ev *termbox.Event)
 	Exit()
 }
+
+const EDITOR_STATUS_TEMPLATE = `{{range .Messages}} {{ . }} {{ end }}`
 
 // this is a structure which represents a key press, used for keyboard macros
 type keyEvent struct {
@@ -60,6 +63,8 @@ type Editor struct {
 	quitFlag    bool
 	killBuffer_ []byte
 
+	StatusTemplate template.Template
+
 	LastSearchTerm string
 
 	// Event channels
@@ -91,6 +96,12 @@ func NewEditor(filenames []string) *Editor {
 	e := new(Editor)
 	e.buffers = make([]*buffer.Buffer, 0, 20)
 	e.cutBuffers = newCutBuffers()
+
+	tmp, err := template.New("status").Parse(EDITOR_STATUS_TEMPLATE)
+	if err != nil {
+		panic(fmt.Errorf("Bad template string: %s", err))
+	}
+	e.StatusTemplate = *tmp
 
 	for _, filename := range filenames {
 		//TODO: Check errors here
@@ -156,7 +167,7 @@ func (e *Editor) NewBufferFromFile(filename string) (*buffer.Buffer, error) {
 	f, err := os.Open(fullpath)
 	if err == os.ErrNotExist {
 		// Assume a new file
-		e.SetStatus("(New file)")
+		e.SetStatus()
 		buf = buffer.NewEmptyBuffer()
 	} else if err != nil {
 		e.SetStatus(err.Error())
@@ -175,9 +186,13 @@ func (e *Editor) NewBufferFromFile(filename string) (*buffer.Buffer, error) {
 	return buf, nil
 }
 
-func (e *Editor) SetStatus(format string, args ...interface{}) {
+func (e *Editor) SetStatus(args ...interface{}) {
 	e.statusBuf.Reset()
-	fmt.Fprintf(&e.statusBuf, format, args...)
+	data := struct {
+		Messages []interface{}
+	} {
+		args}
+	e.StatusTemplate.Execute(&e.statusBuf, data)
 }
 
 func (e *Editor) SetActiveViewNode(node *view.Tree) {
