@@ -457,6 +457,10 @@ func (b *Buffer) SaveAs(filename string) error {
 		return error( fmt.Errorf("couldn't determine absolute path: %s", err))
 	}
 
+	if b.Path == "" {
+		b.Path = fullpath
+	}
+
 	r := b.reader()
 	f, err := os.Create(filename)
 	if err != nil {
@@ -470,9 +474,6 @@ func (b *Buffer) SaveAs(filename string) error {
 	}
 
 	b.onDisk = b.History
-	if b.Path != ""{
-		b.Path = fullpath
-	}
 	b.Emit(BufferEvent{Type: BufferEventSave})
 
 	return nil
