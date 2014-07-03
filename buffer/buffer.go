@@ -470,8 +470,9 @@ func (b *Buffer) SaveAs(filename string) error {
 	}
 
 	b.onDisk = b.History
-	b.Name = filename
-	b.Path = fullpath
+	if b.Path != ""{
+		b.Path = fullpath
+	}
 	b.Emit(BufferEvent{Type: BufferEventSave})
 
 	return nil

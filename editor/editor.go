@@ -109,7 +109,7 @@ func NewEditor(filenames []string) *Editor {
 	}
 	if len(e.buffers) == 0 {
 		buf := buffer.NewEmptyBuffer()
-		buf.Name = e.bufferName("unnamed")
+		buf.Name = e.BufferName("unnamed")
 		e.buffers = append(e.buffers, buf)
 	}
 	e.redraw = make(chan struct{})
@@ -140,7 +140,7 @@ func (e *Editor) getBuffer(name string) *buffer.Buffer {
 }
 
 // BufferName generates a buffer name based on the one given.
-func (e *Editor) bufferName(name string) string {
+func (e *Editor) BufferName(name string) string {
 	if buf := e.getBuffer(name); buf == nil {
 		return name
 	}
@@ -181,7 +181,7 @@ func (e *Editor) NewBufferFromFile(filename string) (*buffer.Buffer, error) {
 	}
 	buf.Path = fullpath
 
-	buf.Name = e.bufferName(filename)
+	buf.Name = e.BufferName(filename)
 	e.buffers = append(e.buffers, buf)
 	return buf, nil
 }

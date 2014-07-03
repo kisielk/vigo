@@ -15,7 +15,7 @@ import (
 
 type dirtyFlag int
 
-const VIEW_STATUS_TEMPLATE = `{{ if .Name }} {{ .Name }} {{ else }} (new file) {{ end }}{{ if .Dirty }} [*] {{ end }}{{range .Messages}} {{ . }} {{ else }} | {{ end }}( {{ .Row }}, {{ .Column }} )`
+const VIEW_STATUS_TEMPLATE = `{{ if .Name }} {{ .Name }} {{ else }} (new file) {{ end }}{{ if not .Dirty }}[+]{{ end }} {{range .Messages}} {{ . }} {{ end }}( {{ .Row }}, {{ .Column }} )`
 
 const (
 	VerticalThreshold   = 5
@@ -551,6 +551,7 @@ func (v *View) drawStatus() {
 	lp := tulib.DefaultLabelParams
 	lp.Bg = termbox.AttrReverse
 	lp.Fg = termbox.AttrReverse | termbox.AttrBold
+
 	v.uiBuf.Fill(
 		tulib.Rect{X: 0, Y: v.height(), Width: v.uiBuf.Width, Height: 1},
 		termbox.Cell{Fg: termbox.AttrReverse, Bg: termbox.AttrReverse, Ch: '─'},
@@ -559,11 +560,9 @@ func (v *View) drawStatus() {
 	// Update Status
 	v.setViewStatus()
 
-	// filename
-	namel := v.statusBuf.Len()
 	lp.Fg = termbox.AttrReverse
-	
-	v.uiBuf.DrawLabel(tulib.Rect{X: 5 + namel, Y: v.height(), Width: v.uiBuf.Width, Height: 1}, &lp, v.statusBuf.Bytes())
+	v.uiBuf.DrawLabel(tulib.Rect{X: 5, Y: v.height(), Width: v.uiBuf.Width, Height: 1}, &lp, v.statusBuf.Bytes())
+
 	v.statusBuf.Reset()
 }
 
@@ -664,7 +663,7 @@ func (v *View) adjustCursorLine() {
 
 // ViewDirty returns true if the buffer contents of this view has changed
 func (v *View) ViewDirty() bool {
-	return dirtyContents == (v.dirty & dirtyContents)
+	return v.buf.SyncedWithDisk()
 }
 
 // When 'cursor_line' was changed, call this function to possibly adjust the
