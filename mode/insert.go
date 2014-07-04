@@ -11,6 +11,8 @@ type InsertMode struct {
 	count  int
 }
 
+// Reset (NOOP): in InsertMode reset is kind of meaningless
+// Kept for Interface reasons.
 func (m *InsertMode) Reset() {
 }
 

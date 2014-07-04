@@ -110,6 +110,7 @@ loop:
 	}
 }
 
+// Exit ... does... what?
 func (m *TextObjectMode) Exit() {
 	if m.err != nil {
 		m.editor.SetStatus(m.err.Error())
@@ -134,5 +135,6 @@ func (m *TextObjectMode) Exit() {
 	}
 }
 
+// Reset (NOOP)
 func (m *TextObjectMode) Reset() {
 }

@@ -33,8 +33,12 @@ func (m *SearchMode) CursorPosition() (int, int) {
 	return m.buffer.Len() + 1, e.Height() - 1
 }
 
-func (m *SearchMode) Reset () {
+// Reset NOOP
+func (m *SearchMode) Reset() {
 }
+
+// Exit NOOP
+func (m *SearchMode) Exit() {}
 
 func (m *SearchMode) OnKey(ev *termbox.Event) {
 	switch ev.Key {
@@ -57,8 +61,6 @@ func (m *SearchMode) OnKey(ev *termbox.Event) {
 		m.buffer.WriteRune(ev.Ch)
 	}
 }
-
-func (m *SearchMode) Exit() {}
 
 func (m *SearchMode) Draw() {
 	m.editor.DrawStatus([]byte("/" + m.buffer.String()))

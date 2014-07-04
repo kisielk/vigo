@@ -15,9 +15,12 @@ func NewWindowMode(editor *editor.Editor, count int) *WindowMode {
 	return &WindowMode{editor: editor, count: count}
 }
 
+// Reset (NOOP)
 func (m *WindowMode) Reset() {
 }
 
+// Exit (NOOP)
+//TODO should this close the window / split?
 func (m *WindowMode) Exit() {
 }
 

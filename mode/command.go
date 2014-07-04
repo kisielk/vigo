@@ -22,10 +22,11 @@ func NewCommandMode(editor *editor.Editor, mode editor.Mode) *CommandMode {
 	return &m
 }
 
+// Reset (NOOP)
 func (m *CommandMode) Reset() {
-	m.editor.SetMode(m.mode)
 }
 
+// Enter (NOOP)
 func (m *CommandMode) Enter(e *editor.Editor) {
 }
 
@@ -41,7 +42,7 @@ func (m CommandMode) CursorPosition() (int, int) {
 func (m *CommandMode) OnKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
-		m.Reset()
+		m.Exit()
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		l := m.buffer.Len()
 		if l > 0 {
@@ -62,7 +63,13 @@ func (m *CommandMode) OnKey(ev *termbox.Event) {
 	}
 }
 
+// Exit Set the mode to self the 'prior' mode
+// EG- if NewCommandMode was called from normal mode,
+// cmdMode := NewCommandMode(g, m) where g is *Editor,
+// m is editor.Mode (interface)
+// you would go back to that mode
 func (m CommandMode) Exit() {
+	m.editor.SetMode(m.mode)
 }
 
 func (m CommandMode) Draw() {

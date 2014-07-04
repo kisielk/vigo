@@ -90,10 +90,12 @@ func (m *VisualMode) OnKey(ev *termbox.Event) {
 	m.Reset()
 }
 
+// Reset the count state.
 func (m *VisualMode) Reset() {
-  m.count = ""
+	m.count = ""
 }
 
+// Exit visual mode by setting the selection to none.
 func (m *VisualMode) Exit() {
 	v := m.editor.ActiveView()
 	v.SetSelection(view.Selection{Type: view.SelectionNone})
