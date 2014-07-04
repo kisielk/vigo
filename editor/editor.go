@@ -21,7 +21,7 @@ type Mode interface {
 	Exit()
 }
 
-const EDITOR_STATUS_TEMPLATE = `{{range .Messages}} {{ . }} {{ end }}`
+const editorStatusTemplate = `{{range .Messages}} {{ . }} {{ end }}`
 
 // this is a structure which represents a key press, used for keyboard macros
 type keyEvent struct {
@@ -97,10 +97,7 @@ func NewEditor(filenames []string) *Editor {
 	e.buffers = make([]*buffer.Buffer, 0, 20)
 	e.cutBuffers = newCutBuffers()
 
-	tmp, err := template.New("status").Parse(EDITOR_STATUS_TEMPLATE)
-	if err != nil {
-		panic(fmt.Errorf("Bad template string: %s", err))
-	}
+	tmp := template.Must(template.New("status").Parse(editorStatusTemplate))
 	e.StatusTemplate = *tmp
 
 	for _, filename := range filenames {
@@ -190,7 +187,7 @@ func (e *Editor) SetStatus(args ...interface{}) {
 	e.statusBuf.Reset()
 	data := struct {
 		Messages []interface{}
-	} {
+	}{
 		args}
 	e.StatusTemplate.Execute(&e.statusBuf, data)
 }

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"unicode/utf8"
 	"text/template"
+	"unicode/utf8"
 
 	"github.com/kisielk/vigo/buffer"
 	"github.com/kisielk/vigo/utils"
@@ -15,7 +15,7 @@ import (
 
 type dirtyFlag int
 
-const VIEW_STATUS_TEMPLATE = `{{ if .Name }} {{ .Name }} {{ else }} (new file) {{ end }}{{ if not .Dirty }}[+]{{ end }} {{range .Messages}} {{ . }} {{ end }}( {{ .Row }}, {{ .Column }} )`
+const viewStatusTemplate = `{{ if .Name }} {{ .Name }} {{ else }} (new file) {{ end }}{{ if not .Dirty }}[+]{{ end }} {{range .Messages}} {{ . }} {{ end }}( {{ .Row }}, {{ .Column }} )`
 
 const (
 	VerticalThreshold   = 5
@@ -32,7 +32,6 @@ const (
 	// diretyEverything indicates that everything needs to be updated
 	dirtyEverything = dirtyContents | dirtyStatus
 )
-
 
 // viewLocation represents a view's position in the buffer. It needs to be
 // separated from the view, because it's also being saved by the buffer (in case
@@ -222,17 +221,17 @@ type Context struct {
 
 type StatusFunc func(args ...interface{})
 
-func (v *View) setViewStatus (args ...interface{}) {
+func (v *View) setViewStatus(args ...interface{}) {
 	v.statusBuf.Reset()
 	data := struct {
-		Name string
-		Dirty bool
-		Row int
-		Column int
+		Name     string
+		Dirty    bool
+		Row      int
+		Column   int
 		Messages []interface{}
-	} {
+	}{
 		v.buf.Name,
-		v.ViewDirty(),
+		v.IsDirty(),
 		v.cursor.LineNum,
 		v.cursorVoffset,
 		args}
@@ -284,7 +283,7 @@ func NewView(ctx Context, buf *buffer.Buffer, redraw chan struct{}) *View {
 		tags:            make([]Tag, 0, 10),
 		redraw:          redraw,
 		showHighlights:  true,
-		StatusTemplate:  *template.Must(template.New("viewstatus").Parse(VIEW_STATUS_TEMPLATE)),
+		StatusTemplate:  *template.Must(template.New("viewstatus").Parse(viewStatusTemplate)),
 	}
 	v.Attach(buf)
 	return v
@@ -661,8 +660,8 @@ func (v *View) adjustCursorLine() {
 	}
 }
 
-// ViewDirty returns true if the buffer contents of this view has changed
-func (v *View) ViewDirty() bool {
+// IsDirty returns true if the buffer contents of this view has changed
+func (v *View) IsDirty() bool {
 	return v.buf.SyncedWithDisk()
 }
 
