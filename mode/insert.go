@@ -36,6 +36,8 @@ func (m insertMode) OnKey(ev *termbox.Event) {
 	case termbox.KeyEnter:
 		// we use '\r' for <enter>, because it doesn't cause autoindent
 		g.Commands <- cmd.InsertRune{'\r'}
+	case termbox.KeyTab:
+		g.Commands <- cmd.InsertRune{'\t'}
 	case termbox.KeyCtrlJ:
 		g.Commands <- cmd.InsertRune{'\n'}
 	default:
