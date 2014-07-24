@@ -18,6 +18,7 @@ type Mode interface {
 	Enter(e *Editor)
 	OnKey(ev *termbox.Event)
 	Exit()
+	Reset()
 }
 
 // this is a structure which represents a key press, used for keyboard macros

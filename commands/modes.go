@@ -1,10 +1,17 @@
 package commands
 
-/*
 import (
 	"github.com/kisielk/vigo/editor"
 )
+type ResetMode struct {
+	Mode editor.Mode
+}
 
+func (m ResetMode) Apply(e *editor.Editor) {
+	m.Mode.Reset()
+}
+
+/*
 type EnterNormalMode struct{}
 
 func (_ EnterNormalMode) Apply(e *editor.Editor) {

@@ -6,22 +6,38 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-type insertMode struct {
+type InsertMode struct {
 	editor *editor.Editor
 	count  int
 }
 
-func NewInsertMode(editor *editor.Editor, count int) insertMode {
-	m := insertMode{editor: editor}
+// Reset (NOOP): in InsertMode reset is kind of meaningless
+// Kept for Interface reasons.
+func (m *InsertMode) Reset() {
+}
+
+func (m *InsertMode) Enter(e *editor.Editor) {
+}
+
+func (m *InsertMode) Exit() {
+	// repeat action specified number of times
+	v := m.editor.ActiveView()
+	b := v.Buffer()
+	for i := 0; i < m.count-1; i++ {
+		a := b.History.LastAction()
+		a.Apply(b)
+	}
+}
+
+func NewInsertMode(editor *editor.Editor, count int) *InsertMode {
+	var m *InsertMode
+	m = &InsertMode{editor: editor}
 	m.editor.SetStatus("Insert")
 	m.count = count
 	return m
 }
 
-func (m insertMode) Enter(editor *editor.Editor) {
-}
-
-func (m insertMode) OnKey(ev *termbox.Event) {
+func (m *InsertMode) OnKey(ev *termbox.Event) {
 	g := m.editor
 
 	switch ev.Key {
@@ -44,15 +60,5 @@ func (m insertMode) OnKey(ev *termbox.Event) {
 		if ev.Ch != 0 {
 			g.Commands <- cmd.InsertRune{ev.Ch}
 		}
-	}
-}
-
-func (m insertMode) Exit() {
-	// repeat action specified number of times
-	v := m.editor.ActiveView()
-	b := v.Buffer()
-	for i := 0; i < m.count-1; i++ {
-		a := b.History.LastAction()
-		a.Apply(b)
 	}
 }

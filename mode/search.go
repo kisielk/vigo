@@ -16,24 +16,31 @@ type SearchMode struct {
 	buffer *bytes.Buffer
 }
 
-func NewSearchMode(editor *editor.Editor, mode editor.Mode) SearchMode {
+func NewSearchMode(editor *editor.Editor, mode editor.Mode) *SearchMode {
 	m := SearchMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
-	return m
+	return &m
 }
 
-func (m SearchMode) Enter(e *editor.Editor) {
+func (m *SearchMode) Enter(e *editor.Editor) {
 }
 
-func (m SearchMode) NeedsCursor() bool {
+func (m *SearchMode) NeedsCursor() bool {
 	return true
 }
 
-func (m SearchMode) CursorPosition() (int, int) {
+func (m *SearchMode) CursorPosition() (int, int) {
 	e := m.editor
 	return m.buffer.Len() + 1, e.Height() - 1
 }
 
-func (m SearchMode) OnKey(ev *termbox.Event) {
+// Reset NOOP
+func (m *SearchMode) Reset() {
+}
+
+// Exit NOOP
+func (m *SearchMode) Exit() {}
+
+func (m *SearchMode) OnKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
 		m.editor.SetMode(m.mode)
@@ -55,9 +62,7 @@ func (m SearchMode) OnKey(ev *termbox.Event) {
 	}
 }
 
-func (m SearchMode) Exit() {}
-
-func (m SearchMode) Draw() {
+func (m *SearchMode) Draw() {
 	m.editor.DrawStatus([]byte("/" + m.buffer.String()))
 }
 

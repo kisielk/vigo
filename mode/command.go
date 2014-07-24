@@ -17,12 +17,17 @@ type CommandMode struct {
 	buffer *bytes.Buffer
 }
 
-func NewCommandMode(editor *editor.Editor, mode editor.Mode) CommandMode {
+func NewCommandMode(editor *editor.Editor, mode editor.Mode) *CommandMode {
 	m := CommandMode{editor: editor, mode: mode, buffer: &bytes.Buffer{}}
-	return m
+	return &m
 }
 
-func (m CommandMode) Enter(e *editor.Editor) {
+// Reset (NOOP)
+func (m *CommandMode) Reset() {
+}
+
+// Enter (NOOP)
+func (m *CommandMode) Enter(e *editor.Editor) {
 }
 
 func (m CommandMode) NeedsCursor() bool {
@@ -34,10 +39,10 @@ func (m CommandMode) CursorPosition() (int, int) {
 	return m.buffer.Len() + 1, e.Height() - 1
 }
 
-func (m CommandMode) OnKey(ev *termbox.Event) {
+func (m *CommandMode) OnKey(ev *termbox.Event) {
 	switch ev.Key {
 	case termbox.KeyEsc, termbox.KeyCtrlC:
-		m.editor.SetMode(m.mode)
+		m.Exit()
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		l := m.buffer.Len()
 		if l > 0 {
@@ -58,7 +63,13 @@ func (m CommandMode) OnKey(ev *termbox.Event) {
 	}
 }
 
+// Exit Set the mode to self the 'prior' mode
+// EG- if NewCommandMode was called from normal mode,
+// cmdMode := NewCommandMode(g, m) where g is *Editor,
+// m is editor.Mode (interface)
+// you would go back to that mode
 func (m CommandMode) Exit() {
+	m.editor.SetMode(m.mode)
 }
 
 func (m CommandMode) Draw() {

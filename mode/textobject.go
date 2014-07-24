@@ -110,6 +110,7 @@ loop:
 	}
 }
 
+// Exit ... does... what?
 func (m *TextObjectMode) Exit() {
 	if m.err != nil {
 		m.editor.SetStatus(m.err.Error())
@@ -132,4 +133,8 @@ func (m *TextObjectMode) Exit() {
 	default:
 		m.editor.SetStatus("range conversion not implemented")
 	}
+}
+
+// Reset (NOOP)
+func (m *TextObjectMode) Reset() {
 }

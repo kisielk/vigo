@@ -7,22 +7,28 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-type normalMode struct {
-	editor *editor.Editor
-	count  string
+type NormalMode struct {
+	editor  *editor.Editor
+	count   string
+	command editor.Command
 }
 
-func NewNormalMode(e *editor.Editor) *normalMode {
-	m := normalMode{editor: e}
+func NewNormalMode(e *editor.Editor) *NormalMode {
+	m := NormalMode{editor: e}
 	m.editor.SetStatus("Normal")
 	return &m
 }
 
-func (m *normalMode) Enter(e *editor.Editor) {
+func (m *NormalMode) Enter(e *editor.Editor) {
 	e.ActiveView().Buffer().FinalizeActionGroup()
 }
 
-func (m *normalMode) OnKey(ev *termbox.Event) {
+func (m *NormalMode) Reset() {
+	m.count = ""
+	m.command = nil
+}
+
+func (m *NormalMode) OnKey(ev *termbox.Event) {
 	// Most of the key bindings are derived from those at
 	// http://elvis.the-little-red-haired-girl.org/elvisman/elvisvi.html#index
 
@@ -42,6 +48,17 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	count := utils.ParseCount(m.count)
 	if count == 0 {
 		count = 1
+	}
+
+	// Consecutive comands that require futher input to complete;
+	// accumulate and return.  Accept escape to reset the command
+	switch ev.Ch {
+	case 0x0:
+		switch ev.Key {
+		case termbox.KeyEsc:
+			g.Commands <- cmd.ResetMode{Mode: m}
+      return
+		}
 	}
 
 	// TODO: For (half)screen moving commands, use view.Height() in
@@ -103,9 +120,6 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		case termbox.KeyCtrlY:
 			// TODO: should move by count lines, default to 1
 			g.Commands <- cmd.MoveView{Dir: cmd.Backward, Lines: 1}
-		case termbox.KeyEsc:
-			// TODO: Cancel the current command
-			return
 		case termbox.KeySpace:
 			// Same as 'l'
 			g.Commands <- cmd.Repeat{cmd.MoveRune{Dir: cmd.Forward, Wrap: false}, count}
@@ -125,7 +139,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		// TODO: Distinction from 'e'
 		g.Commands <- cmd.Repeat{cmd.MoveWordEnd{}, count}
 	case 'F':
-		// TODO: Move left to given character
+		// TODO: Distinction from 'f' - move the the first (nth) occurence of following rune
 		return
 	case 'G':
 		// TODO: Move to line #, default last line
@@ -198,6 +212,8 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 		g.Commands <- cmd.Repeat{cmd.MoveWord{Dir: cmd.Forward}, count}
 	case 'e':
 		g.Commands <- cmd.Repeat{cmd.MoveWordEnd{}, count}
+	case 'f':
+		// TODO: Move to first (nth) occurance of entered rune to the right
 	case 'b':
 		g.Commands <- cmd.Repeat{cmd.MoveWord{Dir: cmd.Backward}, count}
 	case 'x':
@@ -219,7 +235,7 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	case 'v':
 		g.SetMode(NewVisualMode(g, false))
 	case 'V':
-		g.SetMode(NewVisualMode(g, true))
+		g.SetMode(NewVisualMode(g, false))
 	case ':':
 		// TODO use count to set range for command mode
 		g.SetMode(NewCommandMode(g, m))
@@ -228,8 +244,8 @@ func (m *normalMode) OnKey(ev *termbox.Event) {
 	}
 
 	// Reset repetitions
-	m.count = ""
+  m.Reset()
 }
 
-func (m *normalMode) Exit() {
+func (m *NormalMode) Exit() {
 }
