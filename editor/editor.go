@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"text/template"
 
 	"github.com/kisielk/vigo/buffer"
 	"github.com/kisielk/vigo/view"
@@ -19,6 +20,8 @@ type Mode interface {
 	OnKey(ev *termbox.Event)
 	Exit()
 }
+
+const editorStatusTemplate = `{{range .Messages}} {{ . }} {{ end }}`
 
 // this is a structure which represents a key press, used for keyboard macros
 type keyEvent struct {
@@ -60,6 +63,8 @@ type Editor struct {
 	quitFlag    bool
 	killBuffer_ []byte
 
+	StatusTemplate template.Template
+
 	LastSearchTerm string
 
 	// Event channels
@@ -92,13 +97,16 @@ func NewEditor(filenames []string) *Editor {
 	e.buffers = make([]*buffer.Buffer, 0, 20)
 	e.cutBuffers = newCutBuffers()
 
+	tmp := template.Must(template.New("status").Parse(editorStatusTemplate))
+	e.StatusTemplate = *tmp
+
 	for _, filename := range filenames {
 		//TODO: Check errors here
 		e.NewBufferFromFile(filename)
 	}
 	if len(e.buffers) == 0 {
 		buf := buffer.NewEmptyBuffer()
-		buf.Name = e.bufferName("unnamed")
+		buf.Name = e.BufferName("unnamed")
 		e.buffers = append(e.buffers, buf)
 	}
 	e.redraw = make(chan struct{})
@@ -129,7 +137,7 @@ func (e *Editor) getBuffer(name string) *buffer.Buffer {
 }
 
 // BufferName generates a buffer name based on the one given.
-func (e *Editor) bufferName(name string) string {
+func (e *Editor) BufferName(name string) string {
 	if buf := e.getBuffer(name); buf == nil {
 		return name
 	}
@@ -156,7 +164,7 @@ func (e *Editor) NewBufferFromFile(filename string) (*buffer.Buffer, error) {
 	f, err := os.Open(fullpath)
 	if err == os.ErrNotExist {
 		// Assume a new file
-		e.SetStatus("(New file)")
+		e.SetStatus()
 		buf = buffer.NewEmptyBuffer()
 	} else if err != nil {
 		e.SetStatus(err.Error())
@@ -170,14 +178,18 @@ func (e *Editor) NewBufferFromFile(filename string) (*buffer.Buffer, error) {
 	}
 	buf.Path = fullpath
 
-	buf.Name = e.bufferName(filename)
+	buf.Name = e.BufferName(filename)
 	e.buffers = append(e.buffers, buf)
 	return buf, nil
 }
 
-func (e *Editor) SetStatus(format string, args ...interface{}) {
+func (e *Editor) SetStatus(args ...interface{}) {
 	e.statusBuf.Reset()
-	fmt.Fprintf(&e.statusBuf, format, args...)
+	data := struct {
+		Messages []interface{}
+	}{
+		args}
+	e.StatusTemplate.Execute(&e.statusBuf, data)
 }
 
 func (e *Editor) SetActiveViewNode(node *view.Tree) {

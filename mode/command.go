@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/kisielk/vigo/editor"
+	cmd "github.com/kisielk/vigo/commands"
 	"github.com/nsf/termbox-go"
 )
 
@@ -74,9 +75,9 @@ func execCommand(e *editor.Editor, command string) error {
 		return nil
 	}
 
-	cmd, args := fields[0], fields[1:]
+	command, args := fields[0], fields[1:]
 
-	switch cmd {
+	switch command{
 	case "q":
 		// TODO if more than one split, close active one only.
 		e.Quit()
@@ -84,9 +85,9 @@ func execCommand(e *editor.Editor, command string) error {
 		b := e.ActiveView().Buffer()
 		switch len(args) {
 		case 0:
-			b.Save()
+			e.Commands <- cmd.SaveBuffer{b, ""}
 		case 1:
-			b.SaveAs(args[0])
+			e.Commands <- cmd.SaveBuffer{b, args[0]}
 		default:
 			return fmt.Errorf("too many arguments to :w")
 		}
@@ -118,7 +119,7 @@ func execCommand(e *editor.Editor, command string) error {
 		e.ActiveView().ShowHighlights(true)
 	}
 
-	if lineNum, err := strconv.Atoi(cmd); err == nil {
+	if lineNum, err := strconv.Atoi(command); err == nil {
 		// cmd is a number, we should move to that line
 		e.ActiveView().MoveCursorToLine(lineNum)
 	}

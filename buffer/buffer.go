@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"unicode/utf8"
+	"path/filepath"
 
 	"github.com/kisielk/vigo/utils"
 )
@@ -450,6 +451,15 @@ func (b *Buffer) SaveAs(filename string) error {
 	b.CleanupTrailingSpaces()
 	b.CleanupTrailingNewlines()
 	b.EnsureTrailingEOL()
+
+	fullpath, err := filepath.Abs(filename)
+	if err != nil {
+		return error( fmt.Errorf("couldn't determine absolute path: %s", err))
+	}
+
+	if b.Path == "" {
+		b.Path = fullpath
+	}
 
 	r := b.reader()
 	f, err := os.Create(filename)

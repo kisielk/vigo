@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"text/template"
 	"unicode/utf8"
 
 	"github.com/kisielk/vigo/buffer"
@@ -13,6 +14,8 @@ import (
 )
 
 type dirtyFlag int
+
+const viewStatusTemplate = `{{ if .Name }} {{ .Name }} {{ else }} (new file) {{ end }}{{ if not .Dirty }}[+]{{ end }} {{range .Messages}} {{ . }} {{ end }}( {{ .Row }}, {{ .Column }} )`
 
 const (
 	VerticalThreshold   = 5
@@ -216,7 +219,24 @@ type Context struct {
 	buffers    *[]*buffer.Buffer
 }
 
-type StatusFunc func(format string, args ...interface{})
+type StatusFunc func(args ...interface{})
+
+func (v *View) setViewStatus(args ...interface{}) {
+	v.statusBuf.Reset()
+	data := struct {
+		Name     string
+		Dirty    bool
+		Row      int
+		Column   int
+		Messages []interface{}
+	}{
+		v.buf.Name,
+		v.IsDirty(),
+		v.cursor.LineNum,
+		v.cursorVoffset,
+		args}
+	v.StatusTemplate.Execute(&v.statusBuf, data)
+}
 
 func NewContext(setStatus StatusFunc, killBuffer *[]byte, buffers *[]*buffer.Buffer) Context {
 	return Context{setStatus, killBuffer, buffers}
@@ -242,11 +262,13 @@ type View struct {
 	showHighlights bool
 
 	bufferEvents chan buffer.BufferEvent
+
+	StatusTemplate template.Template
 }
 
 // SetStatus sets the status line of the view
-func (v *View) SetStatus(format string, args ...interface{}) {
-	v.ctx.setStatus(format, args...)
+func (v *View) SetStatus(args ...interface{}) {
+	v.setViewStatus(args...)
 }
 
 func (v *View) Buffer() *buffer.Buffer {
@@ -261,6 +283,7 @@ func NewView(ctx Context, buf *buffer.Buffer, redraw chan struct{}) *View {
 		tags:            make([]Tag, 0, 10),
 		redraw:          redraw,
 		showHighlights:  true,
+		StatusTemplate:  *template.Must(template.New("viewstatus").Parse(viewStatusTemplate)),
 	}
 	v.Attach(buf)
 	return v
@@ -527,30 +550,18 @@ func (v *View) drawStatus() {
 	lp := tulib.DefaultLabelParams
 	lp.Bg = termbox.AttrReverse
 	lp.Fg = termbox.AttrReverse | termbox.AttrBold
+
 	v.uiBuf.Fill(
 		tulib.Rect{X: 0, Y: v.height(), Width: v.uiBuf.Width, Height: 1},
 		termbox.Cell{Fg: termbox.AttrReverse, Bg: termbox.AttrReverse, Ch: '─'},
 	)
 
-	// on disk sync status
-	if !v.buf.SyncedWithDisk() {
-		cell := termbox.Cell{
-			Fg: termbox.AttrReverse,
-			Bg: termbox.AttrReverse,
-			Ch: '*',
-		}
-		v.uiBuf.Set(1, v.height(), cell)
-		v.uiBuf.Set(2, v.height(), cell)
-	}
+	// Update Status
+	v.setViewStatus()
 
-	// filename
-	fmt.Fprintf(&v.statusBuf, "  %s  ", v.buf.Name)
-	v.uiBuf.DrawLabel(tulib.Rect{X: 5, Y: v.height(), Width: v.uiBuf.Width, Height: 1}, &lp, v.statusBuf.Bytes())
-	namel := v.statusBuf.Len()
 	lp.Fg = termbox.AttrReverse
-	v.statusBuf.Reset()
-	fmt.Fprintf(&v.statusBuf, "(%d, %d)  ", v.cursor.LineNum, v.cursorVoffset)
-	v.uiBuf.DrawLabel(tulib.Rect{X: 5 + namel, Y: v.height(), Width: v.uiBuf.Width, Height: 1}, &lp, v.statusBuf.Bytes())
+	v.uiBuf.DrawLabel(tulib.Rect{X: 5, Y: v.height(), Width: v.uiBuf.Width, Height: 1}, &lp, v.statusBuf.Bytes())
+
 	v.statusBuf.Reset()
 }
 
@@ -647,6 +658,11 @@ func (v *View) adjustCursorLine() {
 		v.adjustLineVoffset()
 		v.dirty = dirtyEverything
 	}
+}
+
+// IsDirty returns true if the buffer contents of this view has changed
+func (v *View) IsDirty() bool {
+	return v.buf.SyncedWithDisk()
 }
 
 // When 'cursor_line' was changed, call this function to possibly adjust the
